@@ -313,8 +313,7 @@
           html += `組み合わせを発見しました！（最大${maxResults}件）<br>
                    <span style="font-size:0.9em; color:#888;">※対象キャラをランクアップしてください</span><br>`;
           res.forEach(comb => {
-            // 合計値も表示して確認しやすく
-            html += `<div class="comb">[ ${comb.join(' ')} ] (合計: ${comb.reduce((a,b)=>a+b,0)})</div>`;
+            html += `<div class="comb">[ ${comb.join(', ')} ]</div>`;
           });
         }
         

@@ -192,7 +192,7 @@
       <summary>▶ 上昇値とは？（クリックで画像の例を見る）</summary>
       <div class="details-content">
         <p>
-          ゲーム内のランクアップ確認画面に表示される <span class="highlight">青色の数値（+〇〇）</span> を入力してください。<br>
+          ゲーム内のランクアップ確認画面に表示される <span class="highlight">青色の数値（＋○○）</span> を入力してください。<br>
           <span style="color:#aaa; font-size:0.9em;">※「+」記号が付いていても自動で削除します。<br>※空白や改行で区切って入力できます。</span>
         </p>
         <img src="images/help.png" alt="ランクアップ画面の例: 数値の上昇値を確認する場所" loading="lazy">
@@ -314,7 +314,7 @@
                    <span style="font-size:0.9em; color:#888;">※対象キャラをランクアップしてください</span><br>`;
           res.forEach(comb => {
             // 合計値も表示して確認しやすく
-            html += `<div class="comb">[ ${comb.join(' ')} ] (合計: ${comb.reduce((a,b)=>a+b,0)})</div>`;
+            html += `<div class="comb">[ ${comb.join(', ')} ]</div>`;
           });
         }
         
