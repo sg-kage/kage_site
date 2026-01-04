@@ -237,8 +237,14 @@
     function init() {
         const s = localStorage.getItem(STORAGE_KEY);
         if(s) { try{ const d=JSON.parse(s); IDS.forEach(id=>{ const e=document.getElementById(id); if(e && d[id]) e.value=d[id]; }); }catch(e){} }
-        if(!document.getElementById('totalPop').value) updateHousing();
-        else calculate();
+        
+        // 人口が空、または0の場合は、住居Lvから再計算する
+        const pop = document.getElementById('totalPop').value;
+        if(!pop || pop == "0") {
+            updateHousing();
+        } else {
+            calculate();
+        }
     }
     
     function resetData() {
@@ -262,6 +268,7 @@
         // Inputs
         const lvBase = parseInt(document.getElementById('lvBase').value)||1;
         const totalPop = parseInt(document.getElementById('totalPop').value)||0;
+        
         const lvs = {
             house: parseInt(document.getElementById('lvHousing').value)||1,
             food: parseInt(document.getElementById('lvFood').value)||1,
@@ -287,7 +294,6 @@
         }
 
         // --- Logic Step 2: Allocation (Min-Max Time Strategy) ---
-        // 修正点: 残り必要量を計算
         let need = {
             stone: Math.max(0, tar.stone - cur.stone),
             wood:  Math.max(0, tar.wood  - cur.wood),
@@ -297,7 +303,7 @@
         let free = workingPop - allocFood;
         let alloc = { stone: 0, wood: 0, coin: 0 };
         let full = { stone: false, wood: false, coin: false };
-        let safety = totalPop * 2; // ループ暴走防止
+        let safety = (totalPop > 0 ? totalPop : 1000) * 2; // 安全装置
         
         // 人口が尽きるまで、1人ずつ「最も遅れている施設」へ割り当てる
         while (free > 0 && safety > 0) {
@@ -437,4 +443,30 @@
                     <div style="font-weight:bold;">食糧庫 ${fBadge}</div>
                 </div>
                 <div style="width:65%; text-align:right;">
-                    <div style="color:var(--accent-color); font-weight:bold; font-size:15px;">${allocFood} 人
+                    <div style="color:var(--accent-color); font-weight:bold; font-size:15px;">${allocFood} 人</div>
+                    <div style="font-size:11px; color:#aaa;">維持: ${sustainablePop}人分</div>
+                </div>
+            </div>`;
+
+        html += renderRow("石材所", alloc.stone, caps.stone, prod.stone, time.stone);
+        html += renderRow("木材所", alloc.wood, caps.wood, prod.wood, time.wood);
+        html += renderRow("商品工場", alloc.coin, caps.coin, prod.coin, time.coin);
+
+        document.getElementById('rowsArea').innerHTML = html;
+
+        if(maxTime > 0.001) {
+            const fin = new Date(new Date().getTime() + maxTime*3600000);
+            const Y = fin.getFullYear();
+            const M = ('0'+(fin.getMonth()+1)).slice(-2);
+            const D = ('0'+fin.getDate()).slice(-2);
+            const h = ('0'+fin.getHours()).slice(-2);
+            const m = ('0'+fin.getMinutes()).slice(-2);
+            const s = ('0'+fin.getSeconds()).slice(-2);
+            document.getElementById('timeEstimate').innerHTML = `目標達成目安: ${Y}/${M}/${D} ${h}:${m}:${s}`;
+        } else {
+            document.getElementById('timeEstimate').innerHTML = "目標達成済み";
+        }
+    }
+</script>
+</body>
+</html>
