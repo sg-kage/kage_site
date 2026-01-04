@@ -13,7 +13,6 @@
             --殲滅見出し: #2b3a55;
             --文字色: #c9d1d9;
             --枠線: #30363d;
-            --区切り色: #8b949e;
         }
         body {
             background-color: var(--背景色);
@@ -22,116 +21,97 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 10px 5px;
+            padding: 20px 10px; /* スマホ用に左右の余白を少し狭めました */
             margin: 0;
         }
+        /* 設定エリア */
         .設定 {
             background: var(--パネル色);
-            padding: 10px 15px;
+            padding: 15px 20px;
             border-radius: 4px;
             border-bottom: 2px solid var(--アクセント);
-            margin-bottom: 15px;
+            margin-bottom: 30px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
+            flex-wrap: wrap; /* スマホで折り返せるように追加 */
             justify-content: center;
-            width: 95%;
-            font-size: 0.9rem;
         }
         input {
             background: #000;
             color: var(--アクセント);
             border: 1px solid var(--枠線);
-            padding: 4px 8px;
+            padding: 5px 10px;
             border-radius: 3px;
             font-family: monospace;
-            font-size: 1rem;
+            font-size: 1rem; /* スマホで入力しやすく調整 */
+        }
+
+        /* ▼▼▼ 追加・変更した部分 ▼▼▼ */
+        
+        /* テーブルを横スクロールさせるための外枠 */
+        .table-wrapper {
+            width: 100%;
+            max-width: 850px;
+            overflow-x: auto; /* 横にはみ出したらスクロール */
+            -webkit-overflow-scrolling: touch; /* スマホで滑らかに動くように */
+            border: 1px solid var(--枠線); /* スクロール領域がわかるように枠線追加（任意） */
         }
 
         /* テーブル設定 */
-        .table-wrapper {
-            width: 100%;
-            /* 縦積みにしたので最大幅はもっと狭くてOK */
-            max-width: 600px; 
-            /* 念のためスクロール設定は残すが、基本不要になるはず */
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
         table {
             width: 100%;
+            /* min-widthを設定して、スマホでも無理やり縮小されないようにする */
+            min-width: 600px; 
             border-collapse: collapse;
-            font-size: 0.9rem; /* PC標準 */
+            font-size: 0.9rem;
             text-align: center;
-            white-space: nowrap; /* 日付自体の改行は禁止 */
+            border: none; /* 外枠はwrapperに任せる */
         }
+        /* ▲▲▲ 追加・変更した部分 ▲▲▲ */
 
         th {
-            padding: 10px;
+            padding: 12px;
             border: 1px solid var(--枠線);
             font-weight: normal;
+            letter-spacing: 2px;
+            white-space: nowrap; /* 見出しが改行されないように */
         }
         .季節列 { background: var(--季節見出し); }
         .殲滅列 { background: var(--殲滅見出し); }
         
         td {
-            padding: 8px;
+            padding: 10px;
             border: 1px solid var(--枠線);
             background: var(--パネル色);
             font-family: 'Consolas', 'Courier New', monospace;
-            vertical-align: middle;
+            white-space: nowrap; /* 日付が変な位置で改行されないように */
         }
-        
+        /* 現在の行をハイライト */
         tr.進行中 td {
             background: rgba(88, 166, 255, 0.15);
             border-top: 1px solid var(--アクセント);
             border-bottom: 1px solid var(--アクセント);
             color: #fff;
         }
+        /* 土日の色 */
         .土曜 { color: #58a6ff; }
         .日曜 { color: #ff7b72; }
         
+        /* 年の区切り */
         .年区切り td {
             background: #000;
             color: var(--アクセント);
             font-weight: bold;
-            padding: 8px;
-            font-size: 0.8rem;
-        }
-
-        /* 期間の区切り文字（〜）のデザイン */
-        .kikan-sep {
-            display: inline-block;
-            color: var(--区切り色);
-            font-size: 0.8em;
-            margin: 0 2px;
-        }
-
-        /* ▼▼▼ スマホ最適化（ここがポイント） ▼▼▼ */
-        @media (max-width: 600px) {
-            table {
-                font-size: 12px; /* 少し戻しました（読めるサイズ） */
-            }
-            th, td {
-                padding: 6px 4px; /* 余白を詰める */
-            }
-            /* 期間列だけ行間を詰めて縦積みをきれいに見せる */
-            td.kikan-cell {
-                line-height: 1.4; 
-            }
-            /* 区切り文字をブロック要素にして改行させる */
-            .kikan-sep {
-                display: block; /* これで強制的に改行されます */
-                transform: rotate(90deg); /* お好みで：縦にするなら回転させてもいい（今回は無しで） */
-                margin: 2px 0;
-            }
+            padding: 15px;
+            letter-spacing: 5px;
         }
     </style>
 </head>
 <body>
 
 <div class="設定">
-    <span>開始日(木)</span>
+    <span>基準開始日(木)</span>
     <input type="date" id="baseDate" value="2025-12-25" onchange="生成()">
 </div>
 
@@ -140,20 +120,19 @@
         <thead>
             <tr>
                 <th class="季節列">季節期間</th>
-                <th colspan="3" class="殲滅列">殲滅戦</th>
+                <th colspan="3" class="殲滅列">殲滅戦（金・土・日）</th>
             </tr>
         </thead>
         <tbody id="meisai"></tbody>
     </table>
 </div>
-
 <script>
     function 書式(d) {
         const y = d.getFullYear().toString().slice(-2);
         const m = (d.getMonth() + 1).toString().padStart(2, '0');
         const r = d.getDate().toString().padStart(2, '0');
         const w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
-        return `${y}/${m}/${r}<span style="font-size:0.85em">(${w})</span>`;
+        return `${y}/${m}/${r}(${w})`;
     }
 
     function 生成() {
@@ -163,9 +142,6 @@
         let d = new Date(document.getElementById('baseDate').value);
         const today = new Date();
         let currentYear = d.getFullYear();
-
-        // スマホ判定
-        const isMobile = window.innerWidth <= 600;
 
         for (let i = 0; i < 35; i++) {
             const tr = document.createElement('tr');
@@ -178,22 +154,16 @@
             if (d.getFullYear() !== currentYear) {
                 const sep = document.createElement('tr');
                 sep.className = '年区切り';
-                sep.innerHTML = `<td colspan="4">- ${d.getFullYear()} -</td>`;
+                sep.innerHTML = `<td colspan="4">--- ${d.getFullYear()}年 ---</td>`;
                 body.appendChild(sep);
                 currentYear = d.getFullYear();
             }
 
+            // 期間判定を少し修正（終了日も含めるように）
             if (today >= d && today <= new Date(sun.getTime() + 86400000)) tr.className = '進行中';
 
-            // スマホかPCかで区切り文字を変える
-            // PC: 「〜」
-            // スマホ: 「<br>▼<br>」またはCSSでブロック化したspan
-            // 今回はCSSで制御するため、共通のクラス付きspanを使う
-            
             tr.innerHTML = `
-                <td class="kikan-cell">
-                    ${書式(d)}<span class="kikan-sep">〜</span>${書式(sEnd)}
-                </td>
+                <td>${書式(d)} 〜 ${書式(sEnd)}</td>
                 <td>${書式(fri)}</td>
                 <td class="土曜">${書式(sat)}</td>
                 <td class="日曜">${書式(sun)}</td>
@@ -202,8 +172,6 @@
             d.setDate(d.getDate() + 28);
         }
     }
-    
-    window.addEventListener('resize', 生成);
     生成();
 </script>
 
