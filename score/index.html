@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>季節イベ最大スコア計算</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/lucide.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+    .font-mono {
+      font-family: 'Fira Code', monospace;
+    }
+    #resultsGridWrapper {
+      overflow-x: auto;
+      width: 100%;
+    }
+    #resultsGridTable {
+      width: 100%;
+      min-width: 600px;
+      table-layout: fixed;
+      font-size: 0.95rem;
+      border-collapse: collapse;
+    }
+    #resultsGridTable th, #resultsGridTable td {
+      padding: 4px 6px;
+      border-right: 1px solid #333333;
+      border-bottom: 1px solid #333333;
+      white-space: nowrap;
+      text-align: left;
+      background-color: #1E1E1E;
+      color: #E0E0E0;
+    }
+    #resultsGridTable th {
+      background-color: #1E1E1E;
+      font-weight: bold;
+      text-align: center;
+      color: #B0B0B0;
+    }
+    #resultsGridTable th:last-child, #resultsGridTable td:last-child {
+      border-right: none;
+    }
+    #resultsGridTable tr:nth-child(odd) td {
+      background-color: #1E1E1E;
+    }
+    #resultsGridTable tr:nth-child(even) td {
+      background-color: #121212;
+    }
+    .percentage-label {
+      background-color: #375613;
+      color: #E0E0E0;
+      padding: 0 4px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: bold;
+      text-align: right;
+      width: 2.5em;
+    }
+    .result-text {
+      color: #E0E0E0;
+    }
+    .result-number {
+      color: #B0B0B0;
+    }
+    .centered-content { /* 追加: 中央揃えのためのクラス */
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .result-container {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      font-family: 'Fira Code', monospace;
+      margin-left: 0.5em;
+      align-items: center; /* 追加 */
+    }
+    @media (max-width: 640px) {
+      #resultsGridTable {
+        font-size: 0.65rem;
+        min-width: 480px;
+      }
+      #titleInput,
+      input[type="number"] {
+        font-size: 0.85rem !important;
+      }
+      label {
+        font-size: 0.7rem !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-[#121212] text-[#E0E0E0] p-2 antialiased flex flex-col items-center min-h-screen">
+
+  <div class="w-full max-w-2xl sm:max-w-3xl md:max-w-6xl bg-[#1E1E1E] rounded-xl shadow-2xl p-2 sm:p-4 md:p-8">
+    <div class="flex items-center mb-4 sm:mb-6">
+      <i data-lucide="edit" class="w-6 h-6 text-[#B0B0B0] mr-2 sm:mr-3"></i>
+      <input
+        type="text"
+        id="titleInput"
+        value="タイトル"
+        class="w-full bg-[#121212] text-sm sm:text-base md:text-lg font-bold border-none rounded-lg py-1 px-2 sm:py-2 sm:px-4 focus:ring-2 focus:ring-[#4CAF50] focus:outline-none text-[#E0E0E0]"
+      />
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-2 sm:mb-4">
+      <div class="flex-1 bg-[#121212] p-2 rounded-lg shadow-inner">
+        <label class="block text-[#B0B0B0] text-xs mb-1">相手HP</label>
+        <div class="flex items-center">
+          <button id="decrementBaseValue" class="p-0.5 bg-[#333333] rounded-l-lg hover:bg-[#4CAF50] transition-colors">
+            <i data-lucide="minus" class="w-4 h-4 text-[#E0E0E0]"></i>
+          </button>
+          <input
+            type="number"
+            id="baseValueInput"
+            value="1000000"
+            class="flex-1 text-center bg-[#121212] text-[#E0E0E0] font-mono text-sm sm:text-base py-0.5 focus:ring-2 focus:ring-[#4CAF50] focus:outline-none"
+          />
+          <button id="incrementBaseValue" class="p-0.5 bg-[#333333] rounded-r-lg hover:bg-[#4CAF50] transition-colors">
+            <i data-lucide="plus" class="w-4 h-4 text-[#E0E0E0]"></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 bg-[#121212] p-2 rounded-lg shadow-inner">
+        <label class="block text-[#B0B0B0] text-xs mb-1">スコアPt</label>
+        <div class="flex items-center">
+          <button id="decrementAdjustedValue" class="p-0.5 bg-[#333333] rounded-l-lg hover:bg-[#4CAF50] transition-colors">
+            <i data-lucide="minus" class="w-4 h-4 text-[#E0E0E0]"></i>
+          </button>
+          <input
+            type="number"
+            id="adjustedValueInput"
+            value="600000"
+            class="flex-1 text-center bg-[#121212] text-[#E0E0E0] font-mono text-sm sm:text-base py-0.5 focus:ring-2 focus:ring-[#4CAF50] focus:outline-none"
+          />
+          <button id="incrementAdjustedValue" class="p-0.5 bg-[#333333] rounded-r-lg hover:bg-[#4CAF50] transition-colors">
+            <i data-lucide="plus" class="w-4 h-4 text-[#E0E0E0]"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-[#1E1E1E] rounded-lg shadow-lg overflow-x-auto border border-[#333333]">
+      <div id="resultsGridWrapper">
+        <table id="resultsGridTable">
+          </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    const baseValueInput = document.getElementById('baseValueInput');
+    const adjustedValueInput = document.getElementById('adjustedValueInput');
+    const resultsGridTable = document.getElementById('resultsGridTable');
+    const incrementBaseValueBtn = document.getElementById('incrementBaseValue');
+    const decrementBaseValueBtn = document.getElementById('decrementBaseValue');
+    const incrementAdjustedValueBtn = document.getElementById('incrementAdjustedValue');
+    const decrementAdjustedValueBtn = document.getElementById('decrementAdjustedValue');
+
+    const calculateResult = (baseValue, adjustedValue, percentage) => {
+      const h6 = percentage / 100;
+      const adjusted = (adjustedValue / (1 + h6) - 20000) / 280000;
+      const result = Math.ceil(baseValue * adjusted);
+      const percent = result / baseValue;
+      const formattedPercent = (percent * 100).toFixed(2) + '%';
+      const formattedResult = new Intl.NumberFormat('ja-JP').format(result);
+      return `${formattedPercent} ${formattedResult}`;
+    };
+
+    const renderGrid = () => {
+      resultsGridTable.innerHTML = '';
+      const baseValue = Number(baseValueInput.value);
+      const adjustedValue = Number(adjustedValueInput.value);
+
+      const percentages = ['0%', '20%', '40%', '60%', '80%'];
+      const headerRow = document.createElement('tr');
+      percentages.forEach((p) => {
+        const th = document.createElement('th');
+        th.textContent = p;
+        headerRow.appendChild(th);
+      });
+      resultsGridTable.appendChild(headerRow);
+
+      const columnsData = [[], [], [], [], []];
+      for (let i = 0; i <= 99; i++) {
+        const columnIndex = Math.floor(i / 20);
+        if (columnIndex < 5) {
+          columnsData[columnIndex].push(i);
+        }
+      }
+      columnsData[4].push(100);
+
+      const maxRows = Math.max(...columnsData.map(col => col.length));
+      for (let rowIndex = 0; rowIndex < maxRows; rowIndex++) {
+        const row = document.createElement('tr');
+        columnsData.forEach((column) => {
+          const p = column[rowIndex];
+          const td = document.createElement('td');
+          if (p !== undefined) {
+            const [percentText, numberText] = calculateResult(baseValue, adjustedValue, p).split(' ');
+            td.innerHTML = `
+              <div class="centered-content">
+                <div class="percentage-label">${p}%</div>
+                <div class="result-container">
+                  <div class="result-text">${percentText}</div>
+                  <div class="result-number">${numberText}</div>
+                </div>
+              </div>
+            `;
+          } else {
+            td.textContent = '';
+          }
+          row.appendChild(td);
+        });
+        resultsGridTable.appendChild(row);
+      }
+    };
+
+    const handleInput = () => {
+      renderGrid();
+    };
+
+    baseValueInput.addEventListener('input', handleInput);
+    adjustedValueInput.addEventListener('input', handleInput);
+    incrementBaseValueBtn.addEventListener('click', () => {
+      baseValueInput.value = Number(baseValueInput.value) + 10000;
+      handleInput();
+    });
+    decrementBaseValueBtn.addEventListener('click', () => {
+      baseValueInput.value = Math.max(0, Number(baseValueInput.value) - 10000);
+      handleInput();
+    });
+    incrementAdjustedValueBtn.addEventListener('click', () => {
+      adjustedValueInput.value = Number(adjustedValueInput.value) + 10000;
+      handleInput();
+    });
+    decrementAdjustedValueBtn.addEventListener('click', () => {
+      adjustedValueInput.value = Math.max(0, Number(adjustedValueInput.value) - 10000);
+      handleInput();
+    });
+
+    renderGrid();
+  </script>
+</body>
+</html>

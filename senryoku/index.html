@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>戦力組み合わせ探索ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      background: #181a1b;
+      color: #f1f1f1;
+      font-family: sans-serif;
+      margin: 1em 2em;
+    }
+    input, textarea, button {
+      background: #282c30;
+      color: #f1f1f1;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 0.3em 0.5em;
+      margin-bottom: 0.5em;
+      font-size: 1em;
+      line-height: 1.2;
+    }
+    input, button {
+      height: 2em;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 3em;
+      max-height: 8em;
+      height: 3em;
+      width: 100%;
+      min-width: 200px;
+    }
+    input:focus, textarea:focus {
+      outline: 2px solid #555;
+    }
+    button {
+      cursor: pointer;
+      transition: background 0.2s;
+      min-width: 5.5em;
+      height: 2.2em;
+      margin-top: 0.2em;
+      margin-bottom: 0.6em;
+    }
+    .clear-btn {
+      background: #444b53;
+      color: #fff;
+      border: 1px solid #666;
+      margin-left: 0.5em;
+      font-size: 0.95em;
+      padding: 0.2em 0.9em;
+      height: 2em;
+      min-width: 0;
+    }
+    .all-clear-btn {
+      background: #ad2d2d;
+      color: #fff;
+      border: 1px solid #b14545;
+      margin-left: 0.5em;
+      font-size: 0.92em;
+      padding: 0.2em 1.1em;
+      height: 2.2em;
+      border-radius: 5px;
+      min-width: 0;
+      vertical-align: middle;
+    }
+    .all-clear-btn:hover {
+      background: #e84c4c;
+    }
+    button:hover, .clear-btn:hover {
+      background: #676e76;
+    }
+    .result {
+      margin-top: 1em;
+      font-size: 0.97em;
+    }
+    .comb {
+      font-family: monospace;
+      background: #202225;
+      margin: 0.07em 0;
+      padding: 0.1em 0.5em;
+      border-radius: 3px;
+      word-break: break-all;
+      font-size: 0.97em;
+    }
+    label {
+      display: block;
+      margin-top: 0.2em;
+      font-weight: bold;
+      font-size: 0.97em;
+    }
+    .header-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.8em;
+      gap: 1em;
+    }
+    h1 {
+      font-size: 1.25em;
+      margin-bottom: 0;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    @media (max-width: 600px) {
+      body {
+        margin: 0.4em;
+      }
+      textarea, input, button {
+        font-size: 1em;
+      }
+      h1 { font-size: 1em; }
+      .action-row { flex-direction: column; gap: 0; }
+      .header-row { flex-direction: column; align-items: flex-start; gap: 0.3em;}
+      .all-clear-btn, .clear-btn { margin-left: 0; margin-top: 0.5em; }
+    }
+    .textarea-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5em;
+    }
+    .textarea-row textarea {
+      flex: 1;
+    }
+    .action-row {
+      display: flex;
+      align-items: center;
+      gap: 0.7em;
+      margin-bottom: 0.4em;
+      margin-top: 0.2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-row">
+    <h1>戦力組み合わせ探索ツール</h1>
+  </div>
+  <div>
+    <label>現在戦力
+      <input id="now" type="number" value="0">
+    </label>
+    <label>狙う戦力
+      <input id="target" type="number" value="0">
+    </label>
+    <label style="margin-top: 0.2em;">
+      表示する候補数
+      <input id="maxResults" type="number" min="1" placeholder="10" style="width: 6em;" value="5">
+    </label>
+    <label>各キャラの戦力</label>
+    <div class="textarea-row">
+      <textarea id="nums" rows="3">1,2,3</textarea>
+    </div>
+    <div class="action-row">
+      <button onclick="calc()">計算する</button>
+      <button type="button" class="clear-btn" onclick="clearNums()">クリア</button>
+      <button type="button" class="all-clear-btn" onclick="clearAll()">すべてをクリア</button>
+    </div>
+  </div>
+  <div class="result" id="result"></div>
+  <script>
+    function combinations(arr, k) {
+      let res = [];
+      function helper(start, comb) {
+        if (comb.length > 0) res.push(comb);
+        for (let i = start; i < arr.length; i++) {
+          helper(i + 1, comb.concat([arr[i]]));
+        }
+      }
+      helper(0, []);
+      return res;
+    }
+    function formatNum(n) {
+      return n.toLocaleString('ja-JP');
+    }
+    function clearNums() {
+      document.getElementById('nums').value = '';
+    }
+    function clearAll() {
+      document.getElementById('now').value = '';
+      document.getElementById('target').value = '';
+      document.getElementById('maxResults').value = 5;
+      document.getElementById('nums').value = '';
+      document.getElementById('result').innerHTML = '';
+    }
+    function calc() {
+      const now = parseInt(document.getElementById('now').value, 10);
+      const target = parseInt(document.getElementById('target').value, 10);
+      // 「,」「半角スペース」「全角スペース」「改行」すべて区切りとして対応
+      const nums = document.getElementById('nums').value
+        .replace(/[\n\r]/g, ",")
+        .replace(/[ \u3000]/g, ",") // 半角スペース・全角スペース → カンマ
+        .split(',')
+        .map(s => parseInt(s.trim(), 10))
+        .filter(x=>!isNaN(x));
+      const diff = Math.abs(target - now);
+      let maxResults = parseInt(document.getElementById('maxResults').value, 10);
+      if (isNaN(maxResults) || maxResults < 1) maxResults = 10;
+      document.getElementById('result').innerHTML =
+        `<b>■設定</b><br>
+        現在戦力: ${formatNum(now)}<br>
+        狙う戦力: ${formatNum(target)}<br>
+        差: ${formatNum(diff)}<br>
+        各キャラ: [${nums.join(', ')}]<br>
+        <hr>計算中...`;
+
+      setTimeout(() => {
+        let res = [];
+        const allCombs = combinations(nums, nums.length).sort((a,b)=>a.length-b.length);
+        for (let c of allCombs) {
+          if (c.reduce((a,b)=>a+b,0) === diff) res.push(c);
+          if(res.length >= maxResults) break;
+        }
+        let html = `<b>■結果</b><br>`;
+        if (res.length === 0) {
+          html += "組み合わせを発見できませんでした";
+        } else {
+          html += `組み合わせを発見しました！（最大${maxResults}件まで表示）<br>対象キャラのスクショを残しておくことをお勧めします<br>`;
+          res.forEach(comb => {
+            html += `<div class="comb">[${comb.join(', ')}]</div>`;
+          });
+        }
+        html += "<br>完了";
+        document.getElementById('result').innerHTML =
+          `<b>■設定</b><br>
+          現在戦力: ${formatNum(now)}<br>
+          狙う戦力: ${formatNum(target)}<br>
+          差: ${formatNum(diff)}<br>
+          各キャラ: [${nums.join(', ')}]<br>
+          <hr>${html}`;
+      }, 100); // UI更新用
+    }
+  </script>
+</body>
+</html>
