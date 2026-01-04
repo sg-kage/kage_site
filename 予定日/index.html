@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作戦日程表</title>
+    <style>
+        :root {
+            --背景色: #0d1117;
+            --パネル色: #161b22;
+            --アクセント: #58a6ff;
+            --季節見出し: #3e4d35;
+            --殲滅見出し: #2b3a55;
+            --文字色: #c9d1d9;
+            --枠線: #30363d;
+        }
+        body {
+            background-color: var(--背景色);
+            color: var(--文字色);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        /* 設定エリア */
+        .設定 {
+            background: var(--パネル色);
+            padding: 15px 30px;
+            border-radius: 4px;
+            border-bottom: 2px solid var(--アクセント);
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        input {
+            background: #000;
+            color: var(--アクセント);
+            border: 1px solid var(--枠線);
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        /* テーブル設定 */
+        table {
+            width: 100%;
+            max-width: 850px;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        th {
+            padding: 12px;
+            border: 1px solid var(--枠線);
+            font-weight: normal;
+            letter-spacing: 2px;
+        }
+        .季節列 { background: var(--季節見出し); }
+        .殲滅列 { background: var(--殲滅見出し); }
+        
+        td {
+            padding: 10px;
+            border: 1px solid var(--枠線);
+            background: var(--パネル色);
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+        /* 現在の行をハイライト */
+        tr.進行中 td {
+            background: rgba(88, 166, 255, 0.15);
+            border-top: 1px solid var(--アクセント);
+            border-bottom: 1px solid var(--アクセント);
+            color: #fff;
+        }
+        /* 土日の色 */
+        .土曜 { color: #58a6ff; }
+        .日曜 { color: #ff7b72; }
+        
+        /* 年の区切り */
+        .年区切り td {
+            background: #000;
+            color: var(--アクセント);
+            font-weight: bold;
+            padding: 15px;
+            letter-spacing: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="設定">
+    <span>基準開始日(木)</span>
+    <input type="date" id="baseDate" value="2025-12-25" onchange="生成()">
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th class="季節列">季節期間</th>
+            <th colspan="3" class="殲滅列">殲滅戦（金・土・日）</th>
+        </tr>
+    </thead>
+    <tbody id="meisai"></tbody>
+</table>
+
+<script>
+    function 書式(d) {
+        const y = d.getFullYear().toString().slice(-2);
+        const m = (d.getMonth() + 1).toString().padStart(2, '0');
+        const r = d.getDate().toString().padStart(2, '0');
+        const w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+        return `${y}/${m}/${r}(${w})`;
+    }
+
+    function 生成() {
+        const body = document.getElementById('meisai');
+        body.innerHTML = '';
+        
+        let d = new Date(document.getElementById('baseDate').value);
+        const today = new Date();
+        let currentYear = d.getFullYear();
+
+        for (let i = 0; i < 35; i++) {
+            const tr = document.createElement('tr');
+            
+            let sEnd = new Date(d); sEnd.setDate(d.getDate() + 21);
+            let fri = new Date(d); fri.setDate(d.getDate() + 22);
+            let sat = new Date(d); sat.setDate(d.getDate() + 23);
+            let sun = new Date(d); sun.setDate(d.getDate() + 24);
+
+            if (d.getFullYear() !== currentYear) {
+                const sep = document.createElement('tr');
+                sep.className = '年区切り';
+                sep.innerHTML = `<td colspan="4">--- ${d.getFullYear()}年 ---</td>`;
+                body.appendChild(sep);
+                currentYear = d.getFullYear();
+            }
+
+            if (today >= d && today <= sun) tr.className = '進行中';
+
+            tr.innerHTML = `
+                <td>${書式(d)} 〜 ${書式(sEnd)}</td>
+                <td>${書式(fri)}</td>
+                <td class="土曜">${書式(sat)}</td>
+                <td class="日曜">${書式(sun)}</td>
+            `;
+            body.appendChild(tr);
+            d.setDate(d.getDate() + 28);
+        }
+    }
+    生成();
+</script>
+
+</body>
+</html>
