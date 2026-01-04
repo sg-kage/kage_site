@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カゲマス秘密基地</title>
+    <style>
+        :root {
+            --bg-color: #202020;
+            --surface-color: #2c2c2c;
+            --border-color: #444;
+            --input-bg: #1a1a1a;
+            --accent-color: #60cdff;
+            --text-primary: #eee;
+            --text-secondary: #aaa;
+            --warn-color: #ffcc00;
+            --danger-color: #ff6b6b;
+            --success-color: #66ff99;
+        }
+
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            padding: 15px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 15px; padding-bottom: 50px; }
+
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        /* ヘッダー */
+        .row-header {
+            display: flex;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .h-name { width: 25%; }
+        .h-lv { width: 20%; text-align: center; }
+        .h-val { width: 55%; text-align: right; padding-right: 4px;}
+
+        /* 入力行 */
+        .input-row { display: flex; align-items: center; margin-bottom: 10px; height: 34px; }
+        .input-row:last-child { margin-bottom: 0; }
+        
+        .col-label { width: 25%; font-weight: bold; font-size: 13px; display: flex; flex-direction: column; justify-content: center; line-height: 1.2;}
+        .col-desc { font-size: 10px; color: #888; font-weight: normal; }
+
+        .col-lv { width: 20%; display: flex; justify-content: center; align-items: center; border-right: 1px solid #444; margin-right: 8px; padding-right: 8px; }
+        
+        .col-val { flex: 1; display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+
+        input[type="number"] {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 8px 4px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+            width: 100%;
+        }
+        input:focus { border-color: var(--accent-color); outline: none; }
+        
+        /* Lv入力欄（矢印あり） */
+        .input-lv { width: 40px !important; text-align: center; font-weight: bold; color: var(--accent-color); }
+        
+        /* 資源入力欄（矢印なし・右寄せ） */
+        .input-res { 
+            text-align: right; 
+            font-size: 13px; 
+            -moz-appearance: textfield;
+        }
+        .input-res::-webkit-outer-spin-button,
+        .input-res::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        /* 司令部パネル */
+        .strategy-card {
+            background: rgba(96, 205, 255, 0.1);
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            display: none; 
+            animation: fadeIn 0.5s;
+        }
+        .strategy-title { font-size: 10px; font-weight: bold; letter-spacing: 2px; margin-bottom: 6px; opacity: 0.8; text-transform: uppercase; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;}
+        .strategy-action { font-size: 18px; font-weight: bold; margin-bottom: 5px; color: #fff; line-height: 1.2; }
+        .strategy-reason { font-size: 12px; color: #ccc; margin-top: 4px; }
+
+        .result-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 0; border-bottom: 1px solid #333; font-size: 14px;
+        }
+        .res-full { color: var(--warn-color); font-size: 10px; border: 1px solid var(--warn-color); padding: 0 3px; border-radius: 2px; margin-left: 4px;}
+        .res-ok { color: #888; font-size: 10px; margin-left: 4px;}
+
+        .reset-btn {
+            background: none; border: none; color: #555; font-size: 11px; cursor: pointer; text-decoration: underline; margin-top: 20px;
+        }
+        .reset-btn:hover { color: var(--danger-color); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body onload="init()">
+
+<div class="container">
+    
+    <div class="card">
+        <div class="row-header">
+            <span class="h-name">基本設定</span>
+            <span class="h-lv">Lv</span>
+            <span class="h-val">情報</span>
+        </div>
+        
+        <div class="input-row">
+            <div class="col-label">拠点<span class="col-desc">シャドウ</span></div>
+            <div class="col-lv"><input type="number" id="lvBase" class="input-lv" value="14" oninput="calculate()" onkeydown="moveFocus(event, 'lvHousing')"></div>
+            <div class="col-val" style="justify-content:flex-start; font-size:11px; color:#666;">
+                ← 全施設のLv上限
+            </div>
+        </div>
+        <div class="input-row">
+            <div class="col-label">住居<span class="col-desc">アルファ</span></div>
+            <div class="col-lv"><input type="number" id="lvHousing" class="input-lv" value="14" oninput="updateHousing()" onkeydown="moveFocus(event, 'lvFood')"></div>
+            <div class="col-val">
+                <input type="number" id="totalPop" class="input-res" placeholder="総人口" oninput="calculate()" onkeydown="moveFocus(event, 'lvFood')">
+                <span style="font-size:11px; align-self:center;">人</span>
+            </div>
+        </div>
+        <div class="input-row">
+            <div class="col-label">食糧庫<span class="col-desc">デルタ</span></div>
+            <div class="col-lv"><input type="number" id="lvFood" class="input-lv" value="14" oninput="calculate()" onkeydown="moveFocus(event, 'lvStone')"></div>
+            <div class="col-val" style="justify-content:flex-end; font-size:11px; color:#aaa; align-items:center;">
+                最大維持: <span id="supplyFood" style="color:#fff; font-weight:bold; font-size:13px; margin:0 4px;">-</span>人
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="row-header">
+            <span class="h-name">施設名</span>
+            <span class="h-lv">Lv</span>
+            <span class="h-val">所持 / <b>目標コスト</b></span>
+        </div>
+
+        <div class="input-row">
+            <div class="col-label">
+                石材所<span class="col-desc">ベータ</span>
+            </div>
+            <div class="col-lv"><input type="number" id="lvStone" class="input-lv" value="14" oninput="calculate()" onkeydown="moveFocus(event, 'lvWood')"></div>
+            <div class="col-val">
+                <input type="number" id="curStone" class="input-res" placeholder="所持" oninput="calculate()" onkeydown="moveFocus(event, 'curWood')">
+                <span style="color:#666">/</span>
+                <input type="number" id="tarStone" class="input-res" placeholder="必要数" style="border-color:#666;" oninput="calculate()" onkeydown="moveFocus(event, 'tarWood')">
+            </div>
+        </div>
+
+        <div class="input-row">
+            <div class="col-label">
+                木材所<span class="col-desc">イプシロン</span>
+            </div>
+            <div class="col-lv"><input type="number" id="lvWood" class="input-lv" value="14" oninput="calculate()" onkeydown="moveFocus(event, 'lvCoin')"></div>
+            <div class="col-val">
+                <input type="number" id="curWood" class="input-res" placeholder="所持" oninput="calculate()" onkeydown="moveFocus(event, 'curCoin')">
+                <span style="color:#666">/</span>
+                <input type="number" id="tarWood" class="input-res" placeholder="必要数" style="border-color:#666;" oninput="calculate()" onkeydown="moveFocus(event, 'tarCoin')">
+            </div>
+        </div>
+
+        <div class="input-row">
+            <div class="col-label">
+                商品工場<span class="col-desc">ガンマ</span>
+            </div>
+            <div class="col-lv"><input type="number" id="lvCoin" class="input-lv" value="14" oninput="calculate()"></div>
+            <div class="col-val">
+                <input type="number" id="curCoin" class="input-res" placeholder="所持" oninput="calculate()">
+                <span style="color:#666">/</span>
+                <input type="number" id="tarCoin" class="input-res" placeholder="必要数" style="border-color:#666;" oninput="calculate()">
+            </div>
+        </div>
+    </div>
+
+    <div id="strategyCard" class="strategy-card">
+        <div class="strategy-title">COMMAND CENTER</div>
+        <div id="strategyAction" class="strategy-action">...</div>
+        <div id="strategyReason" class="strategy-reason"></div>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none;">
+        <div id="statusText" style="text-align:center; font-size:12px; margin-bottom:10px; color:#aaa;"></div>
+        <div id="rowsArea"></div>
+        <div id="timeEstimate" style="margin-top:15px; text-align:center; font-size:13px; color:var(--accent-color); font-weight:bold;"></div>
+    </div>
+    
+    <div style="text-align:center;">
+        <button class="reset-btn" onclick="resetData()">全データをリセット</button>
+    </div>
+
+</div>
+
+<script>
+    const BASE = { stone: 20, wood: 20, coin: 100, food: 20 };
+    const MULT = { stone: 1, wood: 1, coin: 5, food: 4 };
+    const CAPS = [0,10,20,30,40,60,80,120,170,220,300,320,340,360,380,400,420,440,460,480,500];
+    const HOUSING = [0,20,45,80,130,200,300,440]; 
+    const IDS = ['lvBase','lvHousing','totalPop','lvFood','lvStone','curStone','tarStone','lvWood','curWood','tarWood','lvCoin','curCoin','tarCoin'];
+    const STORAGE_KEY = 'kagemasu_date_fix';
+
+    function getCap(lv) { return (!lv||lv<1)?10 : (lv>20?500 : CAPS[lv]); }
+    function getHouse(lv) { return (!lv||lv<1)?20 : (lv<HOUSING.length?HOUSING[lv] : getCap(lv)*4); }
+    
+    // 縦移動（Enterキー）処理関数
+    function moveFocus(e, nextId) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const next = document.getElementById(nextId);
+            if (next) { next.focus(); next.select(); }
+        }
+    }
+
+    function init() {
+        const s = localStorage.getItem(STORAGE_KEY);
+        if(s) { try{ const d=JSON.parse(s); IDS.forEach(id=>{ const e=document.getElementById(id); if(e && d[id]) e.value=d[id]; }); }catch(e){} }
+        if(!document.getElementById('totalPop').value) updateHousing();
+        else calculate();
+    }
+    
+    function resetData() {
+        if(confirm("すべての入力データを消去してリセットしますか？")) {
+            localStorage.removeItem(STORAGE_KEY);
+            location.reload();
+        }
+    }
+    
+    function updateHousing() {
+        const lv = parseInt(document.getElementById('lvHousing').value)||1;
+        document.getElementById('totalPop').value = getHouse(lv);
+        calculate();
+    }
+
+    function calculate() {
+        // Save
+        const d={}; IDS.forEach(id=>{ const e=document.getElementById(id); if(e) d[id]=e.value; });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+
+        // Inputs
+        const lvBase = parseInt(document.getElementById('lvBase').value)||1;
+        const totalPop = parseInt(document.getElementById('totalPop').value)||0;
+        const lvs = {
+            house: parseInt(document.getElementById('lvHousing').value)||1,
+            food: parseInt(document.getElementById('lvFood').value)||1,
+            stone: parseInt(document.getElementById('lvStone').value)||1,
+            wood: parseInt(document.getElementById('lvWood').value)||1,
+            coin: parseInt(document.getElementById('lvCoin').value)||1
+        };
+        const caps = { food: getCap(lvs.food), stone: getCap(lvs.stone), wood: getCap(lvs.wood), coin: getCap(lvs.coin) };
+        const cur = { stone: parseInt(document.getElementById('curStone').value)||0, wood: parseInt(document.getElementById('curWood').value)||0, coin: parseInt(document.getElementById('curCoin').value)||0 };
+        const tar = { stone: parseInt(document.getElementById('tarStone').value)||0, wood: parseInt(document.getElementById('tarWood').value)||0, coin: parseInt(document.getElementById('tarCoin').value)||0 };
+
+        document.getElementById('supplyFood').textContent = 20 + (caps.food * 4);
+
+        // --- Logic Step 1: Population ---
+        const reqFoodDelta = Math.ceil((totalPop - 20) / 4);
+        const allocFood = Math.max(0, Math.min(reqFoodDelta, caps.food));
+        const sustainablePop = 20 + (allocFood * 4);
+        let workingPop = totalPop;
+        let isStarving = false;
+        if (totalPop > sustainablePop) {
+            workingPop = sustainablePop;
+            isStarving = true;
+        }
+
+        // --- Logic Step 2: Allocation (Min-Max Time Strategy) ---
+        // 修正点: 残り必要量を計算
+        let need = {
+            stone: Math.max(0, tar.stone - cur.stone),
+            wood:  Math.max(0, tar.wood  - cur.wood),
+            coin:  Math.max(0, tar.coin  - cur.coin)
+        };
+        
+        let free = workingPop - allocFood;
+        let alloc = { stone: 0, wood: 0, coin: 0 };
+        let full = { stone: false, wood: false, coin: false };
+        let safety = totalPop * 2; // ループ暴走防止
+        
+        // 人口が尽きるまで、1人ずつ「最も遅れている施設」へ割り当てる
+        while (free > 0 && safety > 0) {
+            safety--;
+            let bestFacility = null;
+            let worstTime = -1;
+        
+            for (const key of ['stone', 'wood', 'coin']) {
+                if (full[key]) continue;
+                if (alloc[key] >= caps[key]) {
+                    full[key] = true;
+                    continue;
+                }
+        
+                // 現在の生産力 = 基礎生産 + (配属数 * 倍率)
+                const currentProd = BASE[key] + (alloc[key] * MULT[key]);
+                const remainingNeed = need[key] > 0 ? need[key] : 1; // 完了済みでも均等配置のため1とみなす
+                
+                let timeScore;
+                if (currentProd === 0) {
+                    // 生産力0なら無限大時間かかる＝最優先
+                    timeScore = 999999999 + remainingNeed; 
+                } else {
+                    // 残り時間 = 残り必要数 / 現在の生産力
+                    timeScore = remainingNeed / currentProd;
+                }
+        
+                if (timeScore > worstTime) {
+                    worstTime = timeScore;
+                    bestFacility = key;
+                }
+            }
+        
+            if (bestFacility === null) break;
+        
+            alloc[bestFacility]++;
+            free--;
+            // needはここでは減らさない（生産力が動的に変わるため、毎回Timeを再計算する）
+        }
+
+        // --- Logic Step 3: Advice Strategy ---
+        const stCard = document.getElementById('strategyCard');
+        const stAction = document.getElementById('strategyAction');
+        const stReason = document.getElementById('strategyReason');
+        let action = ""; let reason = ""; let color = "";
+
+        if (isStarving) {
+            color = "var(--danger-color)";
+            stCard.style.background = "rgba(255, 107, 107, 0.1)";
+            if (allocFood >= caps.food) {
+                 if (lvs.food < lvBase) { action = "食糧庫をLvUP推奨"; reason = "満員で人員維持不能"; }
+                 else { action = "拠点(拠点)をLvUP推奨"; reason = "食糧庫が上限到達"; }
+            } else { action = "人員配分エラー"; reason = "食料生産優先"; }
+        } else {
+            let jammed = [];
+            if (totalPop >= getHouse(lvs.house) && lvs.house < lvBase) jammed.push({name:"住居", p:1, lv:lvs.house, c:0});
+            if (full.stone && lvs.stone < lvBase) jammed.push({name:"石材所", p:2, lv:lvs.stone, c:cur.stone});
+            if (full.wood && lvs.wood < lvBase) jammed.push({name:"木材所", p:2, lv:lvs.wood, c:cur.wood});
+            if (full.coin && lvs.coin < lvBase) jammed.push({name:"商品工場", p:2, lv:lvs.coin, c:cur.coin});
+
+            if (jammed.length > 0) {
+                color = "var(--warn-color)";
+                stCard.style.background = "rgba(255, 204, 0, 0.1)";
+                jammed.sort((a,b) => {
+                    if(a.p !== b.p) return a.p - b.p; 
+                    if(a.lv !== b.lv) return a.lv - b.lv; 
+                    return a.c - b.c;
+                });
+                let t = jammed[0];
+                action = `${t.name}をLvUP推奨`;
+                reason = `${t.name}が満員かつ、所持リソースが最も枯渇しているため強化が最善です。`;
+            } else if (workingPop < (caps.stone + caps.wood + caps.coin + allocFood)) {
+                if (lvs.house < lvBase) {
+                    color = "var(--accent-color)";
+                    stCard.style.background = "rgba(96, 205, 255, 0.1)";
+                    action = "住居をLvUP / 人員増加";
+                    reason = "施設に空きあり。人員が必要です。";
+                } else if (totalPop < getHouse(lvs.house)) {
+                    color = "#aaa";
+                    stCard.style.background = "rgba(255,255,255,0.05)";
+                    action = "探索 / 時間経過待ち";
+                    reason = "住居枠はあります。人口増加を待ってください。";
+                } else {
+                    color = "var(--success-color)";
+                    stCard.style.background = "rgba(102, 255, 153, 0.1)";
+                    action = "拠点をLvUP推奨";
+                    reason = "全施設が最適稼働中。拠点Lvを上げてください。";
+                }
+            }
+        }
+
+        stCard.style.borderColor = color;
+        stCard.style.display = 'block';
+        stAction.textContent = action;
+        stReason.textContent = reason;
+
+        // --- Logic Step 4: Render Results ---
+        const prod = {
+            stone: BASE.stone + (alloc.stone*MULT.stone),
+            wood: BASE.wood + (alloc.wood*MULT.wood),
+            coin: BASE.coin + (alloc.coin*MULT.coin)
+        };
+        const time = {
+            stone: need.stone>0 ? need.stone/prod.stone : 0,
+            wood: need.wood>0 ? need.wood/prod.wood : 0,
+            coin: need.coin>0 ? need.coin/prod.coin : 0
+        };
+        const maxTime = Math.max(time.stone, time.wood, time.coin);
+
+        document.getElementById('resultCard').style.display = 'block';
+        document.getElementById('statusText').innerHTML = isStarving 
+            ? `<span style="color:var(--danger-color); font-weight:bold;">⚠️ 食料不足</span>: ${workingPop}人で稼働中`
+            : `稼働: ${workingPop}人 / <span style="color:#888">空席: ${(caps.stone+caps.wood+caps.coin+caps.food) - workingPop}</span>`;
+
+        const renderRow = (label, val, cap, prodVal, timeLeft) => {
+            let badge = (val >= cap) ? `<span class="res-full">満員</span>` : `<span class="res-ok">空き</span>`;
+            let timeStr = (timeLeft > 0) ? `あと${timeLeft.toFixed(1)}h` : `<span style="color:var(--success-color)">達成</span>`;
+            if (val === 0 && timeLeft > 0) timeStr = "停止中";
+
+            return `
+            <div class="result-row">
+                <div style="width:35%;">
+                    <div style="font-weight:bold;">${label} ${badge}</div>
+                </div>
+                <div style="width:65%; text-align:right;">
+                    <div style="color:var(--accent-color); font-weight:bold; font-size:15px;">${val} 人</div>
+                    <div style="font-size:11px; color:#aaa;">生産: ${prodVal}/h (${timeStr})</div>
+                </div>
+            </div>`;
+        };
+
+        let html = "";
+        let fBadge = (allocFood >= caps.food) ? `<span class="res-full">満員</span>` : `<span class="res-ok">余裕</span>`;
+        html += `
+            <div class="result-row">
+                <div style="width:35%;">
+                    <div style="font-weight:bold;">食糧庫 ${fBadge}</div>
+                </div>
+                <div style="width:65%; text-align:right;">
+                    <div style="color:var(--accent-color); font-weight:bold; font-size:15px;">${allocFood} 人
