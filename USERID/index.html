@@ -191,11 +191,11 @@
     <div class="input-group">
         <label for="formatOption">表示オプション</label>
         <select id="formatOption">
-            <option value="date" selected>日付のみ (年/月/日)</option>
-            <option value="hour">時間まで (年/月/日 時)</option>
-            <option value="minutes">分まで (年/月/日 時:分)</option>
-            <option value="seconds">秒まで (年/月/日 時:分:秒)</option>
-            <option value="full">詳細 (年/月/日 時:分:秒.ミリ秒)</option>
+            <option value="date" selected>日付のみ (年/月/日 曜日)</option>
+            <option value="hour">時間まで (年/月/日 曜日 時)</option>
+            <option value="minutes">分まで (年/月/日 曜日 時:分)</option>
+            <option value="seconds">秒まで (年/月/日 曜日 時:分:秒)</option>
+            <option value="full">詳細 (年/月/日 曜日 時:分:秒.ミリ秒)</option>
         </select>
     </div>
 
@@ -284,12 +284,16 @@
         const s = String(date.getSeconds()).padStart(2, '0');
         const ms = String(date.getMilliseconds()).padStart(3, '0');
 
+        // 曜日を取得する処理を追加
+        const weekDays = ['(日)', '(月)', '(火)', '(水)', '(木)', '(金)', '(土)'];
+        const w = weekDays[date.getDay()];
+
         switch (format) {
-            case 'date': return `${y}/${m}/${d}`;
-            case 'hour': return `${y}/${m}/${d} ${h}時`;
-            case 'minutes': return `${y}/${m}/${d} ${h}:${min}`;
-            case 'seconds': return `${y}/${m}/${d} ${h}:${min}:${s}`;
-            case 'full': default: return `${y}/${m}/${d} ${h}:${min}:${s}.${ms}`;
+            case 'date': return `${y}/${m}/${d} ${w}`;
+            case 'hour': return `${y}/${m}/${d} ${w} ${h}時`;
+            case 'minutes': return `${y}/${m}/${d} ${w} ${h}:${min}`;
+            case 'seconds': return `${y}/${m}/${d} ${w} ${h}:${min}:${s}`;
+            case 'full': default: return `${y}/${m}/${d} ${w} ${h}:${min}:${s}.${ms}`;
         }
     }
 
