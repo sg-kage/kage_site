@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カゲマスギルドランキング</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="top-nav">
+            <div class="title-group">
+                <span class="badge">カゲマス</span>
+                <div class="text-group">
+                    <h1>季節イベギルドランキング</h1>
+                    </div>
+            </div>
+            
+            <div class="control-panel">
+                <div class="input-group">
+                    <label>対象イベント</label>
+                    <select id="event-select"></select>
+                </div>
+                <div class="input-group">
+                    <label>ギルド名検索</label>
+                    <input type="text" id="search-input" placeholder="ギルド名を入力...">
+                </div>
+            </div>
+        </header>
+
+        <div class="scroll-container">
+            <table class="analysis-table">
+                <thead>
+                    <tr>
+                        <th class="sticky-col">順</th>
+                        <th class="sticky-col name-col">ギルド名</th>
+                        <th class="data-group-1">スコア</th>
+                        <th class="data-group-1">メンバ数</th>
+                        <th class="data-group-1">一人当たり</th>
+                        <th class="divider"></th>
+                        <th class="data-group-2">1位差</th>
+                        <th class="data-group-2">上差</th>
+                        <th class="data-group-2">1位ノルマ</th>
+                        <th class="data-group-2">上ノルマ</th>
+                    </tr>
+                </thead>
+                <tbody id="ranking-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>

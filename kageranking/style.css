@@ -1,0 +1,136 @@
+/* =========================================================
+   カゲマス ギルドランキング - 漆黒・高密度表示版
+   Theme: Jet Black / Ultra Compact / High Contrast
+   ========================================================= */
+
+:root {
+    --bg-main: #000000;
+    --bg-deep: #050505;
+    --accent-cyan: #5cc8ff;
+    --accent-green: #3fe9a6;
+    --text-main: #ffffff;
+    --text-dim: #888888;
+    --border-soft: rgba(255, 255, 255, 0.15);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0; padding: 24px;
+    background: linear-gradient(180deg, #111111 0%, #000000 40%, #000000 100%);
+    color: var(--text-main); font-family: "Segoe UI", "Roboto", "Monaco", monospace;
+    min-height: 100vh;
+}
+
+/* スキャンライン装飾 */
+body::after {
+    content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255, 255, 255, 0.03) 2px, transparent 3px);
+    z-index: 999; pointer-events: none; opacity: 0.3;
+}
+
+.dashboard { max-width: 1400px; margin: 0 auto; }
+
+/* ヘッダー */
+.top-nav {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding: 22px 26px; margin-bottom: 28px;
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(12px); border-radius: 4px;
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+}
+
+.title-group { display: flex; align-items: center; gap: 14px; }
+h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; }
+.badge { background: #111; color: var(--accent-green); border: 1px solid var(--accent-green); padding: 4px 12px; border-radius: 2px; font-size: 0.7rem; font-weight: 800; }
+
+/* 検索・セレクト */
+.control-panel { display: flex; gap: 15px; align-items: flex-end; }
+.input-group { display: flex; flex-direction: column; gap: 5px; }
+.input-group label { font-size: 0.75rem; color: var(--text-dim); }
+
+.control-panel select, .control-panel input {
+    background: #000000; color: var(--text-main);
+    border: 1px solid #333; border-radius: 4px; padding: 7px 12px; outline: none;
+}
+.control-panel select:hover, .control-panel input:focus {
+    border-color: var(--text-main); box-shadow: 0 0 10px rgba(255,255,255,0.1);
+}
+
+/* テーブルエリア */
+.scroll-container {
+    background: rgba(5, 5, 5, 0.9); border-radius: 4px; border: 1px solid #222;
+    overflow-x: auto; box-shadow: 0 40px 80px rgba(0,0,0,1);
+}
+
+.analysis-table { width: 100%; min-width: 1200px; border-collapse: collapse; }
+
+thead th {
+    background: #000000; padding: 15px 10px; font-size: 0.75rem;
+    color: #666; text-transform: uppercase; border-bottom: 2px solid #222;
+}
+
+.data-group-1 { border-bottom: 2px solid var(--accent-cyan); color: var(--accent-cyan); }
+.data-group-2 { border-bottom: 2px solid var(--accent-green); color: var(--accent-green); }
+
+tbody td {
+    padding: 16px 10px; text-align: center; font-size: 0.95rem;
+    border-bottom: 1px solid #111; color: var(--text-main); font-weight: 500;
+}
+
+tbody tr:hover { background: #1a1a1a !important; }
+tbody tr.rank-1 { background: linear-gradient(90deg, rgba(20, 40, 30, 1), transparent); border-left: 2px solid var(--accent-green); }
+
+/* 数値強調 */
+.hl { color: #ffffff; font-weight: 700; }
+.score-num { color: var(--accent-cyan); font-family: monospace; text-shadow: 0 0 8px rgba(92,200,255,0.4); }
+.norm-num { color: var(--accent-green); font-weight: 700; text-shadow: 0 0 8px rgba(63,233,166,0.4); }
+.dim-num { color: #ffffff; font-size: 0.95rem; font-family: monospace; }
+.name-col { color: #ffffff !important; font-weight: 700; }
+
+/* =========================================================
+   スマホ最適化 (厳選5項目・数値列引き締め)
+   ========================================================= */
+@media screen and (max-width: 768px) {
+    body { padding: 5px; background: #000000; }
+    .top-nav { flex-direction: column; align-items: stretch; padding: 15px; border-radius: 0; }
+    .control-panel { flex-direction: column; align-items: stretch; gap: 10px; }
+    
+    /* セル全体の余白を極限まで削る */
+    th, td {
+        padding: 12px 2px !important; 
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+
+    .analysis-table { min-width: 100%; table-layout: fixed; }
+    /* 6列目以降（1位差、上差、ノルマ系）を非表示 */
+    .analysis-table th:nth-child(n+6), .analysis-table td:nth-child(n+6) { display: none; }
+    
+    /* [1] 順位列：さらにタイトに */
+    .sticky-col:nth-child(1) {
+        position: sticky; left: 0; z-index: 20; 
+        width: 30px !important; min-width: 30px !important;
+        background: #050505; border-right: 1px solid #222;
+    }
+    
+    /* [2] ギルド名列：固定位置を順位に合わせて左へ寄せる */
+    .sticky-col.name-col {
+        position: sticky; left: 30px !important; z-index: 20; 
+        width: 105px !important; min-width: 105px !important;
+        overflow: hidden; text-overflow: ellipsis; text-align: left; padding-left: 5px !important;
+        background: #050505; border-right: 1px solid var(--accent-cyan);
+    }
+
+    thead th.sticky-col { background: #000000; z-index: 21; }
+    
+    /* [3] スコア列：幅を微調整 */
+    .score-num, th:nth-child(3) { width: 75px !important; }
+    
+    /* [4] メンバ数列：最小限に */
+    td:nth-child(4), th:nth-child(4) { width: 35px !important; }
+    
+    /* [5] 一人当たり列 */
+    td:nth-child(5), th:nth-child(5) { width: 55px !important; }
+}
