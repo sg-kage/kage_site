@@ -21,7 +21,6 @@ async function init() {
 
 eventSelect.addEventListener('change', (e) => loadRanking(e.target.value));
 searchInput.addEventListener('input', applyFilter);
-
 window.addEventListener('resize', adjustNameScale);
 
 async function loadRanking(fileName) {
@@ -40,172 +39,78 @@ async function loadRanking(fileName) {
                 item.t2 = item.d1 + item.d2;
                 item.t3 = item.d1 + item.d2 + item.d3;
             });
-
             calcSubRank(data, 't1', 'rank_t1');
             calcSubRank(data, 't2', 'rank_t2');
             calcSubRank(data, 't3', 'rank_t3');
             calcSubRank(data, 'd1', 'rank_d1');
             calcSubRank(data, 'd2', 'rank_d2');
             calcSubRank(data, 'd3', 'rank_d3');
-
             data.sort((a, b) => a.rank_t3 - b.rank_t3);
         }
 
         renderHeader(mode);
-
         tableBody.innerHTML = '';
         data.forEach((item, index) => {
             const row = document.createElement('tr');
             if ((mode === 'season' && item.rank === 1) || (mode === 'extermination' && item.rank_t3 === 1)) {
                 row.className = 'rank-1';
             }
-            row.classList.add('row-animate');
-            row.style.animationDelay = `${Math.min(index * 0.02, 1.0)}s`;
-
-            if (mode === 'season') {
-                const first = data[0];
-                const prev = index === 0 ? data[0] : data[index - 1];
-                row.innerHTML = renderSeasonRow(item, first, prev);
-            } else {
-                row.innerHTML = renderExRow(item, data, index);
-            }
+            row.innerHTML = mode === 'season' ? renderSeasonRow(item, data[0], data[index === 0 ? 0 : index - 1]) : renderExRow(item, data, index);
             tableBody.appendChild(row);
         });
-        
         applyFilter();
         setTimeout(adjustNameScale, 50);
-
     } catch (e) { console.error("LOAD_FAILED:", e); }
 }
 
 function adjustNameScale() {
-    const nameTexts = document.querySelectorAll('.name-scaler-text');
-    nameTexts.forEach(span => {
+    document.querySelectorAll('.name-scaler-text').forEach(span => {
         span.style.transform = 'none';
-        const parent = span.parentElement;
-        const parentWidth = parent.clientWidth;
+        const parentWidth = span.parentElement.clientWidth;
         const textWidth = span.scrollWidth;
         if (textWidth > parentWidth) {
-            const scale = parentWidth / textWidth;
-            span.style.transform = `scale(${scale * 0.95})`;
+            span.style.transform = `scale(${(parentWidth / textWidth) * 0.95})`;
         }
     });
 }
 
 function calcSubRank(data, key, rankKey) {
     const sorted = [...data].sort((a, b) => b[key] - a[key]);
-    sorted.forEach((item, index) => {
-        item[rankKey] = index + 1;
-    });
+    sorted.forEach((item, index) => { item[rankKey] = index + 1; });
 }
 
 function renderHeader(mode) {
     if (mode === 'season') {
-        tableHead.innerHTML = `
-            <tr>
-                <th class="sticky-col th-brown">順</th>
-                <th class="sticky-col name-col th-brown">ギルド名</th>
-                <th class="th-green">スコア</th>
-                <th class="th-green">メンバ数</th>
-                <th class="th-green">一人当たり</th>
-                <th class="th-green">1位差</th>
-                <th class="th-green">上差</th>
-                <th class="th-green">1位ノルマ</th>
-                <th class="th-green">上ノルマ</th>
-            </tr>`;
+        tableHead.innerHTML = `<tr><th class="sticky-col th-brown">順</th><th class="sticky-col name-col th-brown">ギルド名</th><th class="th-green">スコア</th><th class="th-green">メンバ数</th><th class="th-green">一人当たり</th><th class="th-green">1位差</th><th class="th-green">上差</th><th class="th-green">1位ノルマ</th><th class="th-green">上ノルマ</th></tr>`;
     } else {
         tableHead.innerHTML = `
-            <tr>
-                <th rowspan="2" class="sticky-col th-brown">順</th>
-                <th rowspan="2" class="sticky-col name-col th-brown">ギルド名</th>
-                <th colspan="5" class="th-green-dark">トータル</th>
-                <th colspan="3" class="th-blue-dark">Day</th>
-            </tr>
-            <tr>
-                <th class="th-green">1日目</th>
-                <th class="th-green">2日目</th>
-                <th class="th-green">3日目</th>
-                <th class="th-green">1位差</th>
-                <th class="th-green">上差</th>
-                <th class="th-blue">1日目</th>
-                <th class="th-blue">2日目</th>
-                <th class="th-blue">3日目</th>
-            </tr>`;
+            <tr><th rowspan="2" class="sticky-col th-brown">順</th><th rowspan="2" class="sticky-col name-col th-brown">ギルド名</th><th colspan="6" class="th-green-dark">トータル</th><th colspan="2" class="th-green"></th><th colspan="6" class="th-blue-dark">Day</th></tr>
+            <tr><th colspan="2" class="th-green">1日目</th><th colspan="2" class="th-green">2日目</th><th colspan="2" class="th-green">3日目</th><th class="th-green">1位差</th><th class="th-green">上差</th><th colspan="2" class="th-blue">1日目</th><th colspan="2" class="th-blue">2日目</th><th colspan="2" class="th-blue">3日目</th></tr>`;
     }
 }
 
 function renderSeasonRow(item, first, prev) {
     const score = item.score || 0;
     const members = item.members || 20;
-    const nameHtml = `<div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div>`;
-
-    return `
-        <td class="sticky-col cell-rank">${item.rank}</td>
-        <td class="sticky-col name-col hl">${nameHtml}</td>
-        <td class="score-num">${score.toLocaleString()}</td>
-        <td>${members}</td>
-        <td class="hl">${(score / 1000 / members).toFixed(2)}</td>
-        <td class="dim-num">${Math.abs(first.score - score).toLocaleString()}</td>
-        <td class="dim-num">${Math.abs(prev.score - score).toLocaleString()}</td>
-        <td class="norm-num">${(Math.abs(first.score - score) / 1000 / members).toFixed(2)}</td>
-        <td class="norm-num">${(Math.abs(prev.score - score) / 1000 / members).toFixed(2)}</td>
-    `;
+    return `<td class="sticky-col cell-rank">${item.rank}</td><td class="sticky-col name-col hl"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="score-num">${score.toLocaleString()}</td><td>${members}</td><td class="hl">${(score / 1000 / members).toFixed(2)}</td><td class="dim-num">${Math.abs(first.score - score).toLocaleString()}</td><td class="dim-num">${Math.abs(prev.score - score).toLocaleString()}</td><td class="norm-num">${(Math.abs(first.score - score) / 1000 / members).toFixed(2)}</td><td class="norm-num">${(Math.abs(prev.score - score) / 1000 / members).toFixed(2)}</td>`;
 }
 
 function renderExRow(item, allData, index) {
-    const first = allData[0];
-    const prev = index === 0 ? allData[0] : allData[index - 1];
-    
-    const diffFirst = Math.abs(first.t3 - item.t3);
-    const diffAbove = Math.abs(prev.t3 - item.t3);
-
-    const cell = (rank, score, isDay) => {
-        // ★ 1〜5位の色分けロジック
-        let badgeColor = 'badge-norm';
-        if (rank === 1) badgeColor = 'badge-1';
-        else if (rank === 2) badgeColor = 'badge-2';
-        else if (rank === 3) badgeColor = 'badge-3';
-        else if (rank === 4) badgeColor = 'badge-4';
-        else if (rank === 5) badgeColor = 'badge-5';
-
-        const scoreClass = isDay ? 'day-val' : 'total-val';
-        return `
-            <div class="cell-inner">
-                <span class="rank-badge ${badgeColor}">${rank}</span>
-                <span class="${scoreClass}">${score.toLocaleString()}</span>
-            </div>
-        `;
+    const cellPair = (rank, score, isDay) => {
+        let bc = 'badge-norm';
+        if (rank === 1) bc = 'badge-1'; else if (rank === 2) bc = 'badge-2'; else if (rank === 3) bc = 'badge-3'; else if (rank === 4) bc = 'badge-4'; else if (rank === 5) bc = 'badge-5';
+        return `<td class="cell-rank-box"><span class="rank-badge ${bc}">${rank}</span></td><td class="cell-score-box"><span class="${isDay ? 'day-val' : 'total-val'}">${score.toLocaleString()}</span></td>`;
     };
-    
-    const nameHtml = `<div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div>`;
-
-    return `
-        <td class="sticky-col cell-rank">${item.rank_t3}</td>
-        <td class="sticky-col name-col hl">${nameHtml}</td>
-        
-        <td>${cell(item.rank_t1, item.t1, false)}</td>
-        <td>${cell(item.rank_t2, item.t2, false)}</td>
-        <td>${cell(item.rank_t3, item.t3, false)}</td>
-        
-        <td class="dim-num small-text">${diffFirst.toLocaleString()}</td>
-        <td class="dim-num small-text">${diffAbove.toLocaleString()}</td>
-        
-        <td>${cell(item.rank_d1, item.d1, true)}</td>
-        <td>${cell(item.rank_d2, item.d2, true)}</td>
-        <td>${cell(item.rank_d3, item.d3, true)}</td>
-    `;
+    return `<td class="sticky-col cell-rank">${item.rank_t3}</td><td class="sticky-col name-col hl"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${cellPair(item.rank_t1, item.t1, false)}${cellPair(item.rank_t2, item.t2, false)}${cellPair(item.rank_t3, item.t3, false)}<td class="dim-num small-text">${Math.abs(allData[0].t3 - item.t3).toLocaleString()}</td><td class="dim-num small-text">${Math.abs((allData[index === 0 ? 0 : index - 1].t3) - item.t3).toLocaleString()}</td>${cellPair(item.rank_d1, item.d1, true)}${cellPair(item.rank_d2, item.d2, true)}${cellPair(item.rank_d3, item.d3, true)}`;
 }
 
 function applyFilter() {
     const term = searchInput.value.toLowerCase();
     document.querySelectorAll('#ranking-body tr').forEach(row => {
-        const nameCell = row.querySelector('.name-col');
-        if (nameCell) {
-            const visible = nameCell.textContent.toLowerCase().includes(term);
-            row.style.display = visible ? '' : 'none';
+        const span = row.querySelector('.name-scaler-text');
+        if (span) {
+            row.style.display = span.textContent.toLowerCase().includes(term) ? '' : 'none';
         }
     });
-    adjustNameScale();
 }
-
 init();
