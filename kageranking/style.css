@@ -145,3 +145,21 @@ tbody tr:hover td { background-color: #1a1a1a !important; }
     .sticky-col.name-col { left: 45px !important; width: 110px; min-width: 110px; }
     thead th.sticky-col { z-index: 400 !important; }
 }
+
+/* — kageranking: モバイル向けフォント/レイアウト修正 — */.scroll-container { -webkit-overflow-scrolling: touch; }
+
+.analysis-table th, .analysis-table td {font-size: clamp(0.75rem, 1.5vw, 0.9rem);}
+
+/* 小〜中画面調整 */@media screen and (max-width: 900px) {.analysis-table { min-width: 900px; }.analysis-table th, .analysis-table td { padding: 10px 6px; }.title-group h1 { font-size: 1.4rem; }}
+
+/* スマホ向け（縦持ち中心） */@media screen and (max-width: 480px) {.analysis-table { min-width: unset; width: 100%; table-layout: fixed; }.analysis-table th, .analysis-table td {padding: 8px 6px;font-size: 0.78rem !important;}
+
+.title-group h1 { font-size: 1.15rem !important; }.badge { font-size: 0.68rem; padding: 3px 8px; }
+
+.sticky-col:first-child { width: 40px; min-width: 40px; }.sticky-col.name-col { left: 40px !important; width: 110px; min-width: 110px; }
+
+.name-scaler-text { transform: none !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.rank-badge { font-size: 0.65rem; min-width: 20px; padding: 2px 4px; }.total-val, .day-val, .dim-num { font-size: 0.75rem; }
+
+.cell-score-box { padding-right: 8px !important; text-align: right; }}
