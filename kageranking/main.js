@@ -21,7 +21,10 @@ async function init() {
 
 eventSelect.addEventListener('change', (e) => loadRanking(e.target.value));
 searchInput.addEventListener('input', applyFilter);
-window.addEventListener('resize', adjustNameScale);
+window.addEventListener('resize', () => {
+    updateStickyPosition();
+    adjustNameScale();
+});
 
 async function loadRanking(fileName) {
     try {
@@ -32,19 +35,12 @@ async function loadRanking(fileName) {
 
         if (mode === 'extermination') {
             data.forEach(item => {
-                item.d1 = item.day1 || 0;
-                item.d2 = item.day2 || 0;
-                item.d3 = item.day3 || 0;
-                item.t1 = item.d1;
-                item.t2 = item.d1 + item.d2;
-                item.t3 = item.d1 + item.d2 + item.d3;
+                item.d1 = item.day1 || 0; item.d2 = item.day2 || 0; item.d3 = item.day3 || 0;
+                item.t1 = item.d1; item.t2 = item.d1 + item.d2; item.t3 = item.d1 + item.d2 + item.d3;
             });
-            calcSubRank(data, 't1', 'rank_t1');
-            calcSubRank(data, 't2', 'rank_t2');
-            calcSubRank(data, 't3', 'rank_t3');
-            calcSubRank(data, 'd1', 'rank_d1');
-            calcSubRank(data, 'd2', 'rank_d2');
-            calcSubRank(data, 'd3', 'rank_d3');
+            calcSubRank(data, 't1', 'rank_t1'); calcSubRank(data, 't2', 'rank_t2');
+            calcSubRank(data, 't3', 'rank_t3'); calcSubRank(data, 'd1', 'rank_d1');
+            calcSubRank(data, 'd2', 'rank_d2'); calcSubRank(data, 'd3', 'rank_d3');
             data.sort((a, b) => a.rank_t3 - b.rank_t3);
         }
 
@@ -52,24 +48,43 @@ async function loadRanking(fileName) {
         tableBody.innerHTML = '';
         data.forEach((item, index) => {
             const row = document.createElement('tr');
-            if ((mode === 'season' && item.rank === 1) || (mode === 'extermination' && item.rank_t3 === 1)) {
-                row.className = 'rank-1';
-            }
             row.innerHTML = mode === 'season' ? renderSeasonRow(item, data[0], data[index === 0 ? 0 : index - 1]) : renderExRow(item, data, index);
             tableBody.appendChild(row);
         });
+
         applyFilter();
-        setTimeout(adjustNameScale, 50);
+        // 描画完了後に幅を計算して固定位置を確定させる
+        setTimeout(() => {
+            updateStickyPosition();
+            adjustNameScale();
+        }, 50);
     } catch (e) { console.error("LOAD_FAILED:", e); }
+}
+
+// 1列目（順位）の実際の幅を測って、2列目（ギルド名）の開始位置を調整する
+function updateStickyPosition() {
+    const firstCells = document.querySelectorAll('.sticky-col:nth-child(1)');
+    if (firstCells.length > 0) {
+        const firstWidth = firstCells[0].offsetWidth;
+        document.querySelectorAll('.sticky-col.name-col').forEach(cell => {
+            cell.style.left = `${firstWidth}px`;
+        });
+        // ヘッダーも同様に調整
+        const headerName = document.querySelector('thead .name-col');
+        if (headerName) headerName.style.left = `${firstWidth}px`;
+    }
 }
 
 function adjustNameScale() {
     document.querySelectorAll('.name-scaler-text').forEach(span => {
         span.style.transform = 'none';
+        span.style.display = 'inline-block';
         const parentWidth = span.parentElement.clientWidth;
         const textWidth = span.scrollWidth;
         if (textWidth > parentWidth) {
-            span.style.transform = `scale(${(parentWidth / textWidth) * 0.95})`;
+            const ratio = (parentWidth / textWidth) * 0.96;
+            span.style.transform = `scale(${ratio})`;
+            span.style.transformOrigin = 'left center';
         }
     });
 }
@@ -81,36 +96,39 @@ function calcSubRank(data, key, rankKey) {
 
 function renderHeader(mode) {
     if (mode === 'season') {
-        tableHead.innerHTML = `<tr><th class="sticky-col th-brown">順</th><th class="sticky-col name-col th-brown">ギルド名</th><th class="th-green">スコア</th><th class="th-green">メンバ数</th><th class="th-green">一人当たり</th><th class="th-green">1位差</th><th class="th-green">上差</th><th class="th-green">1位ノルマ</th><th class="th-green">上ノルマ</th></tr>`;
+        tableHead.innerHTML = `<tr><th class="sticky-col th-brown">順</th><th class="sticky-col name-col th-brown">ギルド名</th><th class="th-green">スコア</th><th class="th-green">メンバ</th><th class="th-green">平均</th><th class="th-green">1位差</th><th class="th-green">上差</th><th class="th-green">1位ノルマ</th><th class="th-green">上ノルマ</th></tr>`;
     } else {
         tableHead.innerHTML = `
             <tr><th rowspan="2" class="sticky-col th-brown">順</th><th rowspan="2" class="sticky-col name-col th-brown">ギルド名</th><th colspan="6" class="th-green-dark">トータル</th><th colspan="2" class="th-green"></th><th colspan="6" class="th-blue-dark">Day</th></tr>
-            <tr><th colspan="2" class="th-green">1日目</th><th colspan="2" class="th-green">2日目</th><th colspan="2" class="th-green">3日目</th><th class="th-green">1位差</th><th class="th-green">上差</th><th colspan="2" class="th-blue">1日目</th><th colspan="2" class="th-blue">2日目</th><th colspan="2" class="th-blue">3日目</th></tr>`;
+            <tr><th colspan="2" class="th-green">1日</th><th colspan="2" class="th-green">2日</th><th colspan="2" class="th-green">3日</th><th class="th-green">1位差</th><th class="th-green">上差</th><th colspan="2" class="th-blue">1日</th><th colspan="2" class="th-blue">2日</th><th colspan="2" class="th-blue">3日</th></tr>`;
     }
+}
+
+// 汎用バッジ生成関数
+function getRankBadge(rank) {
+    let cls = 'badge-norm';
+    if (rank >= 1 && rank <= 5) cls = `badge-${rank}`;
+    return `<span class="rank-badge ${cls}">${rank}</span>`;
 }
 
 function renderSeasonRow(item, first, prev) {
     const score = item.score || 0;
     const members = item.members || 20;
-    return `<td class="sticky-col cell-rank">${item.rank}</td><td class="sticky-col name-col hl"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="score-num">${score.toLocaleString()}</td><td>${members}</td><td class="hl">${(score / 1000 / members).toFixed(2)}</td><td class="dim-num">${Math.abs(first.score - score).toLocaleString()}</td><td class="dim-num">${Math.abs(prev.score - score).toLocaleString()}</td><td class="norm-num">${(Math.abs(first.score - score) / 1000 / members).toFixed(2)}</td><td class="norm-num">${(Math.abs(prev.score - score) / 1000 / members).toFixed(2)}</td>`;
+    return `<td class="sticky-col cell-rank">${getRankBadge(item.rank)}</td><td class="sticky-col name-col"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="score-num">${score.toLocaleString()}</td><td>${members}</td><td>${(score / 1000 / members).toFixed(2)}</td><td class="dim-num">${Math.abs(first.score - score).toLocaleString()}</td><td class="dim-num">${Math.abs(prev.score - score).toLocaleString()}</td><td class="dim-num">${(Math.abs(first.score - score) / 1000 / members).toFixed(2)}</td><td class="dim-num">${(Math.abs(prev.score - score) / 1000 / members).toFixed(2)}</td>`;
 }
 
 function renderExRow(item, allData, index) {
     const cellPair = (rank, score, isDay) => {
-        let bc = 'badge-norm';
-        if (rank === 1) bc = 'badge-1'; else if (rank === 2) bc = 'badge-2'; else if (rank === 3) bc = 'badge-3'; else if (rank === 4) bc = 'badge-4'; else if (rank === 5) bc = 'badge-5';
-        return `<td class="cell-rank-box"><span class="rank-badge ${bc}">${rank}</span></td><td class="cell-score-box"><span class="${isDay ? 'day-val' : 'total-val'}">${score.toLocaleString()}</span></td>`;
+        return `<td class="cell-rank-box">${getRankBadge(rank)}</td><td class="cell-score-box"><span class="${isDay ? 'day-val' : 'total-val'}">${score.toLocaleString()}</span></td>`;
     };
-    return `<td class="sticky-col cell-rank">${item.rank_t3}</td><td class="sticky-col name-col hl"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${cellPair(item.rank_t1, item.t1, false)}${cellPair(item.rank_t2, item.t2, false)}${cellPair(item.rank_t3, item.t3, false)}<td class="dim-num small-text">${Math.abs(allData[0].t3 - item.t3).toLocaleString()}</td><td class="dim-num small-text">${Math.abs((allData[index === 0 ? 0 : index - 1].t3) - item.t3).toLocaleString()}</td>${cellPair(item.rank_d1, item.d1, true)}${cellPair(item.rank_d2, item.d2, true)}${cellPair(item.rank_d3, item.d3, true)}`;
+    return `<td class="sticky-col cell-rank">${getRankBadge(item.rank_t3)}</td><td class="sticky-col name-col"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${cellPair(item.rank_t1, item.t1, false)}${cellPair(item.rank_t2, item.t2, false)}${cellPair(item.rank_t3, item.t3, false)}<td class="dim-num">${Math.abs(allData[0].t3 - item.t3).toLocaleString()}</td><td class="dim-num">${Math.abs((allData[index === 0 ? 0 : index - 1].t3) - item.t3).toLocaleString()}</td>${cellPair(item.rank_d1, item.d1, true)}${cellPair(item.rank_d2, item.d2, true)}${cellPair(item.rank_d3, item.d3, true)}`;
 }
 
 function applyFilter() {
     const term = searchInput.value.toLowerCase();
     document.querySelectorAll('#ranking-body tr').forEach(row => {
         const span = row.querySelector('.name-scaler-text');
-        if (span) {
-            row.style.display = span.textContent.toLowerCase().includes(term) ? '' : 'none';
-        }
+        if (span) { row.style.display = span.textContent.toLowerCase().includes(term) ? '' : 'none'; }
     });
 }
 init();

@@ -2,21 +2,16 @@
     --bg-main: #0a0a0a;
     --text-main: #e0e0e0;
     --text-dim: #888888;
-    
-    /* 罫線 */
     --border-grid: #333333; 
     --border-divider: #555555;
 
-    /* ネオンアクセント */
-    --accent-cyan: #00e5ff;
-    --accent-green: #00ff88;
-    --accent-gold: #ffea00;
-    --accent-silver: #cfd8dc;
-    --accent-bronze: #ffab40;
-    --accent-red: #ff1744;
-    --accent-blue: #2979ff;
+    /* 順位専用色 */
+    --rank-1: #ffea00; /* 金 */
+    --rank-2: #cfd8dc; /* 銀 */
+    --rank-3: #ffab40; /* 銅 */
+    --rank-4: #ff1744; /* 赤 */
+    --rank-5: #2979ff; /* 青 */
 
-    /* ヘッダー背景色：不透明化(RGBAではなく不透明な16進数) */
     --bg-brown: #3e2723;
     --bg-green-dark: #1b5e20;
     --bg-green: #2e7d32;
@@ -25,141 +20,77 @@
 }
 
 body {
-    margin: 0; padding: 24px;
+    margin: 0; padding: 15px;
     background: var(--bg-main);
     color: var(--text-main);
-    font-family: 'Segoe UI', Roboto, sans-serif;
+    font-family: sans-serif;
 }
 
-.dashboard { max-width: 1800px; margin: 0 auto; }
-
-/* --- 上部ナビ --- */
 .top-nav {
     display: flex; justify-content: space-between; align-items: center; 
-    flex-wrap: wrap; gap: 20px; padding: 25px; 
-    border: 1px solid #222; margin-bottom: 25px;
-    background: #111111; /* 透けないよう完全に塗りつぶし */
-    border-radius: 8px;
+    flex-wrap: wrap; gap: 15px; padding: 15px; 
+    border: 1px solid #222; margin-bottom: 15px;
+    background: #111; border-radius: 8px;
 }
 
-.title-group h1 { 
-    margin: 0; font-size: 1.7rem; font-weight: 800; 
-    color: #ffffff;
-}
-.badge { 
-    background: var(--bg-green);
-    padding: 5px 12px; font-size: 0.75rem; border-radius: 20px; 
-    color: #fff; font-weight: bold;
+.input-group { display: flex; flex-direction: column; gap: 5px; }
+.input-group select, .input-group input {
+    background: #222; border: 1px solid #444; color: #fff;
+    padding: 8px; border-radius: 4px;
 }
 
-/* --- テーブルエリア --- */
 .scroll-container {
-    overflow: auto; max-height: 80vh;
+    overflow: auto; max-height: 85vh;
     border: 1px solid var(--border-grid);
-    border-radius: 8px;
     background: #000;
 }
 
-.analysis-table { width: 100%; min-width: 1600px; border-collapse: separate; border-spacing: 0; }
+.analysis-table { 
+    width: 100%; 
+    min-width: max-content; /* 文字数に合わせて幅を自動調整 */
+    border-collapse: separate; border-spacing: 0; 
+}
 
 .analysis-table th, .analysis-table td {
     border-right: 1px solid var(--border-grid);
     border-bottom: 1px solid var(--border-grid);
-    padding: 12px 8px; font-size: 0.9rem;
-    background-color: #000000; /* 全セルの背景を黒にして透けを防止 */
-    box-sizing: border-box;
+    padding: 10px 12px;
+    background-color: #000;
+    white-space: nowrap;
 }
 
-/* ヘッダーデザイン：不透明化と重なり順の強化 */
-thead th { 
-    color: #fff !important; 
-    font-weight: 700; font-size: 0.75rem; 
-    position: sticky; top: 0; 
-    z-index: 200 !important; /* スコアより確実に上に */
-}
-thead tr:nth-child(2) th { top: 41px; }
+thead th { position: sticky; top: 0; z-index: 100; font-size: 0.75rem; color: #fff; }
+thead tr:nth-child(2) th { top: 38px; }
 
-.th-brown { background-color: var(--bg-brown) !important; }
-.th-green-dark { background-color: var(--bg-green-dark) !important; }
-.th-green { background-color: var(--bg-green) !important; }
-.th-blue-dark { background-color: var(--bg-blue-dark) !important; }
-.th-blue { background-color: var(--bg-blue) !important; }
-
-/* 固定列（順位・名前） */
+/* 固定列：幅は中身に合わせる */
 .sticky-col { 
-    position: sticky; left: 0; 
-    z-index: 300 !important; /* ヘッダーよりもさらに上に */
+    position: sticky; z-index: 50;
     background-color: #0d0d0d !important; 
 }
-.sticky-col:first-child { width: 60px; min-width: 60px; left: 0 !important; }
+.sticky-col:nth-child(1) { left: 0; text-align: center; }
 .sticky-col.name-col { 
-    left: 60px !important; width: 200px; font-weight: 700; color: #fff;
-}
-/* 名前列の右側に物理的な境界線 */
-.sticky-col.name-col::after {
-    content: ""; position: absolute; top: 0; bottom: 0; right: 0;
-    width: 2px; background: var(--border-divider);
+    border-right: 2px solid var(--border-divider) !important;
 }
 
-/* 順位・スコア列の分離デザイン */
-.cell-rank-box { width: 45px; border-right: 1px solid #222 !important; }
-.cell-score-box { text-align: right !important; padding-right: 15px !important; }
-
-/* バッジ */
+/* 順位バッジ（数字の色設定） */
 .rank-badge {
-    display: inline-block; min-width: 26px; padding: 3px;
-    font-size: 0.75rem; border-radius: 4px; border: 1px solid #444;
-    color: #fff; background: #222; text-align: center; font-weight: bold;
+    display: inline-block; min-width: 24px; padding: 2px 6px;
+    font-size: 0.8rem; border-radius: 4px; font-weight: bold;
+    background: #1a1a1a; color: #fff; border: 1px solid #444;
 }
-.badge-1 { color: var(--accent-gold); border-color: var(--accent-gold); background: #332b00; }
-.badge-2 { color: var(--accent-silver); border-color: var(--accent-silver); background: #2b2b2b; }
-.badge-3 { color: var(--accent-bronze); border-color: var(--accent-bronze); background: #331f0a; }
-.badge-4 { color: var(--accent-red); border-color: var(--accent-red); background: #330a0a; }
-.badge-5 { color: var(--accent-blue); border-color: var(--accent-blue); background: #0a1533; }
+.badge-1 { border-color: var(--rank-1); color: var(--rank-1); background: #332b00; }
+.badge-2 { border-color: var(--rank-2); color: var(--rank-2); background: #222; }
+.badge-3 { border-color: var(--rank-3); color: var(--rank-3); background: #331f0a; }
+.badge-4 { border-color: var(--rank-4); color: var(--rank-4); background: #330a0a; }
+.badge-5 { border-color: var(--rank-5); color: var(--rank-5); background: #0a1533; }
 
-/* 数値フォント */
-.total-val, .day-val, .dim-num { 
-    font-family: Consolas, Monaco, monospace; 
-    font-variant-numeric: tabular-nums;
+.total-val, .day-val { font-family: monospace; font-size: 0.9rem; }
+.day-val { color: #00e5ff; }
+.dim-num { color: var(--text-dim); font-size: 0.75rem; }
+
+@media screen and (max-width: 480px) {
+    .analysis-table { min-width: 800px; }
+    .analysis-table th, .analysis-table td { padding: 8px 6px; font-size: 11px !important; }
+    .sticky-col.name-col { max-width: 120px; }
+    thead tr:nth-child(2) th { top: 31px; }
 }
-.day-val { color: var(--accent-cyan); font-weight: bold; }
-
-/* 1位ハイライト：不透明な色を使用 */
-.rank-1 td { background-color: #081a0b !important; }
-tbody tr:hover td { background-color: #1a1a1a !important; }
-
-.name-scaler-wrap { width: 100%; display: flex; align-items: center; }
-.name-scaler-text { white-space: nowrap; transform-origin: left center; }
-
-/* --- スマホ・レスポンシブ対応 --- */
-@media screen and (max-width: 900px) {
-    .top-nav { flex-direction: column; align-items: flex-start; }
-    .control-panel { width: 100%; margin-top: 10px; }
-    .input-group { flex: 1; }
-    .input-group select, .input-group input { width: 100%; min-width: 0; }
-}
-
-@media screen and (max-width: 768px) {
-    .analysis-table { min-width: 1200px; }
-    .sticky-col:first-child { width: 45px; min-width: 45px; }
-    .sticky-col.name-col { left: 45px !important; width: 110px; min-width: 110px; }
-    thead th.sticky-col { z-index: 400 !important; }
-}
-
-/* — kageranking: モバイル向けフォント/レイアウト修正 — */.scroll-container { -webkit-overflow-scrolling: touch; }
-
-.analysis-table th, .analysis-table td {font-size: clamp(0.75rem, 1.5vw, 0.9rem);}
-
-/* 小〜中画面調整 */@media screen and (max-width: 900px) {.analysis-table { min-width: 900px; }.analysis-table th, .analysis-table td { padding: 10px 6px; }.title-group h1 { font-size: 1.4rem; }}
-
-/* スマホ向け（縦持ち中心） */@media screen and (max-width: 480px) {.analysis-table { min-width: unset; width: 100%; table-layout: fixed; }.analysis-table th, .analysis-table td {padding: 8px 6px;font-size: 0.78rem !important;}
-
-.title-group h1 { font-size: 1.15rem !important; }.badge { font-size: 0.68rem; padding: 3px 8px; }
-
-.sticky-col:first-child { width: 40px; min-width: 40px; }.sticky-col.name-col { left: 40px !important; width: 110px; min-width: 110px; }
-
-.name-scaler-text { transform: none !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.rank-badge { font-size: 0.65rem; min-width: 20px; padding: 2px 4px; }.total-val, .day-val, .dim-num { font-size: 0.75rem; }
-
-.cell-score-box { padding-right: 8px !important; text-align: right; }}

@@ -11,7 +11,9 @@
         <header class="top-nav">
             <div class="title-group">
                 <span class="badge">カゲマス</span>
-                <h1>ギルド統計ランキング</h1>
+                <div class="text-group">
+                    <h1>ギルド統計ランキング</h1>
+                </div>
             </div>
             <div class="control-panel">
                 <div class="input-group">
