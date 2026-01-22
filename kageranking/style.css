@@ -10,9 +10,9 @@
     --accent-gold: #d4af37;     /* 落ち着いたゴールド */
     --border-line: #222222;     /* 控えめな境界線 */
 
-    /* PC向け幅設定 */
-    --rank-w: 50px;
-    --name-w: 220px;
+    /* PC向け基本幅設定 */
+    --rank-w: 55px;
+    --name-w: 240px;
 }
 
 body {
@@ -33,7 +33,7 @@ body {
 
 .input-group select, .input-group input {
     background: #000; border: 1px solid #444; color: #fff;
-    padding: 8px 12px; border-radius: 4px; font-size: 13px;
+    padding: 8px 12px; border-radius: 4px; font-size: 13px; outline: none;
 }
 
 .scroll-container {
@@ -80,14 +80,14 @@ thead .sticky-col { z-index: 110; }
 
 /* テキストスタイル */
 .name-scaler-text { color: #ffffff; font-weight: bold; font-size: 15px; }
-.total-val { font-family: 'Consolas', monospace; font-size: 14px; color: var(--text-value); }
-.day-val { font-family: 'Consolas', monospace; font-size: 14px; color: #ffebbc; } /* 暖色系 */
+.total-val { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text-value); }
+.day-val { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #ffebbc; } /* 暖色系 */
 .dim-num { color: #555555; font-size: 11px; }
 
 /* 順位バッジ */
 .rank-badge {
-    display: inline-block; min-width: 24px; padding: 2px 4px;
-    font-size: 11px; border-radius: 3px; font-weight: bold;
+    display: inline-block; min-width: 26px; padding: 2px 4px;
+    font-size: 11px; border-radius: 4px; font-weight: bold;
     background: rgba(0,0,0,0.5); border: 1px solid #444;
 }
 .badge-1 { border-color: #ffd700; color: #ffd700; }
@@ -97,3 +97,17 @@ thead .sticky-col { z-index: 110; }
 .badge-5 { border-color: #0d47a1; color: #64b5f6; }
 
 tbody tr:hover td { background-color: #111111 !important; }
+
+/* --- スマホ設定：ここを追加 --- */
+@media screen and (max-width: 480px) {
+    :root {
+        --rank-w: 42px;    /* 順位列を細く */
+        --name-w: 110px;   /* ギルド名列をスマホ用に制限 */
+    }
+    body { padding: 5px; }
+    .top-nav { padding: 10px; flex-direction: column; align-items: flex-start; }
+    .analysis-table th, .analysis-table td { padding: 8px 4px; font-size: 10px; }
+    .name-scaler-text { font-size: 11px; }
+    .total-val, .day-val { font-size: 11px; }
+    thead tr:nth-child(2) th { top: 37px; }
+}
