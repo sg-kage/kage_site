@@ -1,93 +1,99 @@
 :root {
-    --bg-main: #0a0a0a;
-    --text-main: #e0e0e0;
-    --text-dim: #888888;
-    --border-grid: #333333; 
-    --border-divider: #555555;
-    --rank-1: #ffea00; --rank-2: #cfd8dc; --rank-3: #ffab40; --rank-4: #ff1744; --rank-5: #2979ff;
-    --bg-brown: #3e2723; --bg-green-dark: #1b5e20; --bg-green: #2e7d32; --bg-blue-dark: #0d47a1; --bg-blue: #1565c0;
+    /* 配色：漆黒ベース */
+    --bg-black: #000000;
+    --bg-header-guild: #2d1616; /* 深いボルドー */
+    --bg-header-total: #0f1a2a; /* ダークネイビー */
+    --bg-header-day: #162616;   /* ダークフォレスト */
+    
+    --text-main: #ffffff;
+    --text-value: #f5f5f5;
+    --accent-gold: #d4af37;     /* 落ち着いたゴールド */
+    --border-line: #222222;     /* 控えめな境界線 */
+
+    /* PC向け幅設定 */
+    --rank-w: 50px;
+    --name-w: 220px;
 }
 
 body {
-    margin: 0; padding: 10px;
-    background: var(--bg-main);
+    margin: 0; padding: 15px;
+    background: var(--bg-black);
     color: var(--text-main);
-    font-family: sans-serif;
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif;
 }
+
+.dashboard { display: flex; flex-direction: column; height: 97vh; }
 
 .top-nav {
     display: flex; justify-content: space-between; align-items: center; 
-    flex-wrap: wrap; gap: 10px; padding: 10px; 
-    border: 1px solid #222; margin-bottom: 10px;
-    background: #111; border-radius: 8px;
+    padding: 15px 25px; background: #080808;
+    border-radius: 8px; margin-bottom: 12px;
+    border: 1px solid var(--border-line);
 }
 
-.input-group { display: flex; flex-direction: column; gap: 5px; }
 .input-group select, .input-group input {
-    background: #222; border: 1px solid #444; color: #fff;
-    padding: 6px; border-radius: 4px; font-size: 12px;
+    background: #000; border: 1px solid #444; color: #fff;
+    padding: 8px 12px; border-radius: 4px; font-size: 13px;
 }
 
 .scroll-container {
-    overflow: auto; max-height: 85vh;
-    border: 1px solid var(--border-grid);
-    background: #000;
+    flex: 1; overflow: auto;
+    border: 1px solid var(--border-line);
+    background: #000; border-radius: 8px;
 }
 
 .analysis-table { 
-    width: 100%; 
-    min-width: max-content; 
     border-collapse: separate; border-spacing: 0; 
+    table-layout: fixed; width: auto; 
 }
 
 .analysis-table th, .analysis-table td {
-    border-right: 1px solid var(--border-grid);
-    border-bottom: 1px solid var(--border-grid);
-    padding: 8px 10px;
-    background-color: #000; /* 重なり防止のため不透明に */
-    white-space: nowrap;
+    border-right: 1px solid var(--border-line);
+    border-bottom: 1px solid var(--border-line);
+    padding: 12px 10px;
+    background-color: var(--bg-black);
+    white-space: nowrap; text-align: center;
 }
 
-thead th { position: sticky; top: 0; z-index: 100; font-size: 0.75rem; color: #fff; }
-thead tr:nth-child(2) th { top: 34px; }
+/* ヘッダー固定と色分け */
+thead th { 
+    position: sticky; top: 0; z-index: 100; 
+    font-size: 12px; color: var(--accent-gold);
+    font-weight: bold;
+}
+thead tr:nth-child(2) th { top: 41px; }
 
-/* 固定列の設定 */
-.sticky-col { 
-    position: sticky; z-index: 50;
-    background-color: #000 !important; /* スクロール時に下が透けないように */
+.th-guild { background: var(--bg-header-guild) !important; }
+.th-total { background: var(--bg-header-total) !important; }
+.th-day { background: var(--bg-header-day) !important; }
+
+/* 左側固定列 */
+.sticky-col { position: sticky; z-index: 20; background-color: var(--bg-black) !important; }
+thead .sticky-col { z-index: 110; }
+
+.col-rank { left: 0; width: var(--rank-w); }
+.col-name { 
+    left: var(--rank-w); width: var(--name-w); 
+    border-right: 2px solid var(--accent-gold) !important;
+    text-align: left !important; padding-left: 20px !important;
 }
-.sticky-col:nth-child(1) { left: 0; text-align: center; }
-.sticky-col.name-col { 
-    border-right: 2px solid var(--border-divider) !important;
-}
+
+/* テキストスタイル */
+.name-scaler-text { color: #ffffff; font-weight: bold; font-size: 15px; }
+.total-val { font-family: 'Consolas', monospace; font-size: 14px; color: var(--text-value); }
+.day-val { font-family: 'Consolas', monospace; font-size: 14px; color: #ffebbc; } /* 暖色系 */
+.dim-num { color: #555555; font-size: 11px; }
 
 /* 順位バッジ */
 .rank-badge {
-    display: inline-block; min-width: 20px; padding: 1px 4px;
-    font-size: 0.75rem; border-radius: 3px; font-weight: bold;
-    background: #1a1a1a; color: #fff; border: 1px solid #444;
+    display: inline-block; min-width: 24px; padding: 2px 4px;
+    font-size: 11px; border-radius: 3px; font-weight: bold;
+    background: rgba(0,0,0,0.5); border: 1px solid #444;
 }
-.badge-1 { border-color: var(--rank-1); color: var(--rank-1); background: #221d00; }
-.badge-2 { border-color: var(--rank-2); color: var(--rank-2); background: #1a1a1a; }
-.badge-3 { border-color: var(--rank-3); color: var(--rank-3); background: #221400; }
-.badge-4 { border-color: var(--rank-4); color: var(--rank-4); background: #220000; }
-.badge-5 { border-color: var(--rank-5); color: var(--rank-5); background: #000a22; }
+.badge-1 { border-color: #ffd700; color: #ffd700; }
+.badge-2 { border-color: #c0c0c0; color: #c0c0c0; }
+.badge-3 { border-color: #cd7f32; color: #cd7f32; }
+.badge-4 { border-color: #b71c1c; color: #e57373; }
+.badge-5 { border-color: #0d47a1; color: #64b5f6; }
 
-.total-val, .day-val { font-family: monospace; font-size: 0.85rem; }
-.day-val { color: #00e5ff; }
-.dim-num { color: var(--text-dim); font-size: 0.7rem; }
-
-/* スマホ最適化：さらに小さく */
-@media screen and (max-width: 480px) {
-    body { padding: 5px; }
-    .analysis-table { min-width: 750px; }
-    .analysis-table th, .analysis-table td { 
-        padding: 5px 4px; 
-        font-size: 9px !important; /* 限界まで小さく */
-    }
-    .sticky-col.name-col { max-width: 100px; } /* 名前エリアを少し狭めて数値を見やすく */
-    
-    .rank-badge { font-size: 8px; min-width: 16px; padding: 0 2px; }
-    .total-val, .day-val { font-size: 9px; }
-    thead tr:nth-child(2) th { top: 27px; }
-}
+tbody tr:hover td { background-color: #111111 !important; }
