@@ -53,25 +53,28 @@ async function loadRanking(fileName) {
         });
 
         applyFilter();
-        // 描画完了後に幅を計算して固定位置を確定させる
-        setTimeout(() => {
-            updateStickyPosition();
-            adjustNameScale();
-        }, 50);
+        // 描画後に重なりを防ぐための位置計算を確実に実行
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                updateStickyPosition();
+                adjustNameScale();
+            }, 100);
+        });
     } catch (e) { console.error("LOAD_FAILED:", e); }
 }
 
-// 1列目（順位）の実際の幅を測って、2列目（ギルド名）の開始位置を調整する
 function updateStickyPosition() {
-    const firstCells = document.querySelectorAll('.sticky-col:nth-child(1)');
+    const firstCells = document.querySelectorAll('tbody tr td.sticky-col:nth-child(1)');
     if (firstCells.length > 0) {
-        const firstWidth = firstCells[0].offsetWidth;
-        document.querySelectorAll('.sticky-col.name-col').forEach(cell => {
-            cell.style.left = `${firstWidth}px`;
+        const firstWidth = firstCells[0].getBoundingClientRect().width;
+        // tbodyの2列目
+        document.querySelectorAll('tbody td.sticky-col.name-col').forEach(cell => {
+            cell.style.left = `${firstWidth - 1}px`; // 境界線の重なりを微調整
         });
-        // ヘッダーも同様に調整
-        const headerName = document.querySelector('thead .name-col');
-        if (headerName) headerName.style.left = `${firstWidth}px`;
+        // theadの2列目
+        document.querySelectorAll('thead th.sticky-col.name-col').forEach(th => {
+            th.style.left = `${firstWidth - 1}px`;
+        });
     }
 }
 
@@ -82,7 +85,7 @@ function adjustNameScale() {
         const parentWidth = span.parentElement.clientWidth;
         const textWidth = span.scrollWidth;
         if (textWidth > parentWidth) {
-            const ratio = (parentWidth / textWidth) * 0.96;
+            const ratio = (parentWidth / textWidth) * 0.98;
             span.style.transform = `scale(${ratio})`;
             span.style.transformOrigin = 'left center';
         }
@@ -104,7 +107,6 @@ function renderHeader(mode) {
     }
 }
 
-// 汎用バッジ生成関数
 function getRankBadge(rank) {
     let cls = 'badge-norm';
     if (rank >= 1 && rank <= 5) cls = `badge-${rank}`;
@@ -114,14 +116,14 @@ function getRankBadge(rank) {
 function renderSeasonRow(item, first, prev) {
     const score = item.score || 0;
     const members = item.members || 20;
-    return `<td class="sticky-col cell-rank">${getRankBadge(item.rank)}</td><td class="sticky-col name-col"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="score-num">${score.toLocaleString()}</td><td>${members}</td><td>${(score / 1000 / members).toFixed(2)}</td><td class="dim-num">${Math.abs(first.score - score).toLocaleString()}</td><td class="dim-num">${Math.abs(prev.score - score).toLocaleString()}</td><td class="dim-num">${(Math.abs(first.score - score) / 1000 / members).toFixed(2)}</td><td class="dim-num">${(Math.abs(prev.score - score) / 1000 / members).toFixed(2)}</td>`;
+    return `<td class="sticky-col cell-rank">${getRankBadge(item.rank)}</td><td class="sticky-col name-col"><div class="name-scaler-wrap" style="overflow:hidden;"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="score-num">${score.toLocaleString()}</td><td>${members}</td><td>${(score / 1000 / members).toFixed(2)}</td><td class="dim-num">${Math.abs(first.score - score).toLocaleString()}</td><td class="dim-num">${Math.abs(prev.score - score).toLocaleString()}</td><td class="dim-num">${(Math.abs(first.score - score) / 1000 / members).toFixed(2)}</td><td class="dim-num">${(Math.abs(prev.score - score) / 1000 / members).toFixed(2)}</td>`;
 }
 
 function renderExRow(item, allData, index) {
     const cellPair = (rank, score, isDay) => {
         return `<td class="cell-rank-box">${getRankBadge(rank)}</td><td class="cell-score-box"><span class="${isDay ? 'day-val' : 'total-val'}">${score.toLocaleString()}</span></td>`;
     };
-    return `<td class="sticky-col cell-rank">${getRankBadge(item.rank_t3)}</td><td class="sticky-col name-col"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${cellPair(item.rank_t1, item.t1, false)}${cellPair(item.rank_t2, item.t2, false)}${cellPair(item.rank_t3, item.t3, false)}<td class="dim-num">${Math.abs(allData[0].t3 - item.t3).toLocaleString()}</td><td class="dim-num">${Math.abs((allData[index === 0 ? 0 : index - 1].t3) - item.t3).toLocaleString()}</td>${cellPair(item.rank_d1, item.d1, true)}${cellPair(item.rank_d2, item.d2, true)}${cellPair(item.rank_d3, item.d3, true)}`;
+    return `<td class="sticky-col cell-rank">${getRankBadge(item.rank_t3)}</td><td class="sticky-col name-col"><div class="name-scaler-wrap" style="overflow:hidden;"><span class="name-scaler-text">${item.guildName}</span></div></td>${cellPair(item.rank_t1, item.t1, false)}${cellPair(item.rank_t2, item.t2, false)}${cellPair(item.rank_t3, item.t3, false)}<td class="dim-num">${Math.abs(allData[0].t3 - item.t3).toLocaleString()}</td><td class="dim-num">${Math.abs((allData[index === 0 ? 0 : index - 1].t3) - item.t3).toLocaleString()}</td>${cellPair(item.rank_d1, item.d1, true)}${cellPair(item.rank_d2, item.d2, true)}${cellPair(item.rank_d3, item.d3, true)}`;
 }
 
 function applyFilter() {

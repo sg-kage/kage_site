@@ -4,23 +4,12 @@
     --text-dim: #888888;
     --border-grid: #333333; 
     --border-divider: #555555;
-
-    /* 順位専用色 */
-    --rank-1: #ffea00; /* 金 */
-    --rank-2: #cfd8dc; /* 銀 */
-    --rank-3: #ffab40; /* 銅 */
-    --rank-4: #ff1744; /* 赤 */
-    --rank-5: #2979ff; /* 青 */
-
-    --bg-brown: #3e2723;
-    --bg-green-dark: #1b5e20;
-    --bg-green: #2e7d32;
-    --bg-blue-dark: #0d47a1;
-    --bg-blue: #1565c0;
+    --rank-1: #ffea00; --rank-2: #cfd8dc; --rank-3: #ffab40; --rank-4: #ff1744; --rank-5: #2979ff;
+    --bg-brown: #3e2723; --bg-green-dark: #1b5e20; --bg-green: #2e7d32; --bg-blue-dark: #0d47a1; --bg-blue: #1565c0;
 }
 
 body {
-    margin: 0; padding: 15px;
+    margin: 0; padding: 10px;
     background: var(--bg-main);
     color: var(--text-main);
     font-family: sans-serif;
@@ -28,15 +17,15 @@ body {
 
 .top-nav {
     display: flex; justify-content: space-between; align-items: center; 
-    flex-wrap: wrap; gap: 15px; padding: 15px; 
-    border: 1px solid #222; margin-bottom: 15px;
+    flex-wrap: wrap; gap: 10px; padding: 10px; 
+    border: 1px solid #222; margin-bottom: 10px;
     background: #111; border-radius: 8px;
 }
 
 .input-group { display: flex; flex-direction: column; gap: 5px; }
 .input-group select, .input-group input {
     background: #222; border: 1px solid #444; color: #fff;
-    padding: 8px; border-radius: 4px;
+    padding: 6px; border-radius: 4px; font-size: 12px;
 }
 
 .scroll-container {
@@ -47,50 +36,58 @@ body {
 
 .analysis-table { 
     width: 100%; 
-    min-width: max-content; /* 文字数に合わせて幅を自動調整 */
+    min-width: max-content; 
     border-collapse: separate; border-spacing: 0; 
 }
 
 .analysis-table th, .analysis-table td {
     border-right: 1px solid var(--border-grid);
     border-bottom: 1px solid var(--border-grid);
-    padding: 10px 12px;
-    background-color: #000;
+    padding: 8px 10px;
+    background-color: #000; /* 重なり防止のため不透明に */
     white-space: nowrap;
 }
 
 thead th { position: sticky; top: 0; z-index: 100; font-size: 0.75rem; color: #fff; }
-thead tr:nth-child(2) th { top: 38px; }
+thead tr:nth-child(2) th { top: 34px; }
 
-/* 固定列：幅は中身に合わせる */
+/* 固定列の設定 */
 .sticky-col { 
     position: sticky; z-index: 50;
-    background-color: #0d0d0d !important; 
+    background-color: #000 !important; /* スクロール時に下が透けないように */
 }
 .sticky-col:nth-child(1) { left: 0; text-align: center; }
 .sticky-col.name-col { 
     border-right: 2px solid var(--border-divider) !important;
 }
 
-/* 順位バッジ（数字の色設定） */
+/* 順位バッジ */
 .rank-badge {
-    display: inline-block; min-width: 24px; padding: 2px 6px;
-    font-size: 0.8rem; border-radius: 4px; font-weight: bold;
+    display: inline-block; min-width: 20px; padding: 1px 4px;
+    font-size: 0.75rem; border-radius: 3px; font-weight: bold;
     background: #1a1a1a; color: #fff; border: 1px solid #444;
 }
-.badge-1 { border-color: var(--rank-1); color: var(--rank-1); background: #332b00; }
-.badge-2 { border-color: var(--rank-2); color: var(--rank-2); background: #222; }
-.badge-3 { border-color: var(--rank-3); color: var(--rank-3); background: #331f0a; }
-.badge-4 { border-color: var(--rank-4); color: var(--rank-4); background: #330a0a; }
-.badge-5 { border-color: var(--rank-5); color: var(--rank-5); background: #0a1533; }
+.badge-1 { border-color: var(--rank-1); color: var(--rank-1); background: #221d00; }
+.badge-2 { border-color: var(--rank-2); color: var(--rank-2); background: #1a1a1a; }
+.badge-3 { border-color: var(--rank-3); color: var(--rank-3); background: #221400; }
+.badge-4 { border-color: var(--rank-4); color: var(--rank-4); background: #220000; }
+.badge-5 { border-color: var(--rank-5); color: var(--rank-5); background: #000a22; }
 
-.total-val, .day-val { font-family: monospace; font-size: 0.9rem; }
+.total-val, .day-val { font-family: monospace; font-size: 0.85rem; }
 .day-val { color: #00e5ff; }
-.dim-num { color: var(--text-dim); font-size: 0.75rem; }
+.dim-num { color: var(--text-dim); font-size: 0.7rem; }
 
+/* スマホ最適化：さらに小さく */
 @media screen and (max-width: 480px) {
-    .analysis-table { min-width: 800px; }
-    .analysis-table th, .analysis-table td { padding: 8px 6px; font-size: 11px !important; }
-    .sticky-col.name-col { max-width: 120px; }
-    thead tr:nth-child(2) th { top: 31px; }
+    body { padding: 5px; }
+    .analysis-table { min-width: 750px; }
+    .analysis-table th, .analysis-table td { 
+        padding: 5px 4px; 
+        font-size: 9px !important; /* 限界まで小さく */
+    }
+    .sticky-col.name-col { max-width: 100px; } /* 名前エリアを少し狭めて数値を見やすく */
+    
+    .rank-badge { font-size: 8px; min-width: 16px; padding: 0 2px; }
+    .total-val, .day-val { font-size: 9px; }
+    thead tr:nth-child(2) th { top: 27px; }
 }
