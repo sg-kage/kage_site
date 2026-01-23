@@ -12,6 +12,7 @@ let historyChart = null;
 let allEvents = [];
 let currentMode = 'ex'; 
 
+// 初期化処理
 async function init() {
     try {
         const response = await fetch('./events.json');
@@ -22,6 +23,7 @@ async function init() {
     } catch (e) { console.error("INIT_FAILED:", e); }
 }
 
+// タブ切り替えの設定
 function setupTabs() {
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -33,6 +35,7 @@ function setupTabs() {
     });
 }
 
+// ドロップダウン更新
 function updateEventDropdown() {
     eventSelect.innerHTML = '';
     const filtered = allEvents.filter(e => e.type === currentMode);
@@ -53,6 +56,7 @@ window.addEventListener('resize', () => {
     adjustNameScale();
 });
 
+// ランキング読み込み
 async function loadRanking(filePath) {
     try {
         const response = await fetch(`./data/${filePath}`);
@@ -72,6 +76,7 @@ async function loadRanking(filePath) {
             data.sort((a, b) => (b.score || 0) - (a.score || 0));
         }
 
+        // 上位50位までに制限
         data = data.slice(0, 50);
 
         renderColgroups(currentMode);
@@ -83,7 +88,6 @@ async function loadRanking(filePath) {
                 ? renderSeasonRow(item, data[0], data[index === 0 ? 0 : index - 1]) 
                 : renderExRow(item, data, index);
             
-            // ギルド名クリックイベント
             const nameCell = row.querySelector('.col-name');
             if (nameCell) {
                 nameCell.onclick = () => showHistory(item.guildName);
@@ -97,6 +101,7 @@ async function loadRanking(filePath) {
     } catch (e) { console.error("LOAD_FAILED:", e); }
 }
 
+// 列幅予約（スマホ70px対応）
 function renderColgroups(mode) {
     const oldColgroup = mainTable.querySelector('colgroup');
     if (oldColgroup) oldColgroup.remove();
@@ -133,7 +138,6 @@ function getRankBadge(rank) {
     return `<span class="rank-badge ${cls}">${rank}</span>`;
 }
 
-// ギルド名セルに必ず .col-name クラスを付与
 function renderSeasonRow(item, first, prev) {
     const s = item.score || 0;
     return `<td class="col-rank">${getRankBadge(item.rank || "－")}</td><td class="col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="total-val">${s.toLocaleString()}</td><td>${item.members || 20}</td><td>${(s/1000/(item.members||20)).toFixed(1)}</td><td class="dim-num">${(first.score-s).toLocaleString()}</td><td class="dim-num">${(prev.score-s).toLocaleString()}</td>`;
@@ -144,10 +148,14 @@ function renderExRow(item, allData, index) {
     return `<td class="col-rank">${getRankBadge(item.rank_t3)}</td><td class="col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${p(item.rank_t1, item.t1, false)}${p(item.rank_t2, item.t2, false)}${p(item.rank_t3, item.t3, false)}<td class="dim-num">${(allData[0].t3-item.t3).toLocaleString()}</td><td class="dim-num">${((allData[index===0?0:index-1].t3)-item.t3).toLocaleString()}</td>${p(item.rank_d1, item.d1, true)}${p(item.rank_d2, item.d2, true)}${p(item.rank_d3, item.d3, true)}`;
 }
 
+// グラフ表示（数字の常時表示を強化）
 async function showHistory(guildName) {
     const modeEvents = allEvents.filter(e => e.type === currentMode).slice(-10);
     modeEvents.reverse(); 
-    const labels = []; const ranks = [];
+
+    const labels = [];
+    const ranks = [];
+
     for (const ev of modeEvents) {
         try {
             const resp = await fetch(`./data/${ev.file}`);
@@ -157,37 +165,72 @@ async function showHistory(guildName) {
             ranks.push(found ? (found.rank || found.rank_t3) : null);
         } catch (e) { console.error(e); }
     }
+
     modal.style.display = "block";
     const modeLabel = currentMode === 'ex' ? '殲滅戦' : 'シーズン';
     document.getElementById('modal-title').textContent = `${guildName} - ${modeLabel}順位推移`;
+    
     const ctx = document.getElementById('history-chart').getContext('2d');
     if (historyChart) historyChart.destroy();
+    
     historyChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{ label: '順位', data: ranks, borderColor: '#d4af37', backgroundColor: 'transparent', tension: 0.1, fill: false, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#d4af37' }]
+            datasets: [{
+                label: '順位',
+                data: ranks,
+                borderColor: '#d4af37',
+                backgroundColor: 'transparent',
+                tension: 0.1,
+                fill: false,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#d4af37'
+            }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
-            scales: { y: { reverse: true, min: 1, max: 50, ticks: { color: '#fff', stepSize: 5 } }, x: { ticks: { color: '#fff' } } },
-            plugins: { legend: { display: false } },
-            animation: { onComplete: function() {
-                const ctx = this.ctx; ctx.font = Chart.helpers.fontString(12, 'bold', 'sans-serif'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillStyle = '#ffffff';
-                this.data.datasets.forEach(function(dataset, i) {
-                    const meta = historyChart.getDatasetMeta(i);
-                    meta.data.forEach(function(element, index) {
-                        const data = dataset.data[index]; if (data !== null) { ctx.fillText(data, element.x, element.y - 10); }
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { top: 35, left: 10, right: 10, bottom: 10 } },
+            scales: {
+                y: { reverse: true, min: 1, max: 50, ticks: { color: '#fff', stepSize: 5 } },
+                x: { ticks: { color: '#fff' } }
+            },
+            plugins: { 
+                legend: { display: false },
+                tooltip: { enabled: true }
+            },
+            // 数字を確実に描画するロジック
+            animation: {
+                onComplete: function() {
+                    const ctx = this.ctx;
+                    ctx.font = "bold 12px sans-serif";
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillStyle = '#ffffff';
+
+                    this.data.datasets.forEach((dataset, i) => {
+                        const meta = this.getDatasetMeta(i);
+                        meta.data.forEach((element, index) => {
+                            const data = dataset.data[index];
+                            if (data !== null) {
+                                // 点の少し上に描画
+                                ctx.fillText(data, element.x, element.y - 12);
+                            }
+                        });
                     });
-                });
-            }}
+                }
+            }
         }
     });
 }
 
 function setupModal() {
     closeBtn.onclick = () => { modal.style.display = "none"; };
-    window.addEventListener('click', (event) => { if (event.target === modal) { modal.style.display = "none"; } });
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) { modal.style.display = "none"; }
+    });
 }
 
 function adjustNameScale() {
@@ -215,4 +258,5 @@ function applyFilter() {
         row.style.display = text.includes(term) ? '' : 'none';
     });
 }
+
 init();
