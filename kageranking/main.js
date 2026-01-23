@@ -1,5 +1,4 @@
 const mainTable = document.getElementById('main-table');
-const tableColgroup = document.getElementById('table-colgroup');
 const tableHead = document.getElementById('table-head');
 const tableBody = document.getElementById('ranking-body');
 const eventSelect = document.getElementById('event-select');
@@ -13,7 +12,6 @@ let historyChart = null;
 let allEvents = [];
 let currentMode = 'ex'; 
 
-// 初期化
 async function init() {
     try {
         const response = await fetch('./events.json');
@@ -50,7 +48,10 @@ function updateEventDropdown() {
 eventSelect.addEventListener('change', (e) => loadRanking(e.target.value));
 searchInput.addEventListener('input', applyFilter);
 
-window.addEventListener('resize', adjustNameScale);
+window.addEventListener('resize', () => {
+    renderColgroups(currentMode);
+    adjustNameScale();
+});
 
 async function loadRanking(filePath) {
     try {
@@ -82,6 +83,7 @@ async function loadRanking(filePath) {
                 ? renderSeasonRow(item, data[0], data[index === 0 ? 0 : index - 1]) 
                 : renderExRow(item, data, index);
             
+            // ギルド名クリックイベント
             const nameCell = row.querySelector('.col-name');
             if (nameCell) {
                 nameCell.onclick = () => showHistory(item.guildName);
@@ -99,14 +101,19 @@ function renderColgroups(mode) {
     const oldColgroup = mainTable.querySelector('colgroup');
     if (oldColgroup) oldColgroup.remove();
     const colgroup = document.createElement('colgroup');
+    
+    const isMobile = window.innerWidth <= 480;
+    const nameWidth = isMobile ? "70px" : "200px";
+    const rankWidth = isMobile ? "25px" : "30px";
+
     if (mode === 'ss') {
-        colgroup.innerHTML = `<col style="width:30px"><col style="width:200px"><col><col style="width:50px"><col style="width:60px"><col><col>`;
+        colgroup.innerHTML = `<col style="width:${rankWidth}"><col style="width:${nameWidth}"><col><col style="width:50px"><col style="width:60px"><col><col>`;
     } else {
         colgroup.innerHTML = `
-            <col style="width:30px"><col style="width:200px">
-            <col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col>
+            <col style="width:${rankWidth}"><col style="width:${nameWidth}">
+            <col style="width:${rankWidth}"><col><col style="width:${rankWidth}"><col><col style="width:${rankWidth}"><col>
             <col><col>
-            <col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col>
+            <col style="width:${rankWidth}"><col><col style="width:${rankWidth}"><col><col style="width:${rankWidth}"><col>
         `;
     }
     mainTable.insertBefore(colgroup, tableHead);
@@ -114,9 +121,9 @@ function renderColgroups(mode) {
 
 function renderHeader(mode) {
     if (mode === 'ss') {
-        tableHead.innerHTML = `<tr><th class="sticky-col col-rank th-guild">順</th><th class="sticky-col col-name th-guild">ギルド名</th><th class="th-total">スコア</th><th>人</th><th>平均</th><th>1位差</th><th>上差</th></tr>`;
+        tableHead.innerHTML = `<tr><th class="col-rank th-guild">順</th><th class="col-name th-guild">ギルド名</th><th class="th-total">スコア</th><th>人</th><th>平均</th><th>1位差</th><th>上差</th></tr>`;
     } else {
-        tableHead.innerHTML = `<tr><th rowspan="2" class="sticky-col col-rank th-guild">順</th><th rowspan="2" class="sticky-col col-name th-guild">ギルド名</th><th colspan="6" class="th-total">累計</th><th colspan="2" class="th-total">差分</th><th colspan="6" class="th-day">日間</th></tr>
+        tableHead.innerHTML = `<tr><th rowspan="2" class="col-rank th-guild">順</th><th rowspan="2" class="col-name th-guild">ギルド名</th><th colspan="6" class="th-total">累計</th><th colspan="2" class="th-total">差分</th><th colspan="6" class="th-day">日間</th></tr>
         <tr><th class="col-sub-rank">順</th><th>D1</th><th class="col-sub-rank">順</th><th>D2</th><th class="col-sub-rank">順</th><th>D3</th><th>1位差</th><th>上差</th><th class="col-sub-rank">順</th><th>D1</th><th class="col-sub-rank">順</th><th>D2</th><th class="col-sub-rank">順</th><th>D3</th></tr>`;
     }
 }
@@ -126,23 +133,21 @@ function getRankBadge(rank) {
     return `<span class="rank-badge ${cls}">${rank}</span>`;
 }
 
+// ギルド名セルに必ず .col-name クラスを付与
 function renderSeasonRow(item, first, prev) {
     const s = item.score || 0;
-    return `<td class="sticky-col col-rank">${getRankBadge(item.rank || "－")}</td><td class="sticky-col col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="total-val">${s.toLocaleString()}</td><td>${item.members || 20}</td><td>${(s/1000/(item.members||20)).toFixed(1)}</td><td class="dim-num">${(first.score-s).toLocaleString()}</td><td class="dim-num">${(prev.score-s).toLocaleString()}</td>`;
+    return `<td class="col-rank">${getRankBadge(item.rank || "－")}</td><td class="col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="total-val">${s.toLocaleString()}</td><td>${item.members || 20}</td><td>${(s/1000/(item.members||20)).toFixed(1)}</td><td class="dim-num">${(first.score-s).toLocaleString()}</td><td class="dim-num">${(prev.score-s).toLocaleString()}</td>`;
 }
 
 function renderExRow(item, allData, index) {
     const p = (r, s, isD) => `<td class="col-sub-rank">${getRankBadge(r)}</td><td><span class="${isD ? 'day-val' : 'total-val'}">${s.toLocaleString()}</span></td>`;
-    return `<td class="sticky-col col-rank">${getRankBadge(item.rank_t3)}</td><td class="sticky-col col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${p(item.rank_t1, item.t1, false)}${p(item.rank_t2, item.t2, false)}${p(item.rank_t3, item.t3, false)}<td class="dim-num">${(allData[0].t3-item.t3).toLocaleString()}</td><td class="dim-num">${((allData[index===0?0:index-1].t3)-item.t3).toLocaleString()}</td>${p(item.rank_d1, item.d1, true)}${p(item.rank_d2, item.d2, true)}${p(item.rank_d3, item.d3, true)}`;
+    return `<td class="col-rank">${getRankBadge(item.rank_t3)}</td><td class="col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${p(item.rank_t1, item.t1, false)}${p(item.rank_t2, item.t2, false)}${p(item.rank_t3, item.t3, false)}<td class="dim-num">${(allData[0].t3-item.t3).toLocaleString()}</td><td class="dim-num">${((allData[index===0?0:index-1].t3)-item.t3).toLocaleString()}</td>${p(item.rank_d1, item.d1, true)}${p(item.rank_d2, item.d2, true)}${p(item.rank_d3, item.d3, true)}`;
 }
 
 async function showHistory(guildName) {
     const modeEvents = allEvents.filter(e => e.type === currentMode).slice(-10);
     modeEvents.reverse(); 
-
-    const labels = [];
-    const ranks = [];
-
+    const labels = []; const ranks = [];
     for (const ev of modeEvents) {
         try {
             const resp = await fetch(`./data/${ev.file}`);
@@ -152,75 +157,37 @@ async function showHistory(guildName) {
             ranks.push(found ? (found.rank || found.rank_t3) : null);
         } catch (e) { console.error(e); }
     }
-
     modal.style.display = "block";
     const modeLabel = currentMode === 'ex' ? '殲滅戦' : 'シーズン';
     document.getElementById('modal-title').textContent = `${guildName} - ${modeLabel}順位推移`;
-    
     const ctx = document.getElementById('history-chart').getContext('2d');
     if (historyChart) historyChart.destroy();
-    
     historyChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{
-                label: '順位',
-                data: ranks,
-                borderColor: '#d4af37',
-                backgroundColor: 'transparent',
-                tension: 0.1,
-                fill: false,
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                pointBackgroundColor: '#d4af37'
-            }]
+            datasets: [{ label: '順位', data: ranks, borderColor: '#d4af37', backgroundColor: 'transparent', tension: 0.1, fill: false, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#d4af37' }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: { padding: { top: 30 } },
-            scales: {
-                y: { reverse: true, min: 1, max: 50, ticks: { color: '#fff', stepSize: 5 } },
-                x: { ticks: { color: '#fff' } }
-            },
+            responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
+            scales: { y: { reverse: true, min: 1, max: 50, ticks: { color: '#fff', stepSize: 5 } }, x: { ticks: { color: '#fff' } } },
             plugins: { legend: { display: false } },
-            animation: {
-                onComplete: function() {
-                    const chartInstance = this;
-                    const ctx = chartInstance.ctx;
-                    ctx.font = Chart.helpers.fontString(12, 'bold', 'sans-serif');
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'bottom';
-                    ctx.fillStyle = '#ffffff';
-                    this.data.datasets.forEach(function(dataset, i) {
-                        const meta = chartInstance.getDatasetMeta(i);
-                        meta.data.forEach(function(element, index) {
-                            const data = dataset.data[index];
-                            if (data !== null) {
-                                ctx.fillText(data, element.x, element.y - 10);
-                            }
-                        });
+            animation: { onComplete: function() {
+                const ctx = this.ctx; ctx.font = Chart.helpers.fontString(12, 'bold', 'sans-serif'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillStyle = '#ffffff';
+                this.data.datasets.forEach(function(dataset, i) {
+                    const meta = historyChart.getDatasetMeta(i);
+                    meta.data.forEach(function(element, index) {
+                        const data = dataset.data[index]; if (data !== null) { ctx.fillText(data, element.x, element.y - 10); }
                     });
-                }
-            }
+                });
+            }}
         }
     });
 }
 
-/* --- モーダル制御：背景クリックで閉じる機能を追加 --- */
 function setupModal() {
-    // ×ボタンで閉じる
-    closeBtn.onclick = () => {
-        modal.style.display = "none";
-    };
-
-    // 背景（modal要素自体）をクリックした際に閉じる
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            modal.style.display = "none";
-        }
-    });
+    closeBtn.onclick = () => { modal.style.display = "none"; };
+    window.addEventListener('click', (event) => { if (event.target === modal) { modal.style.display = "none"; } });
 }
 
 function adjustNameScale() {
@@ -228,7 +195,6 @@ function adjustNameScale() {
         span.style.transform = 'none';
         const parentWidth = span.parentElement.clientWidth;
         const textWidth = span.scrollWidth;
-
         if (textWidth > parentWidth && parentWidth > 0) {
             const ratio = (parentWidth / textWidth) * 0.95; 
             span.style.transform = `scale(${ratio})`;
