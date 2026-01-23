@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>カゲマス ギルド統計</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="dashboard">
@@ -26,12 +27,24 @@
         </header>
 
         <div class="scroll-container">
-            <table class="analysis-table">
+            <table class="analysis-table" id="main-table">
+                <colgroup id="table-colgroup"></colgroup>
                 <thead id="table-head"></thead>
                 <tbody id="ranking-body"></tbody>
             </table>
         </div>
     </div>
+
+    <div id="chart-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="modal-title">順位推移</h3>
+            <div class="chart-container">
+                <canvas id="history-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
     <script src="main.js"></script>
 </body>
 </html>
