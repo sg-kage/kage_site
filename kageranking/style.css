@@ -93,7 +93,7 @@ body {
     outline: none;
 }
 
-/* --- テーブル構造：順位列の横幅を物理固定 --- */
+/* --- テーブル構造 --- */
 .scroll-container {
     flex: 1;
     overflow: auto;
@@ -106,7 +106,7 @@ body {
 .analysis-table {
     border-collapse: separate;
     border-spacing: 0;
-    table-layout: fixed; /* ブラウザの自動計算を無効化 */
+    table-layout: fixed; 
     width: 100%;
     min-width: 1550px;
     margin: 0;
@@ -117,7 +117,7 @@ body {
     border-bottom: 1px solid var(--border-line);
     padding: 0;
     height: 40px; 
-    background-color: var(--bg-black);
+    background-color: var(--bg-black); /* 基本背景色 */
     white-space: nowrap;
     text-align: center;
     box-sizing: border-box;
@@ -145,7 +145,7 @@ thead tr:nth-child(2) th {
 .th-total { background: var(--bg-header-total) !important; }
 .th-day { background: var(--bg-header-day) !important; }
 
-/* 順位列：デスクトップ時は30px */
+/* --- 固定列の透過防止修正 --- */
 .col-rank,
 .col-sub-rank {
     width: 30px !important;
@@ -153,19 +153,21 @@ thead tr:nth-child(2) th {
     max-width: 30px !important;
 }
 
+/* 一番左の順位列：背景を完全に不透明化 */
 .sticky-col.col-rank {
     position: sticky;
     left: 0 !important;
-    z-index: 50;
-    background-color: #000 !important;
+    z-index: 60; /* 重なり順を上げる */
+    background-color: #000000 !important; /* 透過防止 */
+    border-right: 1px solid var(--border-line) !important;
 }
 
-/* ギルド名列：デスクトップ時は200px */
+/* ギルド名列：背景を完全に不透明化 */
 .col-name {
     position: sticky;
     left: 30px !important;
-    z-index: 50;
-    background-color: #000 !important;
+    z-index: 60;
+    background-color: #000000 !important; /* 透過防止 */
     width: 200px !important;
     min-width: 200px !important;
     max-width: 200px !important;
@@ -180,10 +182,7 @@ thead tr:nth-child(2) th {
     width: auto;
 }
 
-thead .sticky-col {
-    z-index: 110;
-}
-
+/* スケーリング設定 */
 .name-scaler-wrap {
     width: 100%;
     overflow: hidden;
@@ -204,7 +203,7 @@ thead .sticky-col {
 .day-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #00e5ff; }
 .dim-num { color: #555555; font-size: 10px; }
 
-/* 順位バッジ：1位〜5位 */
+/* 順位バッジ */
 .rank-badge {
     display: flex;
     align-items: center;
@@ -226,28 +225,34 @@ thead .sticky-col {
 .badge-5 { border-color: #0d47a1; color: #64b5f6; }
 .badge-norm { border-color: #333; color: #999; }
 
-/* モーダルデザイン */
+/* モーダル */
 .modal {
-    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-    width: 100%; height: 100%; background-color: rgba(0,0,0,0.8);
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0; 
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    background-color: rgba(0,0,0,0.85);
 }
 
 .modal-content {
-    background-color: #111; margin: 10% auto; padding: 20px;
-    border: 1px solid var(--accent-gold); width: 80%; max-width: 800px;
-    border-radius: 8px; position: relative;
+    background-color: #111; 
+    margin: 10% auto; 
+    padding: 20px;
+    border: 1px solid var(--accent-gold); 
+    width: 85%; 
+    max-width: 800px;
+    border-radius: 8px; 
+    position: relative;
 }
 
-.close-button {
-    position: absolute; right: 20px; top: 10px;
-    color: #888; font-size: 28px; font-weight: bold; cursor: pointer;
-}
-
+.close-button { position: absolute; right: 20px; top: 10px; color: #888; font-size: 28px; font-weight: bold; cursor: pointer; }
 .close-button:hover { color: #fff; }
-
 .chart-container { width: 100%; height: 400px; }
 
-/* --- スマホ最適化：ギルド名幅を 70px に設定 --- */
+/* --- スマホ最適化 --- */
 @media screen and (max-width: 480px) {
     .analysis-table {
         min-width: 1150px !important; 
@@ -264,14 +269,12 @@ thead .sticky-col {
         min-width: 25px !important;
         max-width: 25px !important;
     }
-    /* ギルド名列：70pxに縮小 */
     .col-name {
         left: 25px !important;
         width: 70px !important;
         min-width: 70px !important;
         max-width: 70px !important;
     }
-    /* スケーリングを効かせるためフォントサイズを小さく設定 */
     .name-scaler-text {
         font-size: 8px !important;
     }
