@@ -10,7 +10,7 @@
     --accent-gold: #d4af37;     /* アクセント：ゴールド */
     --border-line: #222222;     /* 境界線 */
 
-    /* デスクトップ用固定幅：順位は一番左に合わせた30px */
+    /* デスクトップ用固定幅：順位は30px、名前は200px */
     --dt-rank-w: 30px; 
     --dt-name-w: 200px;
 }
@@ -106,7 +106,7 @@ body {
 .analysis-table {
     border-collapse: separate;
     border-spacing: 0;
-    table-layout: fixed; 
+    table-layout: fixed; /* px指定をブラウザに強制 */
     width: 100%;
     min-width: 1550px;
     margin: 0;
@@ -148,9 +148,9 @@ thead tr:nth-child(2) th {
 /* 順位列：30pxで絶対固定 */
 .col-rank,
 .col-sub-rank {
-    width: 30px !important;
-    min-width: 30px !important;
-    max-width: 30px !important;
+    width: var(--dt-rank-w) !important;
+    min-width: var(--dt-rank-w) !important;
+    max-width: var(--dt-rank-w) !important;
 }
 
 .sticky-col.col-rank {
@@ -160,15 +160,15 @@ thead tr:nth-child(2) th {
     background-color: #000 !important;
 }
 
-/* ギルド名列：クリックでグラフ表示されるようカーソルを変更 */
+/* ギルド名列：クリックで履歴表示 */
 .col-name {
     position: sticky;
-    left: 30px !important;
+    left: var(--dt-rank-w) !important;
     z-index: 50;
     background-color: #000 !important;
-    width: 200px !important;
-    min-width: 200px !important;
-    max-width: 200px !important;
+    width: var(--dt-name-w) !important;
+    min-width: var(--dt-name-w) !important;
+    max-width: var(--dt-name-w) !important;
     border-right: 2px solid var(--accent-gold) !important;
     text-align: left !important;
     padding-left: 5px !important;
@@ -200,7 +200,7 @@ thead .sticky-col {
 .day-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #00e5ff; }
 .dim-num { color: #555555; font-size: 10px; }
 
-/* 順位バッジ：1位〜5位のカラー設定 */
+/* 順位バッジ：1位〜5位のカラー */
 .rank-badge {
     display: flex;
     align-items: center;
@@ -215,14 +215,14 @@ thead .sticky-col {
     border: 1px solid #444;
 }
 
-.badge-1 { border-color: #ffd700; color: #ffd700; } /* 1位：金 */
-.badge-2 { border-color: #c0c0c0; color: #ffffff; } /* 2位：銀 */
-.badge-3 { border-color: #cd7f32; color: #cd7f32; } /* 3位：銅 */
-.badge-4 { border-color: #b71c1c; color: #e57373; } /* 4位：赤 */
-.badge-5 { border-color: #0d47a1; color: #64b5f6; } /* 5位：青 */
+.badge-1 { border-color: #ffd700; color: #ffd700; }
+.badge-2 { border-color: #c0c0c0; color: #ffffff; }
+.badge-3 { border-color: #cd7f32; color: #cd7f32; }
+.badge-4 { border-color: #b71c1c; color: #e57373; }
+.badge-5 { border-color: #0d47a1; color: #64b5f6; }
 .badge-norm { border-color: #333; color: #999; }
 
-/* モーダル（グラフポップアップ）のデザイン */
+/* モーダルデザイン */
 .modal {
     display: none; position: fixed; z-index: 1000; left: 0; top: 0;
     width: 100%; height: 100%; background-color: rgba(0,0,0,0.8);
@@ -243,12 +243,43 @@ thead .sticky-col {
 
 .chart-container { width: 100%; height: 400px; }
 
-/* --- スマホ最適化 --- */
+/* --- 【修正】スマホ最適化：スコア表示を確保 --- */
 @media screen and (max-width: 480px) {
-    .analysis-table { min-width: 950px; }
-    .analysis-table th, .analysis-table td { height: 32px; font-size: 9px !important; }
-    thead tr:nth-child(2) th { top: 32px; }
-    .col-rank, .col-sub-rank { width: 25px !important; min-width: 25px !important; }
-    .col-name { left: 25px !important; width: 90px !important; }
-    .rank-badge { width: 20px; font-size: 8px; }
+    .analysis-table {
+        /* スコア列が右端まで表示されるよう幅を1150pxに拡張 */
+        min-width: 1150px !important; 
+    }
+    .analysis-table th, .analysis-table td {
+        height: 32px;
+        font-size: 9px !important;
+    }
+    thead tr:nth-child(2) th {
+        top: 32px;
+    }
+    /* 順位列：スマホ用サイズ */
+    .col-rank, .col-sub-rank {
+        width: 25px !important;
+        min-width: 25px !important;
+        max-width: 25px !important;
+    }
+    /* ギルド名列：表示領域を確保するため80pxに固定 */
+    .col-name {
+        left: 25px !important;
+        width: 80px !important;
+        min-width: 80px !important;
+        max-width: 80px !important;
+    }
+    /* スマホ時のフォントサイズ調整 */
+    .name-scaler-text {
+        font-size: 8px !important;
+    }
+    .rank-badge {
+        width: 20px;
+        height: 16px;
+        font-size: 8px;
+    }
+    /* 数値列のパディングを削って詰め込む */
+    .total-val, .day-val {
+        font-size: 11px !important;
+    }
 }

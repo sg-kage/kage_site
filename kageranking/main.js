@@ -1,3 +1,4 @@
+const mainTable = document.getElementById('main-table');
 const tableColgroup = document.getElementById('table-colgroup');
 const tableHead = document.getElementById('table-head');
 const tableBody = document.getElementById('ranking-body');
@@ -69,7 +70,6 @@ async function loadRanking(filePath) {
             data.sort((a, b) => (b.score || 0) - (a.score || 0));
         }
 
-        // 上位50位までに表示を制限
         data = data.slice(0, 50);
 
         renderColgroups(currentMode);
@@ -95,11 +95,15 @@ async function loadRanking(filePath) {
 }
 
 function renderColgroups(mode) {
+    const oldColgroup = mainTable.querySelector('colgroup');
+    if (oldColgroup) oldColgroup.remove();
+    const colgroup = document.createElement('colgroup');
     if (mode === 'ss') {
-        tableColgroup.innerHTML = `<col style="width:30px"><col style="width:200px"><col><col style="width:50px"><col style="width:60px"><col><col>`;
+        colgroup.innerHTML = `<col style="width:30px"><col style="width:200px"><col><col style="width:50px"><col style="width:60px"><col><col>`;
     } else {
-        tableColgroup.innerHTML = `<col style="width:30px"><col style="width:200px"><col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col><col><col><col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col>`;
+        colgroup.innerHTML = `<col style="width:30px"><col style="width:200px"><col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col><col><col><col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col>`;
     }
+    mainTable.insertBefore(colgroup, tableHead);
 }
 
 function renderHeader(mode) {
@@ -125,25 +129,29 @@ function renderExRow(item, allData, index) {
     return `<td class="sticky-col col-rank">${getRankBadge(item.rank_t3)}</td><td class="sticky-col col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${p(item.rank_t1, item.t1, false)}${p(item.rank_t2, item.t2, false)}${p(item.rank_t3, item.t3, false)}<td class="dim-num">${(allData[0].t3-item.t3).toLocaleString()}</td><td class="dim-num">${((allData[index===0?0:index-1].t3)-item.t3).toLocaleString()}</td>${p(item.rank_d1, item.d1, true)}${p(item.rank_d2, item.d2, true)}${p(item.rank_d3, item.d3, true)}`;
 }
 
+// モードに応じた順位推移グラフの表示
 async function showHistory(guildName) {
-    const exEvents = allEvents.filter(e => e.type === 'ex').slice(-10);
-    exEvents.reverse(); // 右側ほど古い回に設定
+    // 現在のモード（ex または ss）に合わせた過去データを抽出
+    const modeEvents = allEvents.filter(e => e.type === currentMode).slice(-10);
+    modeEvents.reverse(); // 右側を古い回にする
 
     const labels = [];
     const ranks = [];
 
-    for (const ev of exEvents) {
+    for (const ev of modeEvents) {
         try {
             const resp = await fetch(`./data/${ev.file}`);
             const json = await resp.json();
             const found = json.ranking.find(g => g.guildName === guildName);
-            labels.push(ev.name.replace("魔界殲滅戦争", ""));
-            ranks.push(found ? found.rank : null);
+            // 名称から余計な文字を削除してラベル化
+            labels.push(ev.name.replace("魔界殲滅戦争", "").replace("魔界戦記 ", ""));
+            ranks.push(found ? (found.rank || found.rank_t3) : null);
         } catch (e) { console.error(e); }
     }
 
     modal.style.display = "block";
-    document.getElementById('modal-title').textContent = `${guildName} - 50位内の順位推移`;
+    const modeLabel = currentMode === 'ex' ? '殲滅戦' : 'シーズン';
+    document.getElementById('modal-title').textContent = `${guildName} - ${modeLabel}順位推移`;
     
     const ctx = document.getElementById('history-chart').getContext('2d');
     if (historyChart) historyChart.destroy();
@@ -156,9 +164,9 @@ async function showHistory(guildName) {
                 label: '順位',
                 data: ranks,
                 borderColor: '#d4af37',
-                backgroundColor: 'transparent', // 塗りつぶし色を透明に
+                backgroundColor: 'transparent',
                 tension: 0.1,
-                fill: false, // 黄色い塗りつぶしを解除
+                fill: false,
                 pointRadius: 6,
                 pointHoverRadius: 8,
                 pointBackgroundColor: '#d4af37'
@@ -167,22 +175,12 @@ async function showHistory(guildName) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            layout: {
-                padding: { top: 30 }
-            },
+            layout: { padding: { top: 30 } },
             scales: {
-                y: { 
-                    reverse: true,
-                    min: 1, 
-                    max: 50,
-                    ticks: { color: '#fff', stepSize: 5 } 
-                },
+                y: { reverse: true, min: 1, max: 50, ticks: { color: '#fff', stepSize: 5 } },
                 x: { ticks: { color: '#fff' } }
             },
-            plugins: {
-                legend: { display: false }
-            },
-            // 点の上に数字を表示する描画設定
+            plugins: { legend: { display: false } },
             animation: {
                 onComplete: function() {
                     const chartInstance = this;
@@ -191,7 +189,6 @@ async function showHistory(guildName) {
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'bottom';
                     ctx.fillStyle = '#ffffff';
-
                     this.data.datasets.forEach(function(dataset, i) {
                         const meta = chartInstance.getDatasetMeta(i);
                         meta.data.forEach(function(element, index) {
@@ -217,7 +214,10 @@ function adjustNameScale() {
         span.style.transform = 'none';
         const pw = span.parentElement.clientWidth;
         const tw = span.scrollWidth;
-        if (tw > pw) { span.style.transform = `scale(${(pw/tw)*0.95})`; span.style.transformOrigin = 'left center'; }
+        if (tw > pw) { 
+            span.style.transform = `scale(${(pw/tw)*0.95})`; 
+            span.style.transformOrigin = 'left center'; 
+        }
     });
 }
 
