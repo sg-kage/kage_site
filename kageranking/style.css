@@ -1,99 +1,195 @@
 :root {
     /* 配色：漆黒ベース */
     --bg-black: #000000;
-    --bg-header-guild: #2d1616; /* 深いボルドー */
-    --bg-header-total: #0f1a2a; /* ダークネイビー */
-    --bg-header-day: #162616;   /* ダークフォレスト */
+    --bg-header-guild: #2d1616; /* 深いボルドー（殲滅戦・ギルド） */
+    --bg-header-total: #0f1a2a; /* ダークネイビー（累計） */
+    --bg-header-day: #162616;   /* ダークフォレスト（日間） */
     
     --text-main: #ffffff;
     --text-value: #f5f5f5;
     --accent-gold: #d4af37;     /* 落ち着いたゴールド */
     --border-line: #222222;     /* 控えめな境界線 */
 
-    /* PC向け基本幅設定 */
+    /* モードやデバイスによってJSで上書きされる変数（初期値） */
     --rank-w: 50px;
     --name-w: 220px;
 }
 
 body {
-    margin: 0; padding: 10px;
+    margin: 0; padding: 5px;
     background: var(--bg-black);
     color: var(--text-main);
     font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif;
-    overflow-x: hidden; /* 横揺れ防止 */
+    overflow-x: hidden; /* スマホでの横揺れ防止 */
 }
 
 .dashboard { display: flex; flex-direction: column; height: 98vh; }
 
+/* --- ナビゲーション・タブ --- */
 .top-nav {
-    display: flex; justify-content: space-between; align-items: center; 
-    padding: 10px 15px; background: #080808;
-    border-radius: 6px; margin-bottom: 8px;
+    padding: 10px;
+    background: #080808;
+    border-radius: 6px;
+    margin-bottom: 8px;
     border: 1px solid var(--border-line);
 }
 
-.input-group select, .input-group input {
-    background: #000; border: 1px solid #444; color: #fff;
-    padding: 6px; border-radius: 4px; font-size: 12px; outline: none;
+.mode-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+    width: 100%;
 }
 
+.mode-tab {
+    flex: 1;
+    padding: 8px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #888;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.mode-tab.active {
+    background: var(--bg-header-guild);
+    color: #fff;
+    border-color: var(--accent-gold);
+}
+
+.control-panel {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+}
+
+.input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.input-group label {
+    font-size: 9px;
+    color: #666;
+    text-transform: uppercase;
+}
+
+.input-group select, .input-group input {
+    background: #000;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+}
+
+/* --- テーブル構造 --- */
 .scroll-container {
-    flex: 1; overflow: auto;
+    flex: 1;
+    overflow: auto;
     border: 1px solid var(--border-line);
     background: #000;
 }
 
 .analysis-table { 
-    border-collapse: separate; border-spacing: 0; 
-    table-layout: fixed; width: auto; 
+    border-collapse: separate; 
+    border-spacing: 0; 
+    table-layout: fixed; /* 列幅を固定して計算コストを下げる */
+    width: auto; 
 }
 
 .analysis-table th, .analysis-table td {
     border-right: 1px solid var(--border-line);
     border-bottom: 1px solid var(--border-line);
     padding: 10px 8px;
-    background-color: var(--bg-black); /* 背景を不透明にして重なりを防止 */
-    white-space: nowrap; text-align: center;
+    background-color: var(--bg-black); /* 背景不透明にしてスクロール時の重なり防止 */
+    white-space: nowrap;
+    text-align: center;
 }
 
-/* ヘッダー固定と色分け */
+/* ヘッダー固定 */
 thead th { 
-    position: sticky; top: 0; z-index: 100; 
-    font-size: 11px; color: var(--accent-gold);
+    position: sticky; 
+    top: 0; 
+    z-index: 100; 
+    font-size: 11px; 
+    color: var(--accent-gold);
     font-weight: bold;
 }
+/* 2段ヘッダーの2行目の位置 */
 thead tr:nth-child(2) th { top: 35px; }
 
 .th-guild { background: var(--bg-header-guild) !important; }
 .th-total { background: var(--bg-header-total) !important; }
 .th-day { background: var(--bg-header-day) !important; }
 
-/* 左側固定列（被り防止のため背景色を強制） */
+/* --- 左側固定列（Sticky Column） --- */
 .sticky-col { 
     position: sticky; 
     z-index: 50; 
-    background-color: #000 !important; 
+    background-color: #000 !important; /* スクロールした数字が潜り込むように不透明化 */
 }
 thead .sticky-col { z-index: 110; }
 
-.col-rank { left: 0; width: var(--rank-w); }
-.col-name { 
-    left: var(--rank-w); width: var(--name-w); 
-    border-right: 2px solid var(--accent-gold) !important;
-    text-align: left !important; padding-left: 15px !important;
+.col-rank { 
+    left: 0; 
+    width: var(--rank-w); 
+    min-width: var(--rank-w);
+    max-width: var(--rank-w);
 }
 
-/* テキストスタイル */
-.name-scaler-text { color: #ffffff; font-weight: bold; font-size: 14px; }
-.total-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-value); }
-.day-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #00e5ff; } 
-.dim-num { color: #555555; font-size: 10px; }
+.col-name { 
+    left: var(--rank-w); 
+    width: var(--name-w); 
+    min-width: var(--name-w);
+    max-width: var(--name-w);
+    border-right: 2px solid var(--accent-gold) !important; /* 固定列の区切りを明確に */
+    text-align: left !important;
+    padding-left: 15px !important;
+}
 
-/* 順位バッジ */
+/* --- テキストスタイル --- */
+.name-scaler-text {
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 14px;
+    display: inline-block;
+}
+
+.total-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-value);
+}
+
+.day-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #00e5ff; /* シアン：日間の数値 */
+}
+
+.dim-num {
+    color: #555555;
+    font-size: 10px;
+}
+
+/* --- 順位バッジ --- */
 .rank-badge {
-    display: inline-block; min-width: 22px; padding: 1px 3px;
-    font-size: 10px; border-radius: 3px; font-weight: bold;
-    background: #111; border: 1px solid #444;
+    display: inline-block;
+    min-width: 22px;
+    padding: 1px 3px;
+    font-size: 10px;
+    border-radius: 3px;
+    font-weight: bold;
+    background: #111;
+    border: 1px solid #444;
 }
 .badge-1 { border-color: #ffd700; color: #ffd700; }
 .badge-2 { border-color: #c0c0c0; color: #c0c0c0; }
@@ -101,22 +197,29 @@ thead .sticky-col { z-index: 110; }
 .badge-4 { border-color: #b71c1c; color: #e57373; }
 .badge-5 { border-color: #0d47a1; color: #64b5f6; }
 
-/* --- スマホ設定 (max-width: 480px) --- */
+/* --- スマホ最適化 (max-width: 480px) --- */
 @media screen and (max-width: 480px) {
+    /* JS側でも書き換えるが、CSSでも最小値を定義 */
     :root {
-        --rank-w: 28px;    /* 順位列の横幅を極限まで狭める */
-        --name-w: 90px;    /* ギルド名列をスマホ用に制限 */
+        --rank-w: 28px;
+        --name-w: 85px;
     }
-    
-    .analysis-table th, .analysis-table td { 
-        padding: 5px 2px; 
-        font-size: 8px !important; 
+
+    .analysis-table th, .analysis-table td {
+        padding: 5px 2px;
+        font-size: 8px !important;
     }
-    
-    .name-scaler-text { font-size: 10px; }
+
+    .name-scaler-text { font-size: 9px; }
     .total-val, .day-val { font-size: 9px; }
-    .rank-badge { min-width: 16px; padding: 0 2px; font-size: 8px; }
+    .rank-badge {
+        min-width: 14px;
+        padding: 0 2px;
+        font-size: 8px;
+    }
+
+    /* スマホ時のヘッダー高さ調整 */
+    thead tr:nth-child(2) th { top: 23px; }
     
-    thead tr:nth-child(2) th { top: 23px; } 
     .col-name { padding-left: 5px !important; }
 }
