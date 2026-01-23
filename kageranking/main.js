@@ -13,6 +13,7 @@ let historyChart = null;
 let allEvents = [];
 let currentMode = 'ex'; 
 
+// 初期化処理
 async function init() {
     try {
         const response = await fetch('./events.json');
@@ -70,6 +71,7 @@ async function loadRanking(filePath) {
             data.sort((a, b) => (b.score || 0) - (a.score || 0));
         }
 
+        // 上位50位までに制限
         data = data.slice(0, 50);
 
         renderColgroups(currentMode);
@@ -101,7 +103,13 @@ function renderColgroups(mode) {
     if (mode === 'ss') {
         colgroup.innerHTML = `<col style="width:30px"><col style="width:200px"><col><col style="width:50px"><col style="width:60px"><col><col>`;
     } else {
-        colgroup.innerHTML = `<col style="width:30px"><col style="width:200px"><col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col><col><col><col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col>`;
+        // デスクトップ用設定
+        colgroup.innerHTML = `
+            <col style="width:30px"><col style="width:200px">
+            <col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col>
+            <col><col>
+            <col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col>
+        `;
     }
     mainTable.insertBefore(colgroup, tableHead);
 }
@@ -110,7 +118,8 @@ function renderHeader(mode) {
     if (mode === 'ss') {
         tableHead.innerHTML = `<tr><th class="sticky-col col-rank th-guild">順</th><th class="sticky-col col-name th-guild">ギルド名</th><th class="th-total">スコア</th><th>人</th><th>平均</th><th>1位差</th><th>上差</th></tr>`;
     } else {
-        tableHead.innerHTML = `<tr><th rowspan="2" class="sticky-col col-rank th-guild">順</th><th rowspan="2" class="sticky-col col-name th-guild">ギルド名</th><th colspan="6" class="th-total">累計</th><th colspan="2" class="th-total">差分</th><th colspan="6" class="th-day">日間</th></tr><tr><th class="col-sub-rank">順</th><th>D1</th><th class="col-sub-rank">順</th><th>D2</th><th class="col-sub-rank">順</th><th>D3</th><th>1位差</th><th>上差</th><th class="col-sub-rank">順</th><th>D1</th><th class="col-sub-rank">順</th><th>D2</th><th class="col-sub-rank">順</th><th>D3</th></tr>`;
+        tableHead.innerHTML = `<tr><th rowspan="2" class="sticky-col col-rank th-guild">順</th><th rowspan="2" class="sticky-col col-name th-guild">ギルド名</th><th colspan="6" class="th-total">累計</th><th colspan="2" class="th-total">差分</th><th colspan="6" class="th-day">日間</th></tr>
+        <tr><th class="col-sub-rank">順</th><th>D1</th><th class="col-sub-rank">順</th><th>D2</th><th class="col-sub-rank">順</th><th>D3</th><th>1位差</th><th>上差</th><th class="col-sub-rank">順</th><th>D1</th><th class="col-sub-rank">順</th><th>D2</th><th class="col-sub-rank">順</th><th>D3</th></tr>`;
     }
 }
 
@@ -129,11 +138,9 @@ function renderExRow(item, allData, index) {
     return `<td class="sticky-col col-rank">${getRankBadge(item.rank_t3)}</td><td class="sticky-col col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${p(item.rank_t1, item.t1, false)}${p(item.rank_t2, item.t2, false)}${p(item.rank_t3, item.t3, false)}<td class="dim-num">${(allData[0].t3-item.t3).toLocaleString()}</td><td class="dim-num">${((allData[index===0?0:index-1].t3)-item.t3).toLocaleString()}</td>${p(item.rank_d1, item.d1, true)}${p(item.rank_d2, item.d2, true)}${p(item.rank_d3, item.d3, true)}`;
 }
 
-// モードに応じた順位推移グラフの表示
 async function showHistory(guildName) {
-    // 現在のモード（ex または ss）に合わせた過去データを抽出
     const modeEvents = allEvents.filter(e => e.type === currentMode).slice(-10);
-    modeEvents.reverse(); // 右側を古い回にする
+    modeEvents.reverse(); // 右が古い順
 
     const labels = [];
     const ranks = [];
@@ -143,7 +150,6 @@ async function showHistory(guildName) {
             const resp = await fetch(`./data/${ev.file}`);
             const json = await resp.json();
             const found = json.ranking.find(g => g.guildName === guildName);
-            // 名称から余計な文字を削除してラベル化
             labels.push(ev.name.replace("魔界殲滅戦争", "").replace("魔界戦記 ", ""));
             ranks.push(found ? (found.rank || found.rank_t3) : null);
         } catch (e) { console.error(e); }
@@ -166,7 +172,7 @@ async function showHistory(guildName) {
                 borderColor: '#d4af37',
                 backgroundColor: 'transparent',
                 tension: 0.1,
-                fill: false,
+                fill: false, // 塗りつぶし解除
                 pointRadius: 6,
                 pointHoverRadius: 8,
                 pointBackgroundColor: '#d4af37'
@@ -194,7 +200,7 @@ async function showHistory(guildName) {
                         meta.data.forEach(function(element, index) {
                             const data = dataset.data[index];
                             if (data !== null) {
-                                ctx.fillText(data, element.x, element.y - 10);
+                                ctx.fillText(data, element.x, element.y - 10); // 数値を点の上に表示
                             }
                         });
                     });
@@ -209,13 +215,16 @@ function setupModal() {
     window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 }
 
+// ギルド名を枠（スマホ時は70px）に合わせて自動縮小するロジック
 function adjustNameScale() {
     document.querySelectorAll('.name-scaler-text').forEach(span => {
         span.style.transform = 'none';
-        const pw = span.parentElement.clientWidth;
-        const tw = span.scrollWidth;
-        if (tw > pw) { 
-            span.style.transform = `scale(${(pw/tw)*0.95})`; 
+        const parentWidth = span.parentElement.clientWidth;
+        const textWidth = span.scrollWidth;
+
+        if (textWidth > parentWidth && parentWidth > 0) {
+            const ratio = (parentWidth / textWidth) * 0.95; 
+            span.style.transform = `scale(${ratio})`;
             span.style.transformOrigin = 'left center'; 
         }
     });
