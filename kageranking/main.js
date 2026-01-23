@@ -13,7 +13,7 @@ let historyChart = null;
 let allEvents = [];
 let currentMode = 'ex'; 
 
-// 初期化処理
+// 初期化
 async function init() {
     try {
         const response = await fetch('./events.json');
@@ -71,7 +71,6 @@ async function loadRanking(filePath) {
             data.sort((a, b) => (b.score || 0) - (a.score || 0));
         }
 
-        // 上位50位までに制限
         data = data.slice(0, 50);
 
         renderColgroups(currentMode);
@@ -103,7 +102,6 @@ function renderColgroups(mode) {
     if (mode === 'ss') {
         colgroup.innerHTML = `<col style="width:30px"><col style="width:200px"><col><col style="width:50px"><col style="width:60px"><col><col>`;
     } else {
-        // デスクトップ用設定
         colgroup.innerHTML = `
             <col style="width:30px"><col style="width:200px">
             <col style="width:30px"><col><col style="width:30px"><col><col style="width:30px"><col>
@@ -140,7 +138,7 @@ function renderExRow(item, allData, index) {
 
 async function showHistory(guildName) {
     const modeEvents = allEvents.filter(e => e.type === currentMode).slice(-10);
-    modeEvents.reverse(); // 右が古い順
+    modeEvents.reverse(); 
 
     const labels = [];
     const ranks = [];
@@ -172,7 +170,7 @@ async function showHistory(guildName) {
                 borderColor: '#d4af37',
                 backgroundColor: 'transparent',
                 tension: 0.1,
-                fill: false, // 塗りつぶし解除
+                fill: false,
                 pointRadius: 6,
                 pointHoverRadius: 8,
                 pointBackgroundColor: '#d4af37'
@@ -200,7 +198,7 @@ async function showHistory(guildName) {
                         meta.data.forEach(function(element, index) {
                             const data = dataset.data[index];
                             if (data !== null) {
-                                ctx.fillText(data, element.x, element.y - 10); // 数値を点の上に表示
+                                ctx.fillText(data, element.x, element.y - 10);
                             }
                         });
                     });
@@ -210,12 +208,21 @@ async function showHistory(guildName) {
     });
 }
 
+/* --- モーダル制御：背景クリックで閉じる機能を追加 --- */
 function setupModal() {
-    closeBtn.onclick = () => modal.style.display = "none";
-    window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
+    // ×ボタンで閉じる
+    closeBtn.onclick = () => {
+        modal.style.display = "none";
+    };
+
+    // 背景（modal要素自体）をクリックした際に閉じる
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    });
 }
 
-// ギルド名を枠（スマホ時は70px）に合わせて自動縮小するロジック
 function adjustNameScale() {
     document.querySelectorAll('.name-scaler-text').forEach(span => {
         span.style.transform = 'none';
