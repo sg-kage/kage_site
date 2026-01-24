@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Kage Project Links</title>
+    <title>カゲマス関連リンク</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
@@ -13,8 +13,8 @@
             padding: 0;
         }
         .container {
-            max-width: 600px;
-            margin: 60px auto 0 auto;
+            max-width: 800px; /* 横並び用に少し広げました */
+            margin: 60px auto;
             padding: 32px;
             background: rgba(30, 30, 30, 0.85);
             border-radius: 24px;
@@ -31,14 +31,18 @@
         }
         .repo-list {
             display: flex;
-            flex-direction: column;
-            gap: 28px;
+            flex-direction: row; /* 横並び */
+            flex-wrap: wrap;    /* 折り返し許可 */
+            gap: 20px;          /* カード間の隙間 */
+            justify-content: center;
         }
         .repo-card {
+            flex: 0 1 calc(50% - 10px); /* 2カラム計算（隙間分を引く） */
             background: linear-gradient(90deg, #232526 0%, #00c6ff 100%);
             border-radius: 16px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
             transition: transform 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
         }
         .repo-card:hover {
             transform: translateY(-7px) scale(1.035);
@@ -46,12 +50,13 @@
         }
         .repo-link {
             display: block;
-            padding: 28px 32px;
+            padding: 24px 20px;
             text-decoration: none;
             color: #fff;
-            font-size: 1.25em;
+            font-size: 1.1em;
             font-weight: 600;
             letter-spacing: 1px;
+            text-align: center; /* 中央揃えで見栄え良く */
         }
         .repo-link:after {
             content: " →";
@@ -62,6 +67,8 @@
         .repo-card:hover .repo-link:after {
             color: #ffffff;
         }
+
+        /* モバイル対応（画面が狭い時は1列にする） */
         @media (max-width: 700px) {
             .container {
                 margin: 16px;
@@ -69,6 +76,9 @@
             }
             h1 {
                 font-size: 1.6em;
+            }
+            .repo-card {
+                flex: 0 1 100%; /* 1列に広げる */
             }
             .repo-link {
                 padding: 18px 16px;
@@ -83,32 +93,37 @@
         <div class="repo-list">
             <div class="repo-card">
                 <a class="repo-link" href="https://sg-kage.github.io/kage_character/" target="_blank">
-                    カゲマス図鑑
+                    📚カゲマス図鑑
                 </a>
             </div>
             <div class="repo-card">
                 <a class="repo-link" href="https://sg-kage.github.io/kage_site/日程/" target="_blank">
-                    日程
+                    📅イベント日程
                 </a>
             </div>
             <div class="repo-card">
-                <a class="repo-link" href="https://sg-kage.github.io/kage_site/戦力/" target="_blank">
-                    戦力合わせ
-                </a>
-            </div>
-            <div class="repo-card">
-                <a class="repo-link" href="https://sg-kage.github.io/kage_site/秘密基地/" target="_blank">
-                    秘密基地
-                </a>
-            </div>
-            <div class="repo-card">
-                <a class="repo-link" href="https://sg-kage.github.io/kage_site/USERID/" target="_blank">
-                    日付確認ツール
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/ranking/" target="_blank">
+                    🏆ランキング　New
                 </a>
             </div>
             <div class="repo-card">
                 <a class="repo-link" href="https://sg-kage.github.io/kage_site/スコア/" target="_blank">
-                    最大スコアダメージ計算
+                    ⚔️スコア計算
+                </a>
+            </div>
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/戦力/" target="_blank">
+                    🧮戦力合わせ
+                </a>
+            </div>
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/秘密基地/" target="_blank">
+                    🏰秘密基地
+                </a>
+            </div>
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/USERID/" target="_blank">
+                    ㊙️日付確認
                 </a>
             </div>
         </div>
