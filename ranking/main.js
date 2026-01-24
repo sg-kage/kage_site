@@ -81,7 +81,6 @@ async function loadRanking(filePath) {
             data.sort((a, b) => (b.score || 0) - (a.score || 0));
         }
 
-        data = data.slice(0, 50);
         renderColgroups(currentMode);
         renderHeader(currentMode);
         tableBody.innerHTML = '';
@@ -94,6 +93,7 @@ async function loadRanking(filePath) {
             if (nameCell) nameCell.onclick = () => showHistory(item.guildName);
             tableBody.appendChild(row);
         });
+        
         applyFilter();
         setTimeout(adjustNameScale, 10);
     } catch (e) { console.error("LOAD_FAILED:", e); }
@@ -137,7 +137,7 @@ function renderExRow(item, allData, index) {
     return `<td class="col-rank">${getRankBadge(item.rank_t3)}</td><td class="col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${p(item.rank_t1, item.t1, false)}${p(item.rank_t2, item.t2, false)}${p(item.rank_t3, item.t3, false)}<td class="dim-num">${(allData[0].t3-item.t3).toLocaleString()}</td><td class="dim-num">${((allData[index===0?0:index-1].t3)-item.t3).toLocaleString()}</td>${p(item.rank_d1, item.d1, true)}${p(item.rank_d2, item.d2, true)}${p(item.rank_d3, item.d3, true)}`;
 }
 
-// 履歴グラフ（1位欠けを根本修正）
+// 履歴グラフ（動的単位フォーマット適用）
 async function showHistory(guildName) {
     const modeEvents = allEvents.filter(e => e.type === currentMode).slice(-10);
     modeEvents.reverse(); 
@@ -159,14 +159,20 @@ async function showHistory(guildName) {
     }
 
     const validRanks = ranks.filter(r => r !== null);
-    const minRank = Math.min(...validRanks);
-    const maxRank = Math.max(...validRanks);
+    const minRank = validRanks.length > 0 ? Math.min(...validRanks) : 1;
+    const maxRank = validRanks.length > 0 ? Math.max(...validRanks) : 10;
 
     modal.style.display = "block";
     document.getElementById('modal-title').textContent = `${guildName} - 推移分析`;
     const ctx = document.getElementById('history-chart').getContext('2d');
     if (historyChart) historyChart.destroy();
     
+    // スコア表示用フォーマッタ
+    const scoreFormatter = (v, precision = 0) => {
+        if (currentMode === 'ss') return (v / 1000).toFixed(precision) + 'K';
+        return (v / 1000000).toFixed(precision) + 'M';
+    };
+
     historyChart = new Chart(ctx, {
         data: {
             labels: labels,
@@ -181,7 +187,6 @@ async function showHistory(guildName) {
             scales: {
                 y_rank: {
                     type: 'linear', position: 'left', reverse: true,
-                    // 最高順位の1つ上のランクから軸を開始（ただし0以下にはしない）
                     min: Math.max(0.5, minRank - 1),
                     max: maxRank + 1,
                     ticks: { 
@@ -193,8 +198,11 @@ async function showHistory(guildName) {
                 y_score: {
                     type: 'linear', position: 'right', grid: { display: false },
                     beginAtZero: false, 
-                    ticks: { color: '#aaa', callback: function(v) { return (v / 1000000).toFixed(0) + 'M'; } },
-                    title: { display: true, text: 'スコア(M)', color: '#aaa' }
+                    ticks: { 
+                        color: '#aaa', 
+                        callback: function(v) { return scoreFormatter(v, 0); } // 軸の目盛り表示
+                    },
+                    title: { display: true, text: currentMode === 'ss' ? 'スコア(K)' : 'スコア(M)', color: '#aaa' }
                 },
                 x: { ticks: { color: '#fff' } }
             },
@@ -210,7 +218,8 @@ async function showHistory(guildName) {
                         meta.data.forEach((element, index) => {
                             const data = dataset.data[index];
                             if (data !== null) {
-                                let label = i === 0 ? data : (data / 1000000).toFixed(1) + 'M';
+                                // 棒グラフ上のラベル表示（シーズンならK、殲滅戦ならM）
+                                let label = i === 0 ? data : scoreFormatter(data, 1);
                                 ctx.fillText(label, element.x, element.y - 12);
                             }
                         });
