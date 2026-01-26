@@ -65,13 +65,13 @@
 <body>
 <div class="container">
   <h1>討伐証 計算機</h1>
-  <p class="disclaimer">※下一桁が9の状態（自然回復待ちなど）を前提に10単位で計算</p>
+  <p class="disclaimer">※下一桁が9の状態を前提に10単位で計算</p>
   <form id="calcForm">
     <div class="form-grid">
       <div class="card">
         <div id="savedMsg1" class="saved-toast">保存完了</div>
         <div class="mode-info">
-          60：アイテム最小で60単位 / 120：120単位優先<br>最大：目標スタミナ維持しつつ証を最大獲得
+          60：最小消費で60単位 / 120：120単位優先<br>最大：目標スタミナ維持しつつ証を最大獲得
         </div>
         <div class="mode-switch">
           <label><input type="radio" name="mode" value="MIN" checked> 60</label>
@@ -102,7 +102,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v17_final';
+  const STORAGE_KEY = 'priconne_calc_v18_instant';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -135,23 +135,36 @@
   function simulate(start, consume, items, bonus) {
     let steps = [], cur = start, rem = consume, p = {...items};
     let safetyLoop = 0;
-    while ((rem > 0 || p.stone > 0 || p.burger > 0 || p.sand > 0) && safetyLoop < 50) {
+
+    while ((rem > 0 || p.stone > 0 || p.burger > 0 || p.sand > 0) && safetyLoop < 100) {
       safetyLoop++;
-      let safeLimit = Math.floor((cur - (SAFETY_THRESHOLD + 1)) / 10) * 10;
-      if (safeLimit > 0 && rem > 0) {
-        let d = Math.min(rem, safeLimit); cur -= d; rem -= d; steps.push({type:'consume', val:d, after:cur});
-      } else {
-        let r = 0, used = {stone:0, burger:0, sand:0};
-        while (cur <= 850) {
-          if (p.sand > 0) { p.sand--; used.sand++; cur += 10; r += 10; }
-          else if (p.burger > 0) { p.burger--; used.burger++; cur += 30; r += 30; }
-          else if (p.stone > 0) { p.stone--; used.stone++; cur += 100; r += 100; }
-          else break;
-          if (r >= 200) break; 
-        }
-        if (r > 0) steps.push({type:'recover', used, val:r, after:cur});
-        else if (rem > 0) { cur -= rem; steps.push({type:'consume', val:rem, after:cur}); rem = 0; } else break;
+
+      // 1. 回復フェーズ：限界999まで一気に回復
+      let r = 0, used = {stone:0, burger:0, sand:0};
+      while (true) {
+        if (p.sand > 0 && cur + 10 <= 999) { p.sand--; used.sand++; cur += 10; r += 10; }
+        else if (p.burger > 0 && cur + 30 <= 999) { p.burger--; used.burger++; cur += 30; r += 30; }
+        else if (p.stone > 0 && cur + 100 <= 999) { p.stone--; used.stone++; cur += 100; r += 100; }
+        else break;
       }
+      if (r > 0) steps.push({type:'recover', used, val:r, after:cur});
+
+      // 2. 消費フェーズ：安全圏(150)を下回らない範囲で一気に消費
+      let maxCanConsume = cur - (SAFETY_THRESHOLD + 1);
+      let safeLimit = Math.floor(maxCanConsume / 10) * 10;
+      
+      if (safeLimit > 0 && rem > 0) {
+        let d = Math.min(rem, safeLimit);
+        cur -= d; rem -= d;
+        steps.push({type:'consume', val:d, after:cur});
+      } else if (rem > 0 && p.stone === 0 && p.burger === 0 && p.sand === 0) {
+        // アイテムなしの最終消費
+        cur -= rem; steps.push({type:'consume', val:rem, after:cur}); rem = 0;
+      } else if (rem === 0 && p.stone === 0 && p.burger === 0 && p.sand === 0) {
+        break;
+      } else if (safeLimit <= 0 && rem > 0) {
+        // アイテムがあるが消費不可の場合は回復へ回る
+      } else break;
     }
     if (bonus > 0) { cur += bonus; steps.push({type:'bonus', val:bonus, after:cur}); }
     return {steps, final:cur};
