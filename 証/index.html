@@ -10,78 +10,91 @@
       --bg-dark: #0a0c10; --card-bg: #11141a; --card-border: #1e2630;
       --primary: #00e5ff; --primary-dim: rgba(0, 229, 255, 0.15);
       --accent-red: #ff3d00; --accent-yellow: #ffea00;
-      --text-main: #f0f0f0; --text-sub: #90a4ae; --radius: 6px;
+      --text-main: #f0f0f0; --text-sub: #90a4ae; --radius: 8px;
     }
     body { 
       font-family: "Noto Sans JP", sans-serif; margin: 0; padding: 0.5em; 
       background-color: var(--bg-dark); color: var(--text-main);
       background-image: radial-gradient(circle at 50% 0%, #15202b 0%, var(--bg-dark) 100%);
     }
-    h1 { text-align: center; color: var(--primary); font-size: 1.3em; margin: 0.3em 0; text-shadow: 0 0 10px var(--primary-dim); letter-spacing: 2px; }
-    .disclaimer { text-align: center; font-size: 0.75em; color: var(--accent-yellow); margin-bottom: 0.8em; font-weight: bold; line-height: 1.4; padding: 0 1em; }
+    h1 { text-align: center; color: var(--primary); font-size: 1.5em; margin: 0.5em 0; text-shadow: 0 0 10px var(--primary-dim); letter-spacing: 2px; }
+    .disclaimer { text-align: center; font-size: 0.85em; color: var(--accent-yellow); margin-bottom: 1em; font-weight: bold; line-height: 1.5; padding: 0 1em; }
 
     .container { max-width: 720px; margin: 0 auto; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em; margin-bottom: 0.8em; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8em; margin-bottom: 1em; }
     .card { 
       background: var(--card-bg); border: 1px solid var(--card-border); 
-      padding: 0.8em; border-radius: var(--radius); display: flex; flex-direction: column; gap: 0.5em;
-      position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      padding: 1.2em; border-radius: var(--radius); display: flex; flex-direction: column; gap: 1em;
+      position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
     }
-    .form-row { display: flex; align-items: center; justify-content: space-between; height: 1.8em; }
-    label { font-size: 0.8em; font-weight: bold; color: var(--text-sub); }
+    .form-row { display: flex; align-items: center; justify-content: space-between; min-height: 2.5em; }
+    label { font-size: 0.9em; font-weight: bold; color: var(--text-sub); }
+    
+    /* 入力欄を大きく押しやすく */
     input[type="number"], select { 
-      width: 4.5em; background: #000; color: var(--primary); border: 1px solid #334155; 
-      border-radius: 4px; padding: 0.3em; text-align: right; font-size: 1em; font-family: "Roboto Mono", monospace;
+      width: 5.5em; height: 2.8em; background: #000; color: var(--primary); border: 1px solid #334155; 
+      border-radius: 6px; padding: 0.4em; text-align: right; font-size: 1.1em; font-family: "Roboto Mono", monospace;
+      appearance: none; -webkit-appearance: none;
     }
-    .mode-switch { display: flex; background: #000; padding: 2px; border-radius: 4px; border: 1px solid #334155; }
-    .mode-switch label { flex: 1; text-align: center; cursor: pointer; padding: 0.3em; border-radius: 4px; font-size: 0.7em; }
+    select { text-align-last: right; padding-right: 0.5em; width: 6.5em; }
+    
+    .mode-switch { display: flex; background: #000; padding: 3px; border-radius: 8px; border: 1px solid #334155; width: 100%; }
+    .mode-switch label { flex: 1; text-align: center; cursor: pointer; padding: 0.6em 0; border-radius: 6px; font-size: 0.85em; transition: 0.2s; }
     .mode-switch input { display: none; }
     .mode-switch label:has(input:checked) { background: var(--primary); color: #000; font-weight: bold; }
-    .just-input { border-color: var(--primary) !important; box-shadow: 0 0 5px var(--primary-dim); }
+    
+    .just-input { border-color: var(--primary) !important; box-shadow: 0 0 10px var(--primary-dim); }
 
+    /* 計算ボタンを巨大化 */
     button[type="submit"] { 
-      background: var(--primary); color: #000; border: none; border-radius: var(--radius); padding: 0.7em;
-      font-size: 1em; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s;
+      background: var(--primary); color: #000; border: none; border-radius: var(--radius); padding: 1em;
+      font-size: 1.2em; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s;
+      margin-top: 0.5em;
     }
-    button[type="submit"]:hover { filter: brightness(1.1); box-shadow: 0 0 15px var(--primary-dim); }
+    button[type="submit"]:active { transform: scale(0.98); filter: brightness(0.9); }
 
-    .result-container { margin-top: 0.8em; display: none; border-top: 1px solid var(--card-border); padding-top: 0.8em; }
-    .timeline { position: relative; padding-left: 1.6em; }
-    .timeline::before { content: ''; position: absolute; left: 10px; top: 10px; bottom: 20px; width: 1px; background: #334155; }
+    .result-container { margin-top: 1.2em; display: none; border-top: 1px solid var(--card-border); padding-top: 1em; }
+    .timeline { position: relative; padding-left: 2em; }
+    .timeline::before { content: ''; position: absolute; left: 12px; top: 10px; bottom: 25px; width: 2px; background: #334155; }
+    
     .tl-step { 
       position: relative; background: #161b22; border: 1px solid var(--card-border); 
-      border-radius: var(--radius); padding: 0.4em 0.8em; margin-bottom: 0.3em; display: flex; align-items: center; gap: 0.8em;
+      border-radius: var(--radius); padding: 0.8em 1em; margin-bottom: 0.8em; display: flex; align-items: center; gap: 1em;
     }
-    .tl-step.recover::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--primary); }
-    .tl-step.consume::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent-red); }
-    .tl-icon-circle { 
-      width: 22px; height: 22px; background: #000; border: 1px solid #334155; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center; position: absolute; left: -1.75em; font-size: 0.85em; 
-    }
-    .tl-main-val { font-size: 1.1em; font-weight: bold; color: #fff; font-family: "Roboto Mono", monospace; }
-    .tl-label { font-size: 0.65em; color: var(--text-sub); font-weight: bold; margin-bottom: 1px; display: block; }
-    .tl-sub { font-size: 0.75em; color: var(--text-sub); margin-left: 0.5em; }
-
-    .tags { display: flex; gap: 0.3em; margin-top: 0.2em; flex-wrap: wrap; }
-    .tag { font-size: 0.75em; padding: 1px 6px; border-radius: 3px; font-weight: bold; background: #000; border: 1px solid #334155; color: var(--primary); }
+    .tl-step.recover::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary); }
+    .tl-step.consume::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent-red); }
     
-    .msg-box { padding: 0.5em 0.8em; border-radius: var(--radius); margin-bottom: 0.6em; font-size: 0.8em; }
-    .msg-info { border: 1px solid var(--primary-dim); color: var(--primary); background: rgba(0, 229, 255, 0.05); }
-    .saved-toast { position: absolute; top: 2px; right: 5px; font-size: 0.6em; color: var(--primary); opacity: 0; transition: 0.5s; }
+    .tl-icon-circle { 
+      width: 28px; height: 28px; background: #000; border: 1px solid #334155; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; position: absolute; left: -2.15em; font-size: 1em; 
+    }
+    .tl-main-val { font-size: 1.2em; font-weight: bold; color: #fff; font-family: "Roboto Mono", monospace; }
+    .tl-label { font-size: 0.75em; color: var(--text-sub); font-weight: bold; margin-bottom: 2px; display: block; }
+    .tl-sub { font-size: 0.85em; color: var(--text-sub); margin-left: 0.5em; }
 
-    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; gap: 0.4em; } }
+    .tags { display: flex; gap: 0.5em; margin-top: 0.4em; flex-wrap: wrap; }
+    .tag { font-size: 0.85em; padding: 4px 10px; border-radius: 4px; font-weight: bold; background: #000; border: 1px solid #334155; color: var(--primary); }
+    
+    .msg-box { padding: 0.8em 1em; border-radius: var(--radius); margin-bottom: 1em; font-size: 0.9em; line-height: 1.4; }
+    .msg-info { border: 1px solid var(--primary-dim); color: var(--primary); background: rgba(0, 229, 255, 0.05); }
+    .saved-toast { position: absolute; top: 4px; right: 8px; font-size: 0.7em; color: var(--primary); opacity: 0; transition: 0.5s; }
+
+    @media (max-width: 600px) { 
+      .form-grid { grid-template-columns: 1fr; gap: 0.8em; } 
+      input[type="number"], select { width: 6em; }
+    }
   </style>
 </head>
 <body>
 <div class="container">
   <h1>討伐証 計算機</h1>
-  <p class="disclaimer">下一桁が9の状態（自然回復など）を前提に計算しています</p>
+  <p class="disclaimer">下一桁が9の状態（自然回復待ちなど）を前提に計算しています</p>
   
   <form id="calcForm">
     <div class="form-grid">
       <div class="card">
         <div id="savedMsg1" class="saved-toast">保存完了</div>
-        <div class="form-row">
+        <div class="form-row" style="flex-direction: column; align-items: flex-start; gap: 0.5em;">
           <label>調整単位</label>
           <div class="mode-switch">
             <label><input type="radio" name="mode" value="MIN" checked> 60</label>
@@ -90,9 +103,9 @@
           </div>
         </div>
         <div class="form-row"><label>現在の証</label><input type="number" id="currentTicket" value="0"></div>
-        <div class="form-row"><label>現在のAP</label><input type="number" id="currentStamina" value="999"></div>
+        <div class="form-row"><label>現在のスタミナ</label><input type="number" id="currentStamina" value="999"></div>
         <div class="form-row">
-          <label>配布予定</label>
+          <label>最終日配布</label>
           <select id="finalBonusStamina"><option value="0">0</option><option value="100" selected>100</option><option value="200">200</option></select>
         </div>
         <div class="form-row"><label>目標着地</label><input type="number" id="targetStamina" class="just-input" value="999"></div>
@@ -104,7 +117,7 @@
         <div class="form-row"><label>💎 石割上限</label><select id="stoneCount"></select></div>
       </div>
     </div>
-    <button type="submit">計算を実行</button>
+    <button type="submit">計算を開始する</button>
   </form>
   <div id="result" class="result-container"></div>
 </div>
@@ -116,7 +129,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v13';
+  const STORAGE_KEY = 'priconne_calc_v14_stamina';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -135,11 +148,17 @@
   function loadInputs() {
     const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return;
     const d = JSON.parse(raw);
-    if(d.mode) document.querySelector(`input[name="mode"][value="${d.mode}"]`).checked = true;
-    document.getElementById('currentTicket').value = d.ticket; document.getElementById('currentStamina').value = d.stamina;
-    document.getElementById('finalBonusStamina').value = d.bonus; document.getElementById('targetStamina').value = d.target;
-    document.getElementById('sandCount').value = d.sand; document.getElementById('burgerCount').value = d.burger;
-    document.getElementById('stoneCount').value = d.stone;
+    if(d.mode) {
+      const targetRadio = document.querySelector(`input[name="mode"][value="${d.mode}"]`);
+      if(targetRadio) targetRadio.checked = true;
+    }
+    document.getElementById('currentTicket').value = d.ticket || 0;
+    document.getElementById('currentStamina').value = d.stamina || 999;
+    document.getElementById('finalBonusStamina').value = d.bonus || 100;
+    document.getElementById('targetStamina').value = d.target || 999;
+    document.getElementById('sandCount').value = d.sand || 0;
+    document.getElementById('burgerCount').value = d.burger || 0;
+    document.getElementById('stoneCount').value = d.stone || 0;
   }
   document.querySelectorAll('input, select').forEach(el => el.addEventListener('change', saveInputs));
   window.addEventListener('DOMContentLoaded', loadInputs);
@@ -220,18 +239,18 @@
     const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
     if (result) {
       const sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
-      let h = `<div class="msg-box msg-info">目標APに向けて${mode==='LIMIT'?'最大稼ぎ':'最短'}ルートを表示します</div><div class="timeline">`;
+      let h = `<div class="msg-box msg-info">計算完了：目標スタミナに向けて${mode==='LIMIT'?'最大稼ぎ':'最短'}手順を表示</div><div class="timeline">`;
       sim.steps.forEach(s => {
         if (s.type === 'recover') {
           let t = ''; 
           if(s.used.stone) t += `<span class="tag">💎 石割 ${s.used.stone}回</span>`;
           if(s.used.burger) t += `<span class="tag">🍔 バーガー ${s.used.burger}個</span>`;
           if(s.used.sand) t += `<span class="tag">🥪 サンド ${s.used.sand}個</span>`;
-          h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">アイテム使用</span><div class="tags">${t}</div><div class="tl-sub">→ AP ${s.after}</div></div></div>`;
-        } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">周回消費</span><span class="tl-main-val">${s.val} AP</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
-        else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
+          h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">アイテム使用</span><div class="tags">${t}</div><div class="tl-sub">→ スタミナ ${s.after}</div></div></div>`;
+        } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">周回消費</span><span class="tl-main-val">${s.val} スタミナ</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
+        else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終日配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
       });
-      h += `<div class="tl-step" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">AP ${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1.1em;">${result.finalTicket} 枚</div><div style="font-size:0.7em; color:var(--text-sub);">${result.mod}枚単位 調整</div></div></div></div></div></div>`;
+      h += `<div class="tl-step" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">完了・目標一致</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1.1em;">${result.finalTicket} 枚</div><div style="font-size:0.8em; color:var(--text-sub);">${result.mod}枚単位 調整</div></div></div></div></div></div>`;
       resDiv.innerHTML = h;
     } else resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">条件に合うルートがありません</div>';
   });
