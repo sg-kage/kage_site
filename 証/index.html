@@ -13,43 +13,43 @@
       --text-main: #e0e0e0; --text-sub: #8899a6; --radius: 8px;
     }
     body { 
-      font-family: "Noto Sans JP", sans-serif; margin: 0; padding: 1em; 
+      font-family: "Noto Sans JP", sans-serif; margin: 0; padding: 0.5em; 
       background-color: var(--bg-dark); color: var(--text-main);
       background-image: radial-gradient(circle at 50% 0%, #1e2530 0%, var(--bg-dark) 80%);
     }
-    h1 { text-align: center; color: var(--primary); font-size: 1.5em; margin: 0.2em 0; text-shadow: 0 0 10px rgba(118, 255, 3, 0.4); }
-    .subtitle { text-align: center; font-size: 0.75em; color: var(--text-sub); margin-bottom: 1em; }
+    h1 { text-align: center; color: var(--primary); font-size: 1.3em; margin: 0.3em 0; text-shadow: 0 0 10px rgba(118, 255, 3, 0.4); }
+    .subtitle { text-align: center; font-size: 0.7em; color: var(--text-sub); margin-bottom: 0.5em; }
 
     .container { max-width: 720px; margin: 0 auto; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8em; margin-bottom: 1em; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6em; margin-bottom: 0.8em; }
     .card { 
       background: var(--card-bg); border: 1px solid var(--card-border); 
-      padding: 1em; border-radius: var(--radius); display: flex; flex-direction: column; gap: 0.8em;
+      padding: 0.8em; border-radius: var(--radius); display: flex; flex-direction: column; gap: 0.6em;
       position: relative;
     }
-    .form-row { display: flex; align-items: center; justify-content: space-between; }
-    label { font-size: 0.85em; font-weight: bold; color: #ccc; }
+    .form-row { display: flex; align-items: center; justify-content: space-between; height: 1.8em; }
+    label { font-size: 0.8em; font-weight: bold; color: #ccc; }
     input[type="number"], select { 
       width: 4.5em; background: #0f1115; color: #fff; border: 1px solid #333; 
-      border-radius: 4px; padding: 0.4em; text-align: right; font-size: 1em; font-family: "Roboto Mono", monospace;
+      border-radius: 4px; padding: 0.3em; text-align: right; font-size: 1em; font-family: "Roboto Mono", monospace;
     }
     .mode-switch { display: flex; background: #0f1115; padding: 2px; border-radius: 6px; border: 1px solid #333; }
-    .mode-switch label { flex: 1; text-align: center; cursor: pointer; padding: 0.4em; border-radius: 4px; font-size: 0.75em; }
+    .mode-switch label { flex: 1; text-align: center; cursor: pointer; padding: 0.3em; border-radius: 4px; font-size: 0.75em; }
     .mode-switch input { display: none; }
     .mode-switch label:has(input:checked) { background: var(--card-bg); color: var(--primary); font-weight: bold; }
     .just-input { border-color: var(--primary) !important; color: var(--primary) !important; }
 
     button[type="submit"] { 
       background: linear-gradient(135deg, #64dd17 0%, #76ff03 100%);
-      color: #000; border: none; border-radius: var(--radius); padding: 0.8em;
+      color: #000; border: none; border-radius: var(--radius); padding: 0.6em;
       font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%;
     }
-    .result-container { margin-top: 1em; display: none; animation: slideUp 0.3s ease-out; }
+    .result-container { margin-top: 0.8em; display: none; }
     .timeline { position: relative; padding-left: 1.8em; }
     .timeline::before { content: ''; position: absolute; left: 11px; top: 10px; bottom: 20px; width: 2px; background: #333; }
     .tl-step { 
       position: relative; background: var(--card-bg); border: 1px solid var(--card-border); 
-      border-radius: var(--radius); padding: 0.6em 1em; margin-bottom: 0.6em; display: flex; align-items: center; gap: 0.8em;
+      border-radius: var(--radius); padding: 0.5em 0.8em; margin-bottom: 0.4em; display: flex; align-items: center; gap: 0.8em;
     }
     .tl-step.recover::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary); border-radius: 8px 0 0 8px;}
     .tl-step.consume::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent-red); border-radius: 8px 0 0 8px;}
@@ -60,33 +60,32 @@
       width: 24px; height: 24px; background: #222; border: 2px solid #555; border-radius: 50%;
       display: flex; align-items: center; justify-content: center; position: absolute; left: -1.9em; font-size: 0.9em; 
     }
-    .tl-main-val { font-size: 1.2em; font-weight: bold; color: #fff; font-family: "Roboto Mono", monospace; }
-    .tl-label { font-size: 0.7em; color: var(--text-sub); font-weight: bold; margin-bottom: 1px; display: block; }
-    .tl-sub { font-size: 0.8em; color: var(--text-sub); margin-left: 0.5em; }
+    .tl-main-val { font-size: 1.1em; font-weight: bold; color: #fff; font-family: "Roboto Mono", monospace; }
+    .tl-label { font-size: 0.65em; color: var(--text-sub); font-weight: bold; margin-bottom: 1px; display: block; }
+    .tl-sub { font-size: 0.75em; color: var(--text-sub); margin-left: 0.5em; }
 
     .tags { display: flex; gap: 0.4em; margin-top: 0.2em; flex-wrap: wrap; }
-    .tag { font-size: 0.75em; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: #111; border: 1px solid #333; }
+    .tag { font-size: 0.8em; padding: 2px 8px; border-radius: 4px; font-weight: bold; background: #111; border: 1px solid #333; }
     .tag.stone { color: #000; background: var(--primary); }
     .tag.burger { color: #fff; background: var(--accent-red); }
     .tag.sand { color: #111; background: #ddd; }
 
-    .msg-box { padding: 0.6em 1em; border-radius: var(--radius); margin-bottom: 0.8em; font-size: 0.85em; }
+    .msg-box { padding: 0.5em 0.8em; border-radius: var(--radius); margin-bottom: 0.6em; font-size: 0.8em; }
     .msg-info { background: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.3); color: var(--accent-blue); }
     .msg-warning { background: rgba(255, 82, 82, 0.1); border: 1px solid rgba(255, 82, 82, 0.3); color: #ff8a80; }
-    .saved-toast { position: absolute; top: 5px; right: 10px; font-size: 0.65em; color: var(--primary); opacity: 0; transition: 0.5s; }
+    .saved-toast { position: absolute; top: 4px; right: 8px; font-size: 0.6em; color: var(--primary); opacity: 0; transition: 0.5s; }
 
-    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; gap: 0.5em; } }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; gap: 0.4em; } }
   </style>
 </head>
 <body>
 <div class="container">
   <h1>討伐証 計算機</h1>
-  <p class="subtitle">150安全圏・10単位消費・自動保存</p>
+  <p class="subtitle">150安全圏・10単位消費・全項目日本語</p>
   <form id="calcForm">
     <div class="form-grid">
       <div class="card">
-        <div id="savedMsg1" class="saved-toast">保存済</div>
+        <div id="savedMsg1" class="saved-toast">保存完了</div>
         <div class="form-row">
           <label>モード</label>
           <div class="mode-switch">
@@ -95,22 +94,22 @@
             <label><input type="radio" name="mode" value="LIMIT"> ⚡最大</label>
           </div>
         </div>
-        <div class="form-row"><label for="currentTicket">現在の討伐証</label><input type="number" id="currentTicket" value="0"></div>
+        <div class="form-row"><label for="currentTicket">現在の証枚数</label><input type="number" id="currentTicket" value="0"></div>
         <div class="form-row"><label for="currentStamina">現在のスタミナ</label><input type="number" id="currentStamina" value="999"></div>
         <div class="form-row">
-          <label for="finalBonusStamina">最終日配布</label>
+          <label for="finalBonusStamina">最終日配布量</label>
           <select id="finalBonusStamina"><option value="0">0</option><option value="100" selected>100</option><option value="200">200</option></select>
         </div>
         <div class="form-row"><label for="targetStamina">目標 (JUST)</label><input type="number" id="targetStamina" class="just-input" value="999"></div>
       </div>
       <div class="card">
-        <div id="savedMsg2" class="saved-toast">保存済</div>
-        <div class="form-row"><label for="sandCount">🥪サンド(10)</label><input type="number" id="sandCount" value="30" max="30"></div>
-        <div class="form-row"><label for="burgerCount">🍔バーガー(30)</label><input type="number" id="burgerCount" value="30" max="30"></div>
-        <div class="form-row"><label for="stoneCount">💎石割上限</label><select id="stoneCount"></select></div>
+        <div id="savedMsg2" class="saved-toast">保存完了</div>
+        <div class="form-row"><label for="sandCount">🥪 サンド(10)</label><input type="number" id="sandCount" value="30" max="30"></div>
+        <div class="form-row"><label for="burgerCount">🍔 バーガー(30)</label><input type="number" id="burgerCount" value="30" max="30"></div>
+        <div class="form-row"><label for="stoneCount">💎 石割上限数</label><select id="stoneCount"></select></div>
       </div>
     </div>
-    <button type="submit">計算実行</button>
+    <button type="submit">計算を開始する</button>
   </form>
   <div id="result" class="result-container"></div>
 </div>
@@ -122,7 +121,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v8_compact';
+  const STORAGE_KEY = 'priconne_calc_v9_compact';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -153,7 +152,6 @@
   });
   window.addEventListener('DOMContentLoaded', loadInputs);
 
-  const STAMINA = { SAND: 10, BURGER: 30, STONE: 100 };
   const SAFETY = 150;
 
   function simulate(start, consume, items, bonus) {
@@ -199,7 +197,7 @@
       let best = res.sort((a,b)=>a.consume - b.consume)[0]; best.message = "120枚不可のため60枚で調整"; return best;
     }
     let limit = res.sort((a,b)=>b.finalTicket - a.finalTicket)[0];
-    limit.info = "理由：目標スタミナ維持での最大稼ぎ"; return limit;
+    limit.info = "理由：スタミナ目標一致での最大稼ぎ"; return limit;
   }
 
   document.getElementById('calcForm').addEventListener('submit', function(e) {
@@ -218,18 +216,18 @@
     const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
     if (result) {
       const sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
-      let h = `<div class="msg-box ${result.message?'msg-warning':'msg-info'}">${result.info||result.message||'最適ルートを算出しました'}</div><div class="timeline">`;
-      h += `<div class="tl-step"><div class="tl-icon-circle">🏁</div><div class="tl-content"><span class="tl-label">開始</span><span class="tl-main-val">${inputs.stamina}</span></div></div>`;
+      let h = `<div class="msg-box ${result.message?'msg-warning':'msg-info'}">${result.info||result.message||'最適手順を表示します'}</div><div class="timeline">`;
+      h += `<div class="tl-step"><div class="tl-icon-circle">🏁</div><div class="tl-content"><span class="tl-label">現在の状況</span><span class="tl-main-val">${inputs.stamina}</span></div></div>`;
       sim.steps.forEach(s => {
         if (s.type === 'recover') {
-          let t = ''; if(s.used.stone) t += `<span class="tag stone">💎石${s.used.stone}回</span>`; if(s.used.burger) t += `<span class="tag burger">🍔バ${s.used.burger}個</span>`; if(s.used.sand) t += `<span class="tag sand">🥪サ${s.used.sand}個</span>`;
-          h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">回復</span><div class="tags">${t}</div><div class="tl-sub">→ ${s.after}</div></div></div>`;
-        } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">周回</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
-        else h += `<div class="tl-step bonus"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">配布</span><span class="tl-main-val">+${s.val}</span><span class="tl-sub">計 ${s.after}</span></div></div>`;
+          let t = ''; if(s.used.stone) t += `<span class="tag stone">💎 石割 ${s.used.stone}回</span>`; if(s.used.burger) t += `<span class="tag burger">🍔 バーガー ${s.used.burger}個</span>`; if(s.used.sand) t += `<span class="tag sand">🥪 サンド ${s.used.sand}個</span>`;
+          h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">スタミナ回復</span><div class="tags">${t}</div><div class="tl-sub">→ スタミナ ${s.after}</div></div></div>`;
+        } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">周回消費</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
+        else h += `<div class="tl-step bonus"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">配布受取</span><span class="tl-main-val">+${s.val}</span><span class="tl-sub">計 ${s.after}</span></div></div>`;
       });
-      h += `<div class="tl-step goal"><div class="tl-icon-circle">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--accent-yellow)">${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-blue); font-weight:bold; font-size:1.1em;">${result.finalTicket}枚</div><div style="font-size:0.7em; color:var(--text-sub);">${result.mod}枚消費</div></div></div></div></div></div>`;
+      h += `<div class="tl-step goal"><div class="tl-icon-circle">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">完了・目標着地</span><span class="tl-main-val" style="color:var(--accent-yellow)">${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-blue); font-weight:bold; font-size:1.1em;">${result.finalTicket}枚</div><div style="font-size:0.7em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
       resDiv.innerHTML = h;
-    } else resDiv.innerHTML = '<div class="msg-box msg-warning">条件に合うルートがありません</div>';
+    } else resDiv.innerHTML = '<div class="msg-box msg-warning">条件を満たすルートが見つかりません。目標スタミナが高いか、アイテムが不足しています。</div>';
   });
 </script>
 </body>
