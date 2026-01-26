@@ -19,6 +19,8 @@
     .container { max-width: 720px; margin: 0 auto; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4em; margin-bottom: 0.6em; }
     .card { background: var(--card-bg); border: 1px solid var(--card-border); padding: 0.6em; border-radius: var(--radius); display: flex; flex-direction: column; gap: 0.4em; position: relative; }
+    
+    .mode-info { font-size: 0.65em; color: var(--text-sub); line-height: 1.3; margin-bottom: 0.2em; background: #000; padding: 0.4em; border-radius: 4px; border-left: 2px solid var(--primary); }
     .form-row { display: flex; align-items: center; justify-content: space-between; height: 1.6em; }
     label { font-size: 0.75em; font-weight: bold; color: var(--text-sub); }
     
@@ -26,8 +28,8 @@
       width: 4.5em; background: #000; color: var(--primary); border: 1px solid #334155; 
       border-radius: 4px; padding: 0.2em; text-align: right; font-size: 0.95em; font-family: "Roboto Mono", monospace;
     }
-    .mode-switch { display: flex; background: #000; padding: 1px; border-radius: 4px; border: 1px solid #334155; width: 100%; }
-    .mode-switch label { flex: 1; text-align: center; cursor: pointer; padding: 0.2em 0; border-radius: 4px; font-size: 0.7em; }
+    .mode-switch { display: flex; background: #000; padding: 1px; border-radius: 4px; border: 1px solid #334155; width: 100%; margin-bottom: 2px; }
+    .mode-switch label { flex: 1; text-align: center; cursor: pointer; padding: 0.2em 0; border-radius: 4px; font-size: 0.75em; }
     .mode-switch input { display: none; }
     .mode-switch label:has(input:checked) { background: var(--primary); color: #000; font-weight: bold; }
     .just-input { border-color: var(--primary) !important; }
@@ -48,10 +50,10 @@
     .tl-icon-circle { width: 20px; height: 20px; background: #000; border: 1px solid #334155; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; left: -1.7em; font-size: 0.8em; }
     .tl-main-val { font-size: 1em; font-weight: bold; color: #fff; font-family: "Roboto Mono", monospace; }
     .tl-label { font-size: 0.6em; color: var(--text-sub); font-weight: bold; margin-bottom: 0px; display: block; }
-    .tl-sub { font-size: 0.7em; color: var(--text-sub); margin-left: 0.4em; }
+    .tl-sub { font-size: 0.75em; color: var(--text-sub); margin-left: 0.4em; }
 
     .tags { display: flex; gap: 0.3em; margin-top: 0.1em; flex-wrap: wrap; }
-    .tag { font-size: 0.7em; padding: 1px 6px; border-radius: 3px; font-weight: bold; background: #000; border: 1px solid #334155; color: var(--primary); }
+    .tag { font-size: 0.75em; padding: 1px 6px; border-radius: 3px; font-weight: bold; background: #000; border: 1px solid #334155; color: var(--primary); }
     
     .msg-box { padding: 0.4em 0.8em; border-radius: var(--radius); margin-bottom: 0.4em; font-size: 0.75em; }
     .msg-info { border: 1px solid var(--primary-dim); color: var(--primary); background: rgba(0, 229, 255, 0.05); }
@@ -63,11 +65,14 @@
 <body>
 <div class="container">
   <h1>討伐証 計算機</h1>
-  <p class="disclaimer">※下一桁が9の状態を前提に10単位で計算</p>
+  <p class="disclaimer">※下一桁が9の状態（自然回復待ちなど）を前提に10単位で計算</p>
   <form id="calcForm">
     <div class="form-grid">
       <div class="card">
-        <div id="savedMsg1" class="saved-toast">SAVED</div>
+        <div id="savedMsg1" class="saved-toast">保存完了</div>
+        <div class="mode-info">
+          60：アイテム最小で60単位 / 120：120単位優先<br>最大：目標スタミナ維持しつつ証を最大獲得
+        </div>
         <div class="mode-switch">
           <label><input type="radio" name="mode" value="MIN" checked> 60</label>
           <label><input type="radio" name="mode" value="MAX_120"> 120</label>
@@ -79,7 +84,7 @@
         <div class="form-row"><label>目標着地</label><input type="number" id="targetStamina" class="just-input" value="999"></div>
       </div>
       <div class="card">
-        <div id="savedMsg2" class="saved-toast">SAVED</div>
+        <div id="savedMsg2" class="saved-toast">保存完了</div>
         <div class="form-row"><label>🥪 サンド (10)</label><input type="number" id="sandCount" value="30" max="30"></div>
         <div class="form-row"><label>🍔 バーガー (30)</label><input type="number" id="burgerCount" value="30" max="30"></div>
         <div class="form-row"><label>💎 石割上限</label><select id="stoneCount"></select></div>
@@ -97,7 +102,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v15_compact';
+  const STORAGE_KEY = 'priconne_calc_v17_final';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -194,14 +199,14 @@
       sim.steps.forEach(s => {
         if (s.type === 'recover') {
           let t = ''; 
-          if(s.used.stone) t += `<span class="tag">💎石:${s.used.stone}</span>`;
-          if(s.used.burger) t += `<span class="tag">🍔バ:${s.used.burger}</span>`;
-          if(s.used.sand) t += `<span class="tag">🥪サ:${s.used.sand}</span>`;
-          h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">アイテム使用</span><div class="tags">${t}</div><div class="tl-sub">→ ${s.after}</div></div></div>`;
+          if(s.used.stone) t += `<span class="tag">💎 石割 ${s.used.stone}回</span>`;
+          if(s.used.burger) t += `<span class="tag">🍔 バーガー ${s.used.burger}個</span>`;
+          if(s.used.sand) t += `<span class="tag">🥪 サンド ${s.used.sand}個</span>`;
+          h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">アイテム使用</span><div class="tags">${t}</div><div class="tl-sub">→ スタミナ ${s.after}</div></div></div>`;
         } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">周回消費</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
         else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
       });
-      h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">AP ${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
+      h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
       resDiv.innerHTML = h;
     } else resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">条件に合うルートがありません</div>';
   });
