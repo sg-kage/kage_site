@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>討伐証 逆算計算機</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #0f1115;
+      --card-bg: #181b21;
+      --card-border: #2a2f3a;
+      --primary: #76ff03; /* Neon Green */
+      --primary-dim: rgba(118, 255, 3, 0.15);
+      --accent-blue: #00e5ff;
+      --accent-red: #ff4081;
+      --accent-yellow: #ffea00;
+      --text-main: #e0e0e0;
+      --text-sub: #8899a6;
+      --radius: 8px;
+    }
+
+    body { 
+      font-family: "Noto Sans JP", sans-serif; 
+      margin: 0; padding: 2em 1em; 
+      background-color: var(--bg-dark);
+      background-image: radial-gradient(circle at 50% 0%, #1e2530 0%, var(--bg-dark) 80%);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    h1 { 
+      text-align: center; 
+      color: var(--primary); 
+      font-weight: bold;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid var(--primary);
+      display: inline-block;
+      padding-bottom: 0.2em;
+      margin-bottom: 0.5em;
+      text-shadow: 0 0 10px rgba(118, 255, 3, 0.4);
+    }
+    
+    .subtitle {
+      text-align: center; font-size: 0.85em; color: var(--text-sub); margin-bottom: 2em; line-height: 1.6;
+    }
+
+    /* レイアウト */
+    .container {
+      max-width: 720px; margin: 0 auto;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5em;
+      margin-bottom: 2em;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 1.5em; 
+      border-radius: var(--radius);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      display: flex; flex-direction: column; gap: 1.2em;
+      position: relative;
+      transition: border-color 0.3s;
+    }
+    .card:hover { border-color: #444; }
+
+    /* 入力フォーム */
+    .form-row {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    label { font-size: 0.9em; font-weight: bold; color: #ccc; display: flex; align-items: center; gap: 0.5em; }
+    
+    input[type="number"], select { 
+      width: 5em; 
+      background: #0f1115; 
+      color: #fff; 
+      border: 1px solid #333; 
+      border-radius: 4px; 
+      padding: 0.6em; 
+      text-align: right; 
+      font-size: 1.1em; 
+      font-family: "Roboto Mono", monospace;
+      transition: all 0.2s;
+    }
+    input[type="number"]:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 8px var(--primary-dim);
+    }
+
+    /* モードスイッチ */
+    .mode-switch {
+      display: flex; background: #0f1115; padding: 4px; border-radius: 6px; border: 1px solid #333;
+    }
+    .mode-switch label {
+      flex: 1; text-align: center; cursor: pointer; padding: 0.6em; 
+      border-radius: 4px; font-size: 0.85em; justify-content: center;
+      transition: all 0.3s; color: var(--text-sub);
+    }
+    .mode-switch input { display: none; }
+    .mode-switch label:has(input:checked) {
+      background: var(--card-bg); color: var(--primary); 
+      font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+      border: 1px solid var(--primary-dim);
+    }
+
+    /* 特別なラベル */
+    .just-label { color: var(--primary); text-shadow: 0 0 5px var(--primary-dim); }
+    .just-input { border-color: var(--primary) !important; color: var(--primary) !important; font-weight: bold; background: rgba(118, 255, 3, 0.05) !important;}
+
+    /* ボタン */
+    button[type="submit"] { 
+      background: linear-gradient(135deg, #64dd17 0%, #76ff03 100%);
+      color: #000; border: none; border-radius: var(--radius); 
+      padding: 1em; font-size: 1.2em; font-weight: bold; cursor: pointer; 
+      width: 100%; letter-spacing: 0.1em;
+      box-shadow: 0 0 15px var(--primary-dim);
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    button[type="submit"]:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(118, 255, 3, 0.4);
+    }
+    button[type="submit"]:active { transform: translateY(1px); }
+
+    /* 結果エリア */
+    .result-container {
+      margin-top: 2em; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: none;
+    }
+
+    .result-header {
+      font-size: 1.1em; font-weight: bold; color: var(--text-sub); margin-bottom: 1em; border-left: 4px solid var(--primary); padding-left: 0.8em;
+    }
+
+    /* タイムライン */
+    .timeline {
+      position: relative;
+      padding-left: 2em;
+    }
+    /* 縦線 */
+    .timeline::before {
+      content: ''; position: absolute; left: 14px; top: 10px; bottom: 30px;
+      width: 2px; background: #333; z-index: 0;
+    }
+
+    .tl-step {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1em 1.2em;
+      margin-bottom: 1em;
+      display: flex; align-items: center; gap: 1em;
+      z-index: 1;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    /* ステップごとの色分け (左ボーダー) */
+    .tl-step::after {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      border-radius: var(--radius) 0 0 var(--radius);
+    }
+    .tl-step.recover::after { background: var(--primary); }
+    .tl-step.consume::after { background: var(--accent-red); }
+    .tl-step.bonus::after { background: var(--accent-yellow); }
+    .tl-step.goal { border: 2px solid var(--accent-blue); background: rgba(0, 229, 255, 0.05); }
+    
+    /* タイムラインのアイコン（丸） */
+    .tl-icon-circle {
+      width: 30px; height: 30px; background: #222; border: 2px solid #555;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      position: absolute; left: -2.1em; z-index: 2;
+      font-size: 1.2em;
+    }
+    .recover .tl-icon-circle { border-color: var(--primary); color: var(--primary); background: #000; box-shadow: 0 0 10px var(--primary-dim); }
+    .consume .tl-icon-circle { border-color: var(--accent-red); background: #000; }
+    .bonus .tl-icon-circle { border-color: var(--accent-yellow); background: #000; }
+    .goal .tl-icon-circle { border-color: var(--accent-blue); background: #000; width: 36px; height: 36px; left: -2.3em; font-size: 1.4em; }
+
+    /* コンテンツ */
+    .tl-content { flex: 1; }
+    .tl-label { font-size: 0.75em; color: var(--text-sub); font-weight: bold; margin-bottom: 0.2em; display: block; }
+    .tl-main-val { font-size: 1.4em; font-weight: bold; color: #fff; font-family: "Roboto Mono", monospace; }
+    .tl-sub { font-size: 0.9em; color: var(--text-sub); margin-left: 0.5em; }
+
+    /* アイテムタグ */
+    .tags { display: flex; gap: 0.5em; margin-top: 0.5em; flex-wrap: wrap; }
+    .tag {
+      font-size: 0.85em; padding: 4px 10px; border-radius: 4px; font-weight: bold;
+      background: #111; border: 1px solid #333; display: flex; align-items: center; gap: 6px;
+    }
+    .tag.stone { color: #000; background: var(--primary); border-color: var(--primary); }
+    .tag.burger { color: #fff; background: var(--accent-red); border-color: var(--accent-red); }
+    .tag.sand { color: #111; background: #ddd; border-color: #ccc; }
+
+    /* メッセージボックス */
+    .msg-box { padding: 1em; border-radius: var(--radius); margin-bottom: 1.5em; font-size: 0.9em; line-height: 1.6;}
+    .msg-warning { background: rgba(255, 82, 82, 0.1); border: 1px solid rgba(255, 82, 82, 0.3); color: #ff8a80; }
+    .no-result { text-align: center; padding: 2em; background: rgba(255,0,0,0.1); color: var(--accent-red); font-weight: bold; border-radius: var(--radius); border: 1px dashed var(--accent-red); }
+
+    /* 保存メッセージ */
+    .saved-toast {
+      position: absolute; top: 10px; right: 15px; font-size: 0.75em; 
+      color: var(--primary); border: 1px solid var(--primary); padding: 2px 8px; border-radius: 10px;
+      opacity: 0; transition: opacity 0.5s; pointer-events: none;
+    }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; gap: 1em; }
+      .container { padding: 0 0.5em; }
+      .tl-step { padding: 0.8em; gap: 0.8em; }
+      .tl-main-val { font-size: 1.2em; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>討伐証 逆算計算機</h1>
+  <div class="subtitle">
+    計算<br>
+  </div>
+
+  <form id="calcForm">
+    <div class="form-grid">
+      <div class="card">
+        <div id="savedMsg1" class="saved-toast">保存済</div>
+        
+        <div class="form-row">
+          <label>計算モード</label>
+          <div class="mode-switch">
+            <label>
+              <input type="radio" name="mode" value="MIN" checked> 🌱60
+            </label>
+            <label>
+              <input type="radio" name="mode" value="MAX_120"> 🔥120
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="currentTicket">現在の討伐証</label>
+          <input type="number" id="currentTicket" value="0" min="0" placeholder="0" />
+        </div>
+        <div class="form-row">
+          <label for="currentStamina">現在のスタミナ</label>
+          <input type="number" id="currentStamina" value="999" min="0" placeholder="0" />
+        </div>
+        <div class="form-row">
+          <label for="finalBonusStamina">最終日配布</label>
+          <select id="finalBonusStamina">
+            <option value="0">なし</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="targetStamina" class="just-label">目標 (JUST)</label>
+          <input type="number" id="targetStamina" class="just-input" value="999" min="0" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="savedMsg2" class="saved-toast">保存済</div>
+        <div class="form-row">
+          <label for="sandCount">サンド (固定)</label>
+          <input type="number" id="sandCount" value="0" min="0" max="30" />
+        </div>
+        <div class="form-row">
+          <label for="burgerCount">バーガー所持</label>
+          <input type="number" id="burgerCount" value="0" min="0" max="30" />
+        </div>
+        <div class="form-row">
+          <label for="stoneCount">石割限度</label>
+          <select id="stoneCount"></select>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit">計算を実行</button>
+  </form>
+
+  <div id="result" class="result-container"></div>
+</div>
+
+<script>
+  // --- 初期化: 石割回数 (0-5回) ---
+  const stoneSel = document.getElementById('stoneCount');
+  for(let i=0; i<=5; i++){
+    let opt = document.createElement('option');
+    opt.value = i; opt.textContent = i + " 回";
+    if(i===0) opt.selected = true;
+    stoneSel.appendChild(opt);
+  }
+
+  // --- 保存機能 & ロード ---
+  const STORAGE_KEY = 'priconne_calc_data_v5_jp_final';
+
+  function saveInputs() {
+    const data = {
+      mode: document.querySelector('input[name="mode"]:checked').value,
+      ticket: document.getElementById('currentTicket').value,
+      stamina: document.getElementById('currentStamina').value,
+      bonus: document.getElementById('finalBonusStamina').value,
+      target: document.getElementById('targetStamina').value,
+      sand: document.getElementById('sandCount').value,
+      burger: document.getElementById('burgerCount').value,
+      stone: document.getElementById('stoneCount').value
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    showSavedMsg();
+  }
+
+  function loadInputs() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      if(data.mode) {
+        const rad = document.querySelector(`input[name="mode"][value="${data.mode}"]`);
+        if(rad) rad.checked = true;
+      }
+      if(data.ticket) document.getElementById('currentTicket').value = data.ticket;
+      if(data.stamina) document.getElementById('currentStamina').value = data.stamina;
+      if(data.bonus) document.getElementById('finalBonusStamina').value = data.bonus;
+      if(data.target) document.getElementById('targetStamina').value = data.target;
+      if(data.sand) document.getElementById('sandCount').value = data.sand;
+      if(data.burger) document.getElementById('burgerCount').value = data.burger;
+      if(data.stone) document.getElementById('stoneCount').value = data.stone;
+    } catch(e) {}
+  }
+
+  function showSavedMsg() {
+    document.querySelectorAll('.saved-toast').forEach(el => {
+      el.style.opacity = 1;
+      setTimeout(() => { el.style.opacity = 0; }, 800);
+    });
+  }
+
+  const inputs = document.querySelectorAll('input, select');
+  inputs.forEach(el => {
+    // 30個制限
+    if (el.id === 'sandCount' || el.id === 'burgerCount') {
+      el.addEventListener('input', function() {
+        if (this.value > 30) this.value = 30;
+      });
+    }
+    el.addEventListener('change', saveInputs);
+    el.addEventListener('input', saveInputs);
+  });
+  window.addEventListener('DOMContentLoaded', loadInputs);
+
+  // --- 計算ロジック ---
+  const STAMINA = { SAND: 10, BURGER: 30, STONE: 100 };
+  const SAFETY_BORDER = 150; 
+
+  function findRecoveryCombo(amount, stoneMax, burgerMax) {
+    if (amount < 0) return null;
+    for (let s = 0; s <= stoneMax; s++) {
+      let remain = amount - (s * STAMINA.STONE);
+      if (remain >= 0 && remain % STAMINA.BURGER === 0) {
+        let b = remain / STAMINA.BURGER;
+        if (b <= burgerMax && b <= 30) return { uStone: s, uBurger: b };
+      }
+    }
+    return null;
+  }
+
+  function simulateTimeline(startStamina, totalConsume, items, bonusStamina) {
+    let steps = [];
+    let currentStamina = startStamina;
+    let remainConsume = totalConsume;
+    let pool = { stone: items.stone, burger: items.burger, sand: items.sand };
+
+    let safetyLoop = 0;
+    while (remainConsume > 0 && safetyLoop < 100) {
+      safetyLoop++;
+      // 安全限界の計算：150を下回らないギリギリのライン
+      let maxCanConsume = currentStamina - (SAFETY_BORDER + 1);
+      
+      // 【重要】スタミナ消費は10単位で行うため、10の倍数に切り捨てる
+      // 例: 残りスタミナ195 -> 195-151=44 -> 消費可能は40
+      let safeLimit = Math.floor(maxCanConsume / 10) * 10;
+      
+      if (safeLimit <= 0) {
+        // 回復フェーズ
+        let recovered = 0;
+        let used = { stone:0, burger:0, sand:0 };
+        // 990付近まで回復
+        while (currentStamina < 900) {
+          if (pool.sand > 0) { pool.sand--; used.sand++; currentStamina += STAMINA.SAND; recovered += STAMINA.SAND; }
+          else if (pool.burger > 0) { pool.burger--; used.burger++; currentStamina += STAMINA.BURGER; recovered += STAMINA.BURGER; }
+          else if (pool.stone > 0) { pool.stone--; used.stone++; currentStamina += STAMINA.STONE; recovered += STAMINA.STONE; }
+          else { break; } 
+        }
+        if (recovered > 0) steps.push({ type: 'recover', used, val: recovered, after: currentStamina });
+        else break; // アイテム切れ
+      } else {
+        // 消費フェーズ
+        let doConsume = Math.min(remainConsume, safeLimit);
+        
+        // 残り全て消費できる場合でも、それが10単位であることは optimize関数で保証されている
+        if (doConsume > 0) {
+          currentStamina -= doConsume;
+          remainConsume -= doConsume;
+          steps.push({ type: 'consume', val: doConsume, after: currentStamina });
+        }
+      }
+    }
+    
+    // 残りアイテム(調整用など)を使い切る
+    let finalRecovered = 0;
+    let finalUsed = { stone:0, burger:0, sand:0 };
+    while (pool.stone > 0 || pool.burger > 0 || pool.sand > 0) {
+       if (pool.sand > 0) { pool.sand--; finalUsed.sand++; currentStamina += STAMINA.SAND; finalRecovered += STAMINA.SAND; }
+       else if (pool.burger > 0) { pool.burger--; finalUsed.burger++; currentStamina += STAMINA.BURGER; finalRecovered += STAMINA.BURGER; }
+       else if (pool.stone > 0) { pool.stone--; finalUsed.stone++; currentStamina += STAMINA.STONE; finalRecovered += STAMINA.STONE; }
+    }
+    if (finalRecovered > 0) steps.push({ type: 'recover', used: finalUsed, val: finalRecovered, after: currentStamina });
+
+    // ボーナス受取
+    if (bonusStamina > 0) {
+      currentStamina += bonusStamina;
+      steps.push({ type: 'bonus', val: bonusStamina, after: currentStamina });
+    }
+    return { steps, finalStamina: currentStamina };
+  }
+
+  function optimize(inputs, mode) {
+    const sandFixed = Math.min(30, inputs.sandFixed);
+    const burgerMax = Math.min(30, inputs.burgerMax);
+    const { ticket, stamina, targetStamina, bonusStamina, stoneMax } = inputs;
+    const baseStamina = stamina + bonusStamina + (sandFixed * STAMINA.SAND);
+    
+    let startTarget = Math.ceil(ticket / 60) * 60;
+    if (startTarget < ticket) startTarget += 60; 
+
+    for (let t = startTarget; t <= ticket + 10000; t += 60) {
+      const needGainTicket = t - ticket;
+      const consumeStamina = needGainTicket * 10;
+      const needRecovery = targetStamina + consumeStamina - baseStamina;
+
+      if (needRecovery < 0) continue;
+      const combo = findRecoveryCombo(needRecovery, stoneMax, burgerMax);
+
+      if (combo) {
+        let resultData = {
+          finalTicket: t, consumeStamina, bonusStamina,
+          items: { sand: sandFixed, burger: combo.uBurger, stone: combo.uStone },
+          targetStamina
+        };
+        if (t % 120 === 0) { resultData.mod = 120; return resultData; } 
+        
+        // 120優先チェック
+        const nextT = t + 60; 
+        const nextConsume = (nextT - ticket) * 10;
+        const nextRecovery = targetStamina + nextConsume - baseStamina;
+        const nextCombo = findRecoveryCombo(nextRecovery, stoneMax, burgerMax);
+
+        if (mode === 'MAX_120') {
+          if (nextCombo) {
+            return {
+              finalTicket: nextT, mod: 120, consumeStamina: nextConsume, bonusStamina,
+              items: { sand: sandFixed, burger: nextCombo.uBurger, stone: nextCombo.uStone },
+              targetStamina
+            };
+          } else {
+             resultData.mod = 60;
+             resultData.message = "120枚(4倍)にするためのアイテムが足りないか、組み合わせが合いません。<br>端数(60枚)ルートを提示します。";
+             return resultData;
+          }
+        }
+        resultData.mod = 60;
+        return resultData;
+      }
+    }
+    return null;
+  }
+
+  // --- 表示処理 ---
+  document.getElementById('calcForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    const inputs = {
+      ticket: Number(document.getElementById('currentTicket').value),
+      stamina: Number(document.getElementById('currentStamina').value),
+      targetStamina: Number(document.getElementById('targetStamina').value),
+      bonusStamina: Number(document.getElementById('finalBonusStamina').value),
+      sandFixed: Number(document.getElementById('sandCount').value),
+      burgerMax: Number(document.getElementById('burgerCount').value),
+      stoneMax: Number(document.getElementById('stoneCount').value)
+    };
+    saveInputs();
+
+    const result = optimize(inputs, mode);
+    const resDiv = document.getElementById('result');
+    resDiv.style.display = 'block';
+
+    if (result) {
+      const sim = simulateTimeline(inputs.stamina, result.consumeStamina, result.items, result.bonusStamina);
+      
+      let html = `<div class="result-header">計算結果タイムライン</div>`;
+      if(result.message) {
+        html += `<div class="msg-box msg-warning">⚠️ ${result.message}</div>`;
+      }
+      
+      html += `<div class="timeline">`;
+      
+      // Start
+      html += `
+        <div class="tl-step">
+          <div class="tl-icon-circle">🏁</div>
+          <div class="tl-content">
+            <span class="tl-label">開始時点</span>
+            <span class="tl-main-val">${inputs.stamina}</span>
+          </div>
+        </div>`;
+
+      // Steps
+      sim.steps.forEach((step, idx) => {
+        if (step.type === 'recover') {
+          let tags = '';
+          if(step.used.stone) tags += `<span class="tag stone">💎 石 ${step.used.stone}回</span>`;
+          if(step.used.burger) tags += `<span class="tag burger">🍔 バーガー ${step.used.burger}個</span>`;
+          if(step.used.sand) tags += `<span class="tag sand">🥪 サンド ${step.used.sand}個</span>`;
+          
+          html += `
+            <div class="tl-step recover">
+              <div class="tl-icon-circle">💊</div>
+              <div class="tl-content">
+                <span class="tl-label">スタミナ回復</span>
+                <div class="tags">${tags}</div>
+                <div class="tl-sub">スタミナ <b style="color:#fff">${step.after}</b> まで回復</div>
+              </div>
+            </div>`;
+        } else if (step.type === 'consume') {
+          html += `
+            <div class="tl-step consume">
+              <div class="tl-icon-circle">⚔️</div>
+              <div class="tl-content">
+                <span class="tl-label">周回 (消費)</span>
+                <span class="tl-main-val">${step.val}</span>
+                <span class="tl-sub">残 <b style="color:#ccc">${step.after}</b></span>
+              </div>
+            </div>`;
+        } else if (step.type === 'bonus') {
+           html += `
+            <div class="tl-step bonus">
+              <div class="tl-icon-circle">🎁</div>
+              <div class="tl-content">
+                <span class="tl-label">配布受取</span>
+                <span class="tl-main-val">+${step.val}</span>
+                <span class="tl-sub">受取後 <b style="color:#ccc">${step.after}</b></span>
+              </div>
+            </div>`;
+        }
+      });
+
+      // Goal
+      html += `
+        <div class="tl-step goal">
+          <div class="tl-icon-circle">✨</div>
+          <div class="tl-content">
+            <span class="tl-label" style="color:#00e5ff">目標達成</span>
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+              <div>
+                <span class="tl-main-val" style="color:#ffea00">${sim.finalStamina}</span> 
+                <span style="font-size:0.9em; font-weight:bold;">(目標)</span>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:1.1em; color:#00e5ff; font-weight:bold;">${result.finalTicket} 枚</div>
+                <div style="font-size:0.8em; color:#888;">${result.mod}枚 消費</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      html += `</div>`;
+      resDiv.innerHTML = html;
+    } else {
+      resDiv.innerHTML = `<div class="no-result">条件を満たすルートが見つかりません<br><span style="font-size:0.8em; color:#ccc">アイテム不足の可能性があります</span></div>`;
+    }
+  });
+</script>
+</body>
+</html>
