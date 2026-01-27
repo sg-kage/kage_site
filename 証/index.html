@@ -58,7 +58,7 @@
     .msg-box { padding: 0.5em 0.8em; border-radius: var(--radius); margin-bottom: 0.4em; font-size: 0.75em; }
     .msg-info { border: 1px solid var(--primary-dim); color: var(--primary); background: rgba(0, 229, 255, 0.05); }
     .msg-reason { border: 1px solid var(--accent-yellow); color: var(--accent-yellow); background: rgba(255, 234, 0, 0.05); }
-    .ref-box { border: 1px dashed #444; color: #aaa; background: rgba(255, 255, 255, 0.02); margin-top: 0.5em; padding: 0.6em; border-radius: 4px; font-size: 0.7em; }
+    .ref-box { border: 1px dashed #444; color: #aaa; background: rgba(255, 255, 255, 0.02); margin-top: 0.5em; padding: 0.6em; border-radius: 4px; font-size: 0.72em; line-height: 1.5; }
     .saved-toast { position: absolute; top: 2px; right: 5px; font-size: 0.55em; color: var(--primary); opacity: 0; transition: 0.5s; }
 
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; gap: 0.3em; } }
@@ -182,7 +182,7 @@
       best = res.sort((a,b)=>b.finalTicket - a.finalTicket)[0];
     }
 
-    if (best.mod === 60) {
+    if (mode === 'LIMIT' && best.mod === 60) {
       const next120line = Math.ceil((best.finalTicket + 1) / 120) * 120;
       const needStamina = (next120line - best.finalTicket) * 10;
       best.failReason = `あと ${needStamina} スタミナ足りないため、120枚単位に届きませんでした。`;
@@ -202,7 +202,11 @@
       burgerCount: parseInt(document.getElementById('burgerCount').value) || 0,
       stoneCount: parseInt(document.getElementById('stoneCount').value) || 0
     };
+    
     const result = solve(inputs, mode);
+    // 「最大」の場合の結果を常に算出（参考用）
+    const limitResult = (mode === 'LIMIT') ? result : solve(inputs, 'LIMIT');
+    
     const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
     if (result) {
       const sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
@@ -220,18 +224,19 @@
         else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
       });
 
-      // 残りアイテムの計算
-      const remSand = inputs.sandCount - result.items.sand;
-      const remBurger = inputs.burgerCount - result.items.burger;
-      const remStone = inputs.stoneCount - result.items.stone;
-      const addStaminaOnlyRem = (remSand * 10) + (remBurger * 30) + (remStone * 100);
-      const totalTicketWithRem = result.finalTicket + (addStaminaOnlyRem / 10);
-
       let totalItemsText = `使用合計: 🥪×${result.items.sand} 🍔×${result.items.burger} 💎×${result.items.stone}`;
       h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span><div style="font-size:0.65em; color:var(--text-sub); margin-top:2px;">${totalItemsText}</div></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
       
-      // 参考情報の追加（参考スタミナは残りアイテム分のみを表示）
-      h += `<div class="ref-box">【参考】残りのアイテムを全投入した場合：<br>未使用分 🥪${remSand} 🍔${remBurger} 💎${remStone} を加算 ➔ 追加スタミナ:${addStaminaOnlyRem} / 証合計:${totalTicketWithRem}枚</div>`;
+      // 参考情報の追加（「最大」の結果を基に表示）
+      if (limitResult) {
+        const remSand = inputs.sandCount - limitResult.items.sand;
+        const remBurger = inputs.burgerCount - limitResult.items.burger;
+        const remStone = inputs.stoneCount - limitResult.items.stone;
+        const addStaminaOnlyRem = (remSand * 10) + (remBurger * 30) + (remStone * 100);
+        const totalTicketWithRem = limitResult.finalTicket + (addStaminaOnlyRem / 10);
+        
+        h += `<div class="ref-box">【参考：最大効率】<br>証 ${limitResult.finalTicket}枚 (${limitResult.mod}枚単位) で着地可能<br>未使用分 🥪${remSand} 🍔${remBurger} 💎${remStone} をさらに全投入 ➔ 追加スタミナ:${addStaminaOnlyRem} / 証合計:${totalTicketWithRem}枚</div>`;
+      }
       
       resDiv.innerHTML = h;
     } else resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">条件に合うルートがありません</div>';
