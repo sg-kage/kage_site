@@ -57,6 +57,7 @@
     
     .msg-box { padding: 0.4em 0.8em; border-radius: var(--radius); margin-bottom: 0.4em; font-size: 0.75em; }
     .msg-info { border: 1px solid var(--primary-dim); color: var(--primary); background: rgba(0, 229, 255, 0.05); }
+    .msg-reason { border: 1px solid var(--accent-yellow); color: var(--accent-yellow); background: rgba(255, 234, 0, 0.05); }
     .saved-toast { position: absolute; top: 2px; right: 5px; font-size: 0.55em; color: var(--primary); opacity: 0; transition: 0.5s; }
 
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; gap: 0.3em; } }
@@ -102,7 +103,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v18_instant';
+  const STORAGE_KEY = 'priconne_calc_v20';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -139,7 +140,6 @@
     while ((rem > 0 || p.stone > 0 || p.burger > 0 || p.sand > 0) && safetyLoop < 100) {
       safetyLoop++;
 
-      // 1. 回復フェーズ：限界999まで一気に回復
       let r = 0, used = {stone:0, burger:0, sand:0};
       while (true) {
         if (p.sand > 0 && cur + 10 <= 999) { p.sand--; used.sand++; cur += 10; r += 10; }
@@ -149,7 +149,6 @@
       }
       if (r > 0) steps.push({type:'recover', used, val:r, after:cur});
 
-      // 2. 消費フェーズ：安全圏(150)を下回らない範囲で一気に消費
       let maxCanConsume = cur - (SAFETY_THRESHOLD + 1);
       let safeLimit = Math.floor(maxCanConsume / 10) * 10;
       
@@ -158,12 +157,7 @@
         cur -= d; rem -= d;
         steps.push({type:'consume', val:d, after:cur});
       } else if (rem > 0 && p.stone === 0 && p.burger === 0 && p.sand === 0) {
-        // アイテムなしの最終端数処理
         cur -= rem; steps.push({type:'consume', val:rem, after:cur}); rem = 0;
-      } else if (rem === 0 && p.stone === 0 && p.burger === 0 && p.sand === 0) {
-        break;
-      } else if (safeLimit <= 0 && rem > 0) {
-        // アイテムがあるが消費不可の場合は回復へ回る
       } else break;
     }
     if (bonus > 0) { cur += bonus; steps.push({type:'bonus', val:bonus, after:cur}); }
@@ -189,7 +183,15 @@
       let r120 = res.filter(r=>r.mod === 120).sort((a,b)=>a.consume - b.consume);
       return r120.length ? r120[0] : res.sort((a,b)=>a.consume - b.consume)[0];
     }
-    return res.sort((a,b)=>b.finalTicket - a.finalTicket)[0];
+    
+    // 最大モード
+    let limit = res.sort((a,b)=>b.finalTicket - a.finalTicket)[0];
+    if (limit.mod === 60) {
+      // 120に届かなかった理由判定
+      const hasItemLeft = (limit.items.stone < stoneCount || limit.items.burger < burgerCount);
+      limit.failReason = hasItemLeft ? "120単位にすると目標スタミナに着地できないため、60単位で最大化しました。" : "アイテム不足により120単位の最大値に届きませんでした。";
+    }
+    return limit;
   }
 
   document.getElementById('calcForm').addEventListener('submit', function(e) {
@@ -208,11 +210,12 @@
     const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
     if (result) {
       const sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
-      let h = `<div class="msg-box msg-info">最適手順を表示します</div><div class="timeline">`;
+      let h = `<div class="msg-box msg-info">最適手順を表示します</div>`;
+      if (result.failReason) h += `<div class="msg-box msg-reason">💡 ${result.failReason}</div>`;
+      h += `<div class="timeline">`;
       sim.steps.forEach(s => {
         if (s.type === 'recover') {
           let t = ''; 
-          // 表示順を サンド -> バーガー -> 石 の順に並び替え
           if(s.used.sand) t += `<span class="tag">🥪 サンド ${s.used.sand}個</span>`;
           if(s.used.burger) t += `<span class="tag">🍔 バーガー ${s.used.burger}個</span>`;
           if(s.used.stone) t += `<span class="tag">💎 石割 ${s.used.stone}回</span>`;
@@ -220,7 +223,7 @@
         } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">スタミナ消費</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
         else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終日配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
       });
-      h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">最終</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
+      h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
       resDiv.innerHTML = h;
     } else resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">条件に合うルートがありません</div>';
   });
