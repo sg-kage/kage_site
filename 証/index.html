@@ -104,7 +104,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v25';
+  const STORAGE_KEY = 'priconne_calc_v26_ref';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -204,9 +204,8 @@
     };
     
     const result = solve(inputs, mode);
-    const limitResult = solve(inputs, 'LIMIT');
-    
     const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
+    
     if (result) {
       const sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
       let h = `<div class="msg-box msg-info">最適手順を表示します</div><div class="timeline">`;
@@ -224,19 +223,20 @@
       let totalItemsText = `使用合計: 🥪×${result.items.sand} 🍔×${result.items.burger} 💎×${result.items.stone}`;
       h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span><div style="font-size:0.65em; color:var(--text-sub); margin-top:2px;">${totalItemsText}</div></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div></div>`;
       
-      // 最大モードの理由表示、または調整モード時の参考情報を一番下に配置
+      // 参考情報の計算
       if (mode === 'LIMIT' && result.failReason) {
+        // 最大モードの時は理由を表示
         h += `<div class="msg-box msg-reason">💡 ${result.failReason}</div>`;
-      } else if (mode !== 'LIMIT' && limitResult) {
-        const addSand = limitResult.items.sand - result.items.sand;
-        const addBurger = limitResult.items.burger - result.items.burger;
-        const addStone = limitResult.items.stone - result.items.stone;
-        if (addSand > 0 || addBurger > 0 || addStone > 0) {
-          let addText = "";
-          if(addSand > 0) addText += `🥪サンド×${addSand}個 `;
-          if(addBurger > 0) addText += `🍔バーガー×${addBurger}個 `;
-          if(addStone > 0) addText += `💎石割×${addStone}回 `;
-          h += `<div class="ref-box">【参考：最大効率】<br>追加で ${addText}を使うと、最大効率で証を ${limitResult.finalTicket}枚獲得できます。</div>`;
+      } else {
+        // 60/120モードの時は残りアイテム全投入の参考値を計算
+        const remSand = inputs.sandCount - result.items.sand;
+        const remBurger = inputs.burgerCount - result.items.burger;
+        const remStone = inputs.stoneCount - result.items.stone;
+        const addStamina = (remSand * 10) + (remBurger * 30) + (remStone * 100);
+        const totalTicketWithRem = result.finalTicket + (addStamina / 10);
+        
+        if (addStamina > 0) {
+          h += `<div class="ref-box">【参考：アイテム全投入】<br>残り 🥪×${remSand} 🍔×${remBurger} 💎×${remStone} を追加投入すると、さらに ${addStamina}スタミナ分（計 ${totalTicketWithRem}枚）獲得できます。</div>`;
         }
       }
       
