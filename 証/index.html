@@ -224,15 +224,14 @@
       const remSand = inputs.sandCount - result.items.sand;
       const remBurger = inputs.burgerCount - result.items.burger;
       const remStone = inputs.stoneCount - result.items.stone;
-      const addStamina = (remSand * 10) + (remBurger * 30) + (remStone * 100);
-      const totalStamWithRem = sim.final + addStamina;
-      const totalTicketWithRem = result.finalTicket + (addStamina / 10);
+      const addStaminaOnlyRem = (remSand * 10) + (remBurger * 30) + (remStone * 100);
+      const totalTicketWithRem = result.finalTicket + (addStaminaOnlyRem / 10);
 
       let totalItemsText = `使用合計: 🥪×${result.items.sand} 🍔×${result.items.burger} 💎×${result.items.stone}`;
       h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span><div style="font-size:0.65em; color:var(--text-sub); margin-top:2px;">${totalItemsText}</div></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
       
-      // 参考情報の追加
-      h += `<div class="ref-box">【参考】残りのアイテムを全投入した場合：<br>未使用分 🥪${remSand} 🍔${remBurger} 💎${remStone} を加算 ➔ スタミナ:${totalStamWithRem} / 証:${totalTicketWithRem}枚</div>`;
+      // 参考情報の追加（参考スタミナは残りアイテム分のみを表示）
+      h += `<div class="ref-box">【参考】残りのアイテムを全投入した場合：<br>未使用分 🥪${remSand} 🍔${remBurger} 💎${remStone} を加算 ➔ 追加スタミナ:${addStaminaOnlyRem} / 証合計:${totalTicketWithRem}枚</div>`;
       
       resDiv.innerHTML = h;
     } else resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">条件に合うルートがありません</div>';
