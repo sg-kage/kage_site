@@ -29,7 +29,7 @@
       border-radius: 4px; padding: 0.2em; text-align: right; font-size: 0.95em; font-family: "Roboto Mono", monospace;
     }
     .mode-switch { display: flex; background: #000; padding: 1px; border-radius: 4px; border: 1px solid #334155; width: 100%; margin-bottom: 2px; }
-    .mode-switch label { flex: 1; text-align: center; cursor: pointer; padding: 0.2em 0; border-radius: 4px; font-size: 0.75em; }
+    .mode-switch label { flex: 1; text-align: center; cursor: pointer; padding: 0.3em 0; border-radius: 4px; font-size: 0.75em; }
     .mode-switch input { display: none; }
     .mode-switch label:has(input:checked) { background: var(--primary); color: #000; font-weight: bold; }
     .just-input { border-color: var(--primary) !important; }
@@ -104,7 +104,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v26_ref';
+  const STORAGE_KEY = 'priconne_calc_v27_final_v3';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -181,7 +181,6 @@
     } else {
       best = res.sort((a,b)=>b.finalTicket - a.finalTicket)[0];
     }
-
     if (mode === 'LIMIT' && best.mod === 60) {
       const next120line = Math.ceil((best.finalTicket + 1) / 120) * 120;
       const needStamina = (next120line - best.finalTicket) * 10;
@@ -204,8 +203,9 @@
     };
     
     const result = solve(inputs, mode);
-    const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
+    const limitResult = solve(inputs, 'LIMIT'); 
     
+    const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
     if (result) {
       const sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
       let h = `<div class="msg-box msg-info">最適手順を表示します</div><div class="timeline">`;
@@ -223,23 +223,23 @@
       let totalItemsText = `使用合計: 🥪×${result.items.sand} 🍔×${result.items.burger} 💎×${result.items.stone}`;
       h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span><div style="font-size:0.65em; color:var(--text-sub); margin-top:2px;">${totalItemsText}</div></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div></div>`;
       
-      // 参考情報の計算
       if (mode === 'LIMIT' && result.failReason) {
-        // 最大モードの時は理由を表示
         h += `<div class="msg-box msg-reason">💡 ${result.failReason}</div>`;
-      } else {
-        // 60/120モードの時は残りアイテム全投入の参考値を計算
-        const remSand = inputs.sandCount - result.items.sand;
-        const remBurger = inputs.burgerCount - result.items.burger;
-        const remStone = inputs.stoneCount - result.items.stone;
-        const addStamina = (remSand * 10) + (remBurger * 30) + (remStone * 100);
-        const totalTicketWithRem = result.finalTicket + (addStamina / 10);
-        
-        if (addStamina > 0) {
-          h += `<div class="ref-box">【参考：アイテム全投入】<br>残り 🥪×${remSand} 🍔×${remBurger} 💎×${remStone} を追加投入すると、さらに ${addStamina}スタミナ分（計 ${totalTicketWithRem}枚）獲得できます。</div>`;
+      } else if (mode !== 'LIMIT' && limitResult) {
+        const addSand = limitResult.items.sand - result.items.sand;
+        const addBurger = limitResult.items.burger - result.items.burger;
+        const addStone = limitResult.items.stone - result.items.stone;
+        if (addSand > 0 || addBurger > 0 || addStone > 0) {
+          let addText = "";
+          if(addSand > 0) addText += `🥪×${addSand} `;
+          if(addBurger > 0) addText += `🍔×${addBurger} `;
+          if(addStone > 0) addText += `💎×${addStone} `;
+          h += `<div class="ref-box">【参考：最大効率】<br>追加で ${addText}を使うと、キリよく証を ${limitResult.finalTicket}枚獲得できます。</div>`;
         }
       }
-      
+      const fullRec = (inputs.sandCount * 10) + (inputs.burgerCount * 30) + (inputs.stoneCount * 100);
+      const fullTix = inputs.ticket + Math.floor((inputs.stamina + inputs.bonusStamina + fullRec - inputs.targetStamina) / 10);
+      h += `<div class="ref-box" style="border-style: solid; border-color: #333;">【参考：アイテム全使用】<br>全アイテム投入時の証合計：${fullTix}枚</div>`;
       resDiv.innerHTML = h;
     } else resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">条件に合うルートがありません</div>';
   });
