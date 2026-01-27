@@ -80,14 +80,14 @@
         </div>
         <div class="form-row"><label>現在の証</label><input type="number" id="currentTicket" value="0"></div>
         <div class="form-row"><label>現在スタミナ</label><input type="number" id="currentStamina" value="999"></div>
-        <div class="form-row"><label>配布スタミナ</label><select id="finalBonusStamina"><option value="0">0</option><option value="100" selected>100</option><option value="200">200</option></select></div>
-        <div class="form-row"><label>目標着地</label><input type="number" id="targetStamina" class="just-input" value="999"></div>
+        <div class="form-row"><label>最終日配布スタミナ</label><select id="finalBonusStamina"><option value="0">0</option><option value="100" selected>100</option><option value="200">200</option></select></div>
+        <div class="form-row"><label>目標スタミナ</label><input type="number" id="targetStamina" class="just-input" value="999"></div>
       </div>
       <div class="card">
         <div id="savedMsg2" class="saved-toast">保存完了</div>
-        <div class="form-row"><label>🥪 サンド (10)</label><input type="number" id="sandCount" value="30" max="30"></div>
-        <div class="form-row"><label>🍔 バーガー (30)</label><input type="number" id="burgerCount" value="30" max="30"></div>
-        <div class="form-row"><label>💎 石割上限</label><select id="stoneCount"></select></div>
+        <div class="form-row"><label>🥪 サンド(10回復)</label><input type="number" id="sandCount" value="30" max="30"></div>
+        <div class="form-row"><label>🍔 バーガー(30回復)</label><input type="number" id="burgerCount" value="30" max="30"></div>
+        <div class="form-row"><label>💎 石(100回復)</label><select id="stoneCount"></select></div>
       </div>
     </div>
     <button type="submit">計算を開始</button>
@@ -216,10 +216,10 @@
           if(s.used.burger) t += `<span class="tag">🍔 バーガー ${s.used.burger}個</span>`;
           if(s.used.sand) t += `<span class="tag">🥪 サンド ${s.used.sand}個</span>`;
           h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">アイテム使用</span><div class="tags">${t}</div><div class="tl-sub">→ スタミナ ${s.after}</div></div></div>`;
-        } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">周回消費</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
-        else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
+        } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">スタミナ消費</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
+        else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終日配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
       });
-      h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
+      h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">最終</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
       resDiv.innerHTML = h;
     } else resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">条件に合うルートがありません</div>';
   });
