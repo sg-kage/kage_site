@@ -158,7 +158,7 @@
         cur -= d; rem -= d;
         steps.push({type:'consume', val:d, after:cur});
       } else if (rem > 0 && p.stone === 0 && p.burger === 0 && p.sand === 0) {
-        // アイテムなしの最終消費
+        // アイテムなしの最終端数処理
         cur -= rem; steps.push({type:'consume', val:rem, after:cur}); rem = 0;
       } else if (rem === 0 && p.stone === 0 && p.burger === 0 && p.sand === 0) {
         break;
@@ -212,9 +212,10 @@
       sim.steps.forEach(s => {
         if (s.type === 'recover') {
           let t = ''; 
-          if(s.used.stone) t += `<span class="tag">💎 石割 ${s.used.stone}回</span>`;
-          if(s.used.burger) t += `<span class="tag">🍔 バーガー ${s.used.burger}個</span>`;
+          // 表示順を サンド -> バーガー -> 石 の順に並び替え
           if(s.used.sand) t += `<span class="tag">🥪 サンド ${s.used.sand}個</span>`;
+          if(s.used.burger) t += `<span class="tag">🍔 バーガー ${s.used.burger}個</span>`;
+          if(s.used.stone) t += `<span class="tag">💎 石割 ${s.used.stone}回</span>`;
           h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">アイテム使用</span><div class="tags">${t}</div><div class="tl-sub">→ スタミナ ${s.after}</div></div></div>`;
         } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">スタミナ消費</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
         else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終日配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
