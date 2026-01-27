@@ -104,7 +104,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v24';
+  const STORAGE_KEY = 'priconne_calc_v25';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -204,14 +204,13 @@
     };
     
     const result = solve(inputs, mode);
-    // 「最大」の場合の結果を常に算出（参考用）
-    const limitResult = (mode === 'LIMIT') ? result : solve(inputs, 'LIMIT');
+    const limitResult = solve(inputs, 'LIMIT'); // 常に「最大」も計算しておく
     
     const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
     if (result) {
       const sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
       let h = `<div class="msg-box msg-info">最適手順を表示します</div>`;
-      if (result.failReason) h += `<div class="msg-box msg-reason">💡 ${result.failReason}</div>`;
+      if (mode === 'LIMIT' && result.failReason) h += `<div class="msg-box msg-reason">💡 ${result.failReason}</div>`;
       h += `<div class="timeline">`;
       sim.steps.forEach(s => {
         if (s.type === 'recover') {
@@ -227,15 +226,20 @@
       let totalItemsText = `使用合計: 🥪×${result.items.sand} 🍔×${result.items.burger} 💎×${result.items.stone}`;
       h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span><div style="font-size:0.65em; color:var(--text-sub); margin-top:2px;">${totalItemsText}</div></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div>`;
       
-      // 参考情報の追加（「最大」の結果を基に表示）
-      if (limitResult) {
-        const remSand = inputs.sandCount - limitResult.items.sand;
-        const remBurger = inputs.burgerCount - limitResult.items.burger;
-        const remStone = inputs.stoneCount - limitResult.items.stone;
-        const addStaminaOnlyRem = (remSand * 10) + (remBurger * 30) + (remStone * 100);
-        const totalTicketWithRem = limitResult.finalTicket + (addStaminaOnlyRem / 10);
+      // 参考情報の計算（モードがLIMIT以外の場合に、あとどれだけ足せばLIMITになれるかを表示）
+      if (mode !== 'LIMIT' && limitResult) {
+        const addSand = limitResult.items.sand - result.items.sand;
+        const addBurger = limitResult.items.burger - result.items.burger;
+        const addStone = limitResult.items.stone - result.items.stone;
         
-        h += `<div class="ref-box">【参考：最大効率】<br>証 ${limitResult.finalTicket}枚 (${limitResult.mod}枚単位) で着地可能<br>未使用分 🥪${remSand} 🍔${remBurger} 💎${remStone} をさらに全投入 ➔ 追加スタミナ:${addStaminaOnlyRem} / 証合計:${totalTicketWithRem}枚</div>`;
+        if (addSand > 0 || addBurger > 0 || addStone > 0) {
+          let addText = "";
+          if(addSand > 0) addText += `🥪サンド×${addSand}個 `;
+          if(addBurger > 0) addText += `🍔バーガー×${addBurger}個 `;
+          if(addStone > 0) addText += `💎石割×${addStone}回 `;
+          
+          h += `<div class="ref-box">【参考：最大効率】<br>残り ${addText}を使うと、最大効率で証を ${limitResult.finalTicket}枚獲得できます。</div>`;
+        }
       }
       
       resDiv.innerHTML = h;
