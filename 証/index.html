@@ -103,7 +103,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v20';
+  const STORAGE_KEY = 'priconne_calc_v22';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -136,10 +136,8 @@
   function simulate(start, consume, items, bonus) {
     let steps = [], cur = start, rem = consume, p = {...items};
     let safetyLoop = 0;
-
     while ((rem > 0 || p.stone > 0 || p.burger > 0 || p.sand > 0) && safetyLoop < 100) {
       safetyLoop++;
-
       let r = 0, used = {stone:0, burger:0, sand:0};
       while (true) {
         if (p.sand > 0 && cur + 10 <= 999) { p.sand--; used.sand++; cur += 10; r += 10; }
@@ -148,14 +146,10 @@
         else break;
       }
       if (r > 0) steps.push({type:'recover', used, val:r, after:cur});
-
       let maxCanConsume = cur - (SAFETY_THRESHOLD + 1);
       let safeLimit = Math.floor(maxCanConsume / 10) * 10;
-      
       if (safeLimit > 0 && rem > 0) {
-        let d = Math.min(rem, safeLimit);
-        cur -= d; rem -= d;
-        steps.push({type:'consume', val:d, after:cur});
+        let d = Math.min(rem, safeLimit); cur -= d; rem -= d; steps.push({type:'consume', val:d, after:cur});
       } else if (rem > 0 && p.stone === 0 && p.burger === 0 && p.sand === 0) {
         cur -= rem; steps.push({type:'consume', val:rem, after:cur}); rem = 0;
       } else break;
@@ -184,12 +178,11 @@
       return r120.length ? r120[0] : res.sort((a,b)=>a.consume - b.consume)[0];
     }
     
-    // 最大モード
     let limit = res.sort((a,b)=>b.finalTicket - a.finalTicket)[0];
     if (limit.mod === 60) {
-      // 120に届かなかった理由判定
-      const hasItemLeft = (limit.items.stone < stoneCount || limit.items.burger < burgerCount);
-      limit.failReason = hasItemLeft ? "120単位にすると目標スタミナに着地できないため、60単位で最大化しました。" : "アイテム不足により120単位の最大値に届きませんでした。";
+      const next120line = Math.ceil((limit.finalTicket + 1) / 120) * 120;
+      const needStamina = (next120line - limit.finalTicket) * 10;
+      limit.failReason = `あと ${needStamina} スタミナ足りないため、120枚単位に届きませんでした。`;
     }
     return limit;
   }
