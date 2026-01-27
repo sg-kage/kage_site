@@ -104,7 +104,7 @@
     stoneSel.appendChild(opt);
   }
 
-  const STORAGE_KEY = 'priconne_calc_v27_final_v4';
+  const STORAGE_KEY = 'priconne_calc_v27_final_v5';
   function saveInputs() {
     const data = {
       mode: document.querySelector('input[name="mode"]:checked').value,
@@ -237,12 +237,21 @@
           h += `<div class="ref-box">【参考：最大効率】<br>追加で ${addText}を使うと、キリよく証を ${limitResult.finalTicket}枚獲得できます。</div>`;
         }
       }
+
+      // 「残りアイテム全投入」の計算を修正：
+      // 現在の計算結果（result）で余っているアイテムを特定して加算する
+      const remSand = inputs.sandCount - result.items.sand;
+      const remBurger = inputs.burgerCount - result.items.burger;
+      const remStone = inputs.stoneCount - result.items.stone;
+      const extraRecovery = (remSand * 10) + (remBurger * 30) + (remStone * 100);
+      const fullTix = result.finalTicket + (extraRecovery / 10);
       
-      // アイテム全使用の内訳と合計
-      const fullRec = (inputs.sandCount * 10) + (inputs.burgerCount * 30) + (inputs.stoneCount * 100);
-      const fullTix = inputs.ticket + Math.floor((inputs.stamina + inputs.bonusStamina + fullRec - inputs.targetStamina) / 10);
-      const fullItemsNote = `🥪×${inputs.sandCount} 🍔×${inputs.burgerCount} 💎×${inputs.stoneCount}`;
-      h += `<div class="ref-box" style="border-style: solid; border-color: #333;">【参考：アイテム全使用】<br>内訳：${fullItemsNote}<br>全アイテム投入時の証合計：${fullTix}枚</div>`;
+      if (extraRecovery > 0) {
+          const remItemsNote = `🥪×${remSand} 🍔×${remBurger} 💎×${remStone}`;
+          h += `<div class="ref-box" style="border-style: solid; border-color: #333;">【参考：残りアイテムをフル投入】<br>残り ${remItemsNote} を追加投入すると、さらにスタミナを ${extraRecovery} 回復でき、証の総計は ${fullTix}枚 になります。</div>`;
+      } else {
+          h += `<div class="ref-box" style="border-style: solid; border-color: #333;">【参考：アイテム全使用】<br>すべてのアイテムを使用済みです。現在の結果が最大です。</div>`;
+      }
       
       resDiv.innerHTML = h;
     } else resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">条件に合うルートがありません</div>';
