@@ -1,0 +1,135 @@
+/* ベーススタイル */
+:root {
+    --bg-color: #1a1a1a;
+    --card-bg: #2a2a2a;
+    --text-color: #e0e0e0;
+    --accent-color: #00ffcc; /* エメラルドグリーン */
+    --border-color: #444;
+
+    /* 属性カラー */
+    --red-attr: #ff4d4d;
+    --green-attr: #4dff4d;
+    --blue-attr: #4d4dff;
+    --yellow-attr: #ffff4d;
+    --purple-attr: #cc00ff;
+    --black-attr: #666;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #222;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+h2, h3 {
+    color: var(--accent-color);
+    border-left: 4px solid var(--accent-color);
+    padding-left: 10px;
+    margin-bottom: 25px;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 40px 0;
+}
+
+/* パーティ編成スロット */
+.party-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    background-color: #0d0d0d;
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    min-height: 160px; /* スロットが空でも高さを保つ */
+    align-items: center;
+}
+
+.party-slot {
+    width: 100px;
+    height: 130px;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    position: relative;
+    background-color: var(--card-bg);
+    transition: all 0.2s ease-in-out;
+}
+
+.party-slot.filled {
+    border-style: solid;
+    border-width: 3px;
+    /* 属性カラーでボーダーを設定 */
+}
+/* 属性ごとのボーダー色 */
+.party-slot.attr-赤 { border-color: var(--red-attr); }
+.party-slot.attr-緑 { border-color: var(--green-attr); }
+.party-slot.attr-青 { border-color: var(--blue-attr); }
+.party-slot.attr-黄 { border-color: var(--yellow-attr); }
+.party-slot.attr-紫 { border-color: var(--purple-attr); }
+.party-slot.attr-黒 { border-color: var(--black-attr); }
+
+
+.party-slot img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.party-slot .char-name-party {
+    font-weight: bold;
+    color: var(--accent-color);
+    font-size: 0.9em;
+    margin-top: 2px;
+}
+.party-slot .char-pos, .party-slot .char-role {
+    font-size: 0.75em;
+    color: #bbb;
+}
+
+.remove-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.9em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+.remove-btn:hover {
+    background-color: #c0392b;
+}
+
+/* スキル詳細比較エリア */
+.skill-comparison {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 画面幅に合わせて調整

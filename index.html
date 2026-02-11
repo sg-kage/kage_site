@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>カゲマス関連リンク</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="apple-touch-icon" href="banana.webp">
+    <link rel="icon" type="image/webp" href="banana.webp">
+    <meta name="twitter:image" content="https://sg-kage.github.io/kage_site/banana.webp">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b0d12;
+            --card-bg: rgba(20, 24, 33, 0.8);
+            --primary: #00f2ff; /* シアン */
+            --secondary: #0051ff; /* ディープブルー */
+            --text-main: #e0e6ed;
+            --text-muted: #94a3b8;
+            --glow: 0 0 15px rgba(0, 242, 255, 0.4);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(0, 81, 255, 0.2) 0%, transparent 60%),
+                linear-gradient(135deg, #050608 0%, #13161f 100%);
+            color: var(--text-main);
+            font-family: 'Noto Sans JP', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 40px;
+            /* グラスモーフィズム */
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8em;
+            letter-spacing: 4px;
+            margin: 0 0 40px 0;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.6);
+            position: relative;
+        }
+
+        h1::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            margin: 10px auto 0;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* PC向けグリッド設定 */
+        .repo-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .repo-card {
+            position: relative;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s ease-out;
+        }
+
+        .repo-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+            background: rgba(30, 36, 50, 0.95);
+        }
+
+        .repo-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            text-decoration: none;
+            color: var(--text-main);
+            font-weight: 700;
+            font-size: 1.05em;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .icon-box {
+            font-size: 1.8em;
+            margin-right: 15px;
+        }
+
+        .link-text {
+            flex-grow: 1;
+            display: flex;
+            align-items: center; /* テキストとバッジの縦位置を中央揃え */
+            flex-wrap: wrap;     /* 必要なら折り返す */
+            line-height: 1.4;
+        }
+
+        .arrow {
+            color: var(--text-muted);
+            font-size: 1.2em;
+            opacity: 0.5;
+        }
+
+        /* NEWバッジ */
+        .badge-new {
+            background: #ff0055;
+            color: white;
+            font-size: 0.7em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            box-shadow: 0 0 8px #ff0055;
+            white-space: nowrap; /* 改行させない */
+            vertical-align: middle;
+        }
+
+        /* ------------------------------------------- */
+        /* スマホ向けカスタマイズ (幅600px以下) */
+        /* ------------------------------------------- */
+        @media (max-width: 600px) {
+            .container {
+                margin: 16px;
+                padding: 24px 16px;
+                width: auto;
+            }
+
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 24px;
+            }
+
+            .repo-list {
+                /* 強制的に2列 (1fr 1fr) に設定 */
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .repo-link {
+                /* 縦並び（アイコン上、文字下） */
+                flex-direction: column;
+                justify-content: center;
+                text-align: center;
+                padding: 16px 4px; /* 横パディングを詰めて文字切れ防止 */
+                min-height: 100px;
+            }
+
+            .icon-box {
+                margin-right: 0;
+                margin-bottom: 8px;
+                font-size: 2em;
+            }
+
+            .link-text {
+                font-size: 0.85em;
+                justify-content: center; /* 中央揃え */
+                width: 100%;
+            }
+
+            .arrow {
+                display: none;
+            }
+            
+            .badge-new {
+                margin-left: 4px;
+                font-size: 0.6em;
+                padding: 1px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>カゲマス</h1>
+        <div class="repo-list">
+            
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_character/" target="_blank">
+                    <span class="icon-box">📚</span>
+                    <span class="link-text">カゲマス図鑑</span>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/日程/" target="_blank">
+                    <span class="icon-box">📅</span>
+                    <span class="link-text">イベント日程</span>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/編成/" target="_blank">
+                    <span class="icon-box">♟️</span>
+                    <span class="link-text">
+                        編成シミュ<span class="badge-new">NEW</span>
+                    </span>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/編成/" target="_blank">
+                    <span class="icon-box">🎫</span>
+                    <span class="link-text">
+                        討伐証 計算機<span class="badge-new">NEW</span>
+                    </span>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/ranking/" target="_blank">
+                    <span class="icon-box">🏆</span>
+                    <span class="link-text">ランキング</span>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/スコア/" target="_blank">
+                    <span class="icon-box">⚔️</span>
+                    <span class="link-text">スコア計算</span>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/戦力/" target="_blank">
+                    <span class="icon-box">🧮</span>
+                    <span class="link-text">戦力合わせ</span>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/秘密基地/" target="_blank">
+                    <span class="icon-box">🏰</span>
+                    <span class="link-text">秘密基地</span>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <div class="repo-card">
+                <a class="repo-link" href="https://sg-kage.github.io/kage_site/USERID/" target="_blank">
+                    <span class="icon-box">㊙️</span>
+                    <span class="link-text">日付確認</span>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

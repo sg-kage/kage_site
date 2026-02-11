@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カゲマス 編成シミュレーター</title>
+    <style>
+        :root {
+            --bg-body: #121212;
+            --bg-panel: #1e1e1e;
+            --bg-slot: #1a1a1a;
+            --text-main: #e0e0e0;
+            --border: #444;
+            /* 属性カラー */
+            --color-red: #FF6347;
+            --color-green: #32CD32;
+            --color-yellow: #FFD700;
+            --color-blue: #1E90FF;
+        }
+
+        body { 
+            font-family: "Helvetica Neue", Arial, sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            margin: 0 auto; 
+            padding: 20px; 
+            font-size: 14px; 
+            /* PC画面を広く使えるように幅制限を緩和 */
+            width: 96%;
+            max-width: 1800px;
+        }
+        
+        h2 { border-left: 5px solid #aaa; padding-left: 15px; margin-bottom: 10px; color: #fff; font-size: 1.2rem; }
+
+        .info-link { margin-bottom: 20px; font-size: 12px; color: #ccc; padding-left: 5px; }
+        .info-link a { color: #4db8ff; text-decoration: none; }
+        .info-link a:hover { text-decoration: underline; }
+
+        /* --- パーティ編成エリア --- */
+        .party-box { 
+            background: #000; 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            border: 1px solid #333;
+            position: relative;
+        }
+
+        @media (min-width: 601px) {
+            .party-box {
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+                border-bottom: 2px solid #555;
+            }
+        }
+
+        .clear-all-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #b71c1c; 
+            color: #fff;
+            border: 1px solid #ff4d4d;
+            border-radius: 4px;
+            padding: 4px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: 0.2s;
+        }
+        .clear-all-btn:hover { background: #d32f2f; }
+
+        .party-slots { 
+            display: flex; gap: 8px; justify-content: center; min-height: 190px; flex-wrap: wrap; margin-top: 10px; 
+        }
+
+        .slot { 
+            width: 110px; 
+            padding: 10px 5px; 
+            background: var(--bg-slot); 
+            border: 2px dashed #444; 
+            border-radius: 10px; 
+            position: relative; 
+            text-align: center; 
+            transition: 0.2s; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .slot.filled { 
+            border-style: solid; 
+            background: var(--bg-panel); 
+            cursor: pointer; /* クリックできることを示す */
+        }
+        /* 基準選択されたときのスロットスタイル */
+        .slot.is-reference {
+            border-color: #fff !important;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+            background: #2a2a2a;
+            transform: translateY(-2px);
+            z-index: 5;
+        }
+
+        .slot img { 
+            width: 75px; height: 75px; 
+            border-radius: 50%; object-fit: cover; margin-bottom: 5px; border: 3px solid #555; 
+        }
+        
+        .slot.attr-赤 { border-color: var(--color-red); }
+        .slot.attr-緑 { border-color: var(--color-green); }
+        .slot.attr-黄 { border-color: var(--color-yellow); }
+        .slot.attr-青 { border-color: var(--color-blue); }
+
+        .remove-btn { position: absolute; top: -8px; right: -8px; background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-weight: bold; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+        .pos-diff { font-size: 11px; color: #ffca28; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 4px; border: 1px solid #555; white-space: nowrap; }
+        .pos-val { font-size: 11px; color: #aaa; margin-top: 2px; font-family: monospace; white-space: nowrap; }
+
+        .slot-text-container { width: 100%; overflow: hidden; margin-top: 2px; display: flex; flex-direction: column; align-items: center; }
+        .slot-title { font-size: 10px; color: #999; white-space: nowrap; display: block; width: 100%; transform-origin: center; }
+        .slot-name { font-size: 12px; font-weight: bold; color: #fff; white-space: nowrap; display: block; width: 100%; transform-origin: center; margin-top: 1px; }
+
+        /* --- スキル表示 --- */
+        .skill-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 10px; align-items: start; }
+        .skill-card { background: var(--bg-panel); padding: 8px; border-radius: 6px; font-size: 10px; border-top: 3px solid #444; transition: all 0.2s; overflow: hidden; }
+        
+        .card-header { margin-bottom: 6px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .card-title { font-size: 9px; color: #888; white-space: nowrap; display: block; width: 100%; transform-origin: center; overflow: visible; }
+        .card-name { font-size: 12px; font-weight: bold; color: #eee; white-space: nowrap; display: block; width: 100%; transform-origin: center; overflow: visible; margin-top: 1px; }
+        
+        .basic-info { margin-bottom: 5px; min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+        
+        /* タグ（キャラ名、グループ、効果）のスタイル調整 */
+        .char-name-tag { 
+            display: inline-block; background: #444; color: #fff; 
+            padding: 1px 4px; /* 余白を縮小 */
+            border-radius: 3px; 
+            font-size: 9px;   /* 文字サイズを縮小 */
+            border: 1px solid #666;
+            font-weight: bold;
+        }
+        .skill-card.attr-赤 .char-name-tag { color: var(--color-red); }
+        .skill-card.attr-緑 .char-name-tag { color: var(--color-green); }
+        .skill-card.attr-黄 .char-name-tag { color: var(--color-yellow); }
+        .skill-card.attr-青 .char-name-tag { color: var(--color-blue); }
+
+        .tag-group { 
+            display: inline-block; background: #444; color: #fff; 
+            padding: 1px 4px; /* 余白を縮小 */
+            border-radius: 3px; 
+            font-size: 9px;   /* 文字サイズを縮小 */
+            border: 1px solid #666; 
+        }
+        .tag-effect { 
+            display: inline-block; background: #2c3e50; color: #81ecec; 
+            padding: 1px 4px; /* 余白を縮小 */
+            border-radius: 3px; 
+            font-size: 9px;   /* 文字サイズを縮小 */
+            border: 1px solid #3498db; 
+        }
+
+        .full-details { display: none; margin-top: 10px; padding-top: 5px; border-top: 1px dashed #444; }
+        .full-details.visible { display: block; }
+
+        .skill-section { margin-bottom: 8px; }
+        .skill-label { font-weight: bold; color: #ffca28; margin-bottom: 2px; font-size: 10px; border-bottom: 1px solid #333; display: inline-block; }
+        .skill-text { color: #ccc; line-height: 1.3; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+
+        /* --- コントロール --- */
+        .control-panel { background: var(--bg-panel); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid var(--border); }
+        .controls-row { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+        .search-box { flex-grow: 1; padding: 10px; border-radius: 6px; border: 1px solid #555; background: #222; color: #fff; }
+        .sort-select { background: #222; color: #fff; border: 1px solid #555; padding: 8px; border-radius: 6px; }
+
+        .toggle-switch { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #ccc; cursor: pointer; user-select: none; }
+        .toggle-switch input { margin: 0; }
+
+        .static-filters { margin-bottom: 10px; }
+        .filter-group { margin-bottom: 8px; }
+        .label-row { font-size: 11px; color: #ccc; margin-bottom: 4px; font-weight: bold; }
+        .btn-container { display: flex; flex-wrap: wrap; gap: 6px; }
+
+        .btn-filter { background: #333; border: 1px solid #555; color: #ccc; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: 0.2s; }
+        .btn-filter:hover { background: #444; }
+        .btn-filter.active { background: #555; color: white; border-color: #999; }
+        
+        .btn-filter[data-kind="attr"][data-val="赤"].active { background: var(--color-red); border-color: var(--color-red); }
+        .btn-filter[data-kind="attr"][data-val="緑"].active { background: var(--color-green); border-color: var(--color-green); }
+        .btn-filter[data-kind="attr"][data-val="黄"].active { background: var(--color-yellow); color: black; border-color: var(--color-yellow); }
+        .btn-filter[data-kind="attr"][data-val="青"].active { background: var(--color-blue); border-color: var(--color-blue); }
+
+        details.more-filters, details.save-load-details { margin-top: 10px; border-top: 1px dashed #444; padding-top: 10px; }
+        details.save-load-details { margin-top: 0; border-top: none; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+        
+        summary.more-summary { cursor: pointer; font-size: 12px; color: #888; font-weight: bold; width: fit-content; }
+        summary.more-summary:hover { color: #fff; }
+        .details-content { margin-top: 10px; }
+
+        .save-load-container { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 10px; 
+            margin-top: 10px;
+        }
+        
+        .save-slot { 
+            display: flex; flex-direction: column; gap: 5px;
+            background: #222; padding: 8px; 
+            border-radius: 6px; border: 1px solid #444; 
+        }
+        
+        .slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+        .slot-label { font-size: 11px; color: #aaa; font-weight: bold; }
+        .btn-row { display: flex; gap: 5px; }
+
+        .btn-save, .btn-load, .btn-delete { border: none; border-radius: 3px; padding: 3px 10px; font-size: 10px; cursor: pointer; color: white; transition: 0.2s; }
+        .btn-save { background: #444; }
+        .btn-save:hover { background: #666; }
+        .btn-load { background: #2c5d8a; }
+        .btn-load:hover { background: #3a7ebf; }
+        .btn-load:disabled { background: #333; color: #555; cursor: not-allowed; }
+        .btn-delete { background: #7f1d1d; } 
+        .btn-delete:hover { background: #b91c1c; }
+        .btn-delete:disabled { background: #333; color: #555; cursor: not-allowed; }
+
+        .slot-preview { 
+            display: flex; gap: 2px; align-items: center; 
+            background: #111; padding: 4px; border-radius: 4px; border: 1px solid #333;
+            height: 32px; overflow: hidden; justify-content: center;
+        }
+        .preview-img { 
+            width: 28px; height: 28px; border-radius: 3px; object-fit: cover; border: 1px solid #555; 
+        }
+        .no-data { font-size: 10px; color: #555; }
+
+        /* --- キャラリスト --- */
+        .char-list-container { height: 500px; overflow-y: scroll; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: #0a0a0a; }
+        .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+        
+        .char-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: #252525; border-radius: 6px; cursor: pointer; border: 1px solid #333; transition: 0.2s; position: relative; }
+        .char-item:hover { background: #333; transform: translateX(2px); border-color: #666; }
+        
+        .char-item.selected { background: #2c3e50; border-color: #ccc; }
+        .char-item.selected::after {
+            content: "✔"; position: absolute; top: -5px; right: -5px;
+            background: #ccc; color: #000; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; text-align: center; line-height: 16px; font-weight: bold;
+        }
+
+        .char-item img { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; flex-shrink: 0; border: 2px solid transparent; }
+        .char-item.attr-赤 img { border-color: var(--color-red); }
+        .char-item.attr-緑 img { border-color: var(--color-green); }
+        .char-item.attr-黄 img { border-color: var(--color-yellow); }
+        .char-item.attr-青 img { border-color: var(--color-blue); }
+
+        .char-info { overflow: hidden; width: 100%; display: flex; flex-direction: column; justify-content: center; }
+        .char-title { font-size: 10px; color: #aaa; white-space: nowrap; overflow: visible; line-height: 1.2; transform-origin: left center; width: 100%; display: block; }
+        .char-name-main { font-size: 12px; font-weight: bold; color: #eee; white-space: nowrap; overflow: visible; line-height: 1.3; margin-bottom: 2px; transform-origin: left center; width: 100%; display: block; }
+        .char-pos { font-size: 10px; color: #666; font-family: monospace; }
+
+        /* フッター */
+        .creator-link {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+        }
+        .creator-link a { color: #888; text-decoration: none; }
+        .creator-link a:hover { color: #fff; text-decoration: underline; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #222; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+
+        /* スマホ用 (5つ横並び強制 & キャラ一覧自動調整) */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            h2 { font-size: 1.1rem; margin-bottom: 10px; }
+
+            .party-box {
+                padding-top: 45px;
+            }
+
+            .party-slots { 
+                gap: 2px; 
+                flex-wrap: nowrap; 
+                justify-content: space-between;
+                min-height: 140px;
+                overflow-x: auto;
+                padding-top: 10px;
+            }
+            .slot { 
+                flex: 1; min-width: 0; 
+                width: auto; padding: 4px 1px; border-width: 1px;
+            }
+            .slot img { 
+                width: 100%; height: auto; aspect-ratio: 1/1; 
+                max-width: 60px; border-width: 2px; margin-bottom: 2px;
+            }
+            
+            .slot-title { font-size: 8px; }
+            .slot-name { font-size: 9px; }
+            .card-name { font-size: 10px; }
+            .pos-val { font-size: 9px; }
+            .pos-diff { font-size: 9px; padding: 1px 4px; }
+            .remove-btn { width: 18px; height: 18px; line-height: 18px; right: -4px; top: -4px; }
+
+            .skill-grid { gap: 2px; }
+            .skill-card { padding: 4px; }
+            
+            .save-load-container { grid-template-columns: 1fr; } 
+
+            .char-grid { 
+                grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); 
+                gap: 4px; 
+            }
+            .char-item { 
+                flex-direction: column;
+                align-items: center; 
+                text-align: center; 
+                padding: 6px 2px;
+                gap: 2px;
+            }
+            .char-info { 
+                align-items: center; 
+                width: 100%;
+            }
+            .char-title { 
+                text-align: center; 
+                transform-origin: center; 
+                font-size: 8px;
+            }
+            .char-name-main { 
+                text-align: center; 
+                transform-origin: center;
+                font-size: 10px; 
+                margin-bottom: 0;
+            }
+            .char-pos {
+                display: none;
+            }
+            .char-item img {
+                margin: 0;
+                width: 40px; height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>⚔️ キャラ編成</h2>
+    <div class="info-link">
+        詳細なキャラ情報は <a href="https://sg-kage.github.io/kage_character" target="_blank" rel="noopener">kage_character</a> を参照ください
+    </div>
+
+    <div class="party-box">
+        <button class="clear-all-btn" onclick="clearAllParty()">全解除</button>
+        <div class="party-slots" id="partySlots"></div>
+    </div>
+
+    <div style="margin-bottom: 5px; text-align: right; display: flex; gap: 10px; justify-content: flex-end;">
+        <select id="layoutSelect" class="sort-select" onchange="changeLayoutMode()" style="font-size: 12px; padding: 4px;">
+            <option value="left">並び：左が前衛</option>
+            <option value="right">並び：右が前衛</option>
+        </select>
+
+        <select id="displayModeSelect" class="sort-select" onchange="updateSkillDisplay()" style="font-size: 12px; padding: 4px;">
+            <option value="none" selected>表示無</option>
+            <option value="summary">概要を表示</option>
+            <option value="full">詳細を表示</option>
+        </select>
+    </div>
+
+    <div class="skill-grid" id="skillGrid"></div>
+    <div style="text-align: right; font-size: 11px; color: #aaa; margin-bottom: 5px;" id="hitCount">HIT: 0件</div>
+
+    <div class="control-panel">
+        <details class="save-load-details">
+            <summary class="more-summary">▼ 編成パターンの保存・読込・削除</summary>
+            <div class="save-load-container" id="saveLoadArea">
+                </div>
+        </details>
+
+        <div class="controls-row">
+            <input type="text" id="searchBox" class="search-box" placeholder="検索: 名前, 特技:気絶 など">
+            <select id="sortSelect" class="sort-select" onchange="renderCharList()">
+                <option value="id_asc" selected>標準</option>
+                <option value="pos_asc">Pos順 (前衛から)</option>
+                <option value="pos_desc">Pos順 (後衛から)</option>
+            </select>
+        </div>
+
+        <div class="static-filters">
+            <div class="filter-group">
+                <div class="btn-container" id="filter-attr"></div>
+            </div>
+            <div class="filter-group">
+                <div class="btn-container" id="filter-role"></div>
+            </div>
+        </div>
+
+        <details class="more-filters">
+            <summary class="more-summary">▼ 名前・グループ・効果で絞り込む</summary>
+            <div class="details-content">
+                <div class="filter-group">
+                    <div class="label-row">キャラ名</div>
+                    <div class="btn-container" id="filter-name"></div>
+                </div>
+                <div class="filter-group">
+                    <div class="label-row">グループ</div>
+                    <div class="btn-container" id="filter-group"></div>
+                </div>
+                <div class="filter-group">
+                    <div class="label-row">効果</div>
+                    <div class="btn-container" id="filter-effect"></div>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <div class="char-list-container">
+        <div class="char-grid" id="charList"></div>
+    </div>
+
+    <footer class="creator-link">
+        作成者: <a href="https://x.com/kagenotify" target="_blank" rel="noopener">kagenotify（X／旧Twitter）</a><br>
+        Discord鯖: <a href="http://discord.gg/SfMWv5UPad" target="_blank" rel="noopener">陰マス通知</a><br>
+        <small>
+          このウェブサイト <a href="https://sg-kage.github.io/kage_site/編成/" target="_blank" rel="noopener">kage_site</a> は、Team CARAVANおよびAiming Inc.とは一切関係がなく、
+          また、これらの企業から公式な承認を受けたものではありません。<br>
+          掲載されているすべての画像の著作権は、それぞれの権利者に帰属します。
+        </small>
+    </footer>
+
+    <script>
+        const CONFIG = {
+            attributes: ["赤", "緑", "黄", "青"],
+            roles: ["アタッカー", "タンク", "サポーター"],
+            // 画像の参照先を kage_character サイトに変更
+            imgDir: 'https://sg-kage.github.io/kage_character/image/characters/',
+            ext: '.webp',
+            REGEX: {
+                cleanName: /\[.*$/, 
+                effects: /『([^』]+)』/g, 
+                splitColon: /[:：]/,
+                titlePart: /\[(.*)\]$/
+            },
+            STORAGE_KEY_PREFIX: 'kage_party_slot_',
+            STORAGE_KEY_LAYOUT: 'kage_layout_mode'
+        };
+
+        // 検索フィールドのマッピング定義
+        const FIELD_MAP = {
+            "特殊": ["traits"], 
+            "特技": ["skill1", "skill2"], 
+            "奥義": ["ultimate","ex_ultimate"],
+            "魔道具": ["magic_item1", "magic_item2"], 
+            "コンボ": ["combo"], 
+            "通常": ["normal_attack"]
+        };
+
+        let state = {
+            allChars: [],
+            party: [],
+            referenceCharID: null, 
+            layoutMode: 'left', // 'right' or 'left'
+            filters: {
+                attr: new Set(),
+                role: new Set(),
+                group: new Set(),
+                effect: new Set(),
+                name: new Set(),
+                text: ""
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // レイアウトモードの読み込み
+            const savedLayout = localStorage.getItem(CONFIG.STORAGE_KEY_LAYOUT);
+            if (savedLayout) {
+                state.layoutMode = savedLayout;
+                document.getElementById('layoutSelect').value = savedLayout;
+            }
+
+            // JSONの取得先を kage_character サイトに変更
+            fetch('https://sg-kage.github.io/kage_character/characters/all_characters.json')
+                .then(res => res.json())
+                .then(data => {
+                    state.allChars = data.map(c => preprocessCharacter(c));
+                    createFilterButtons();
+                    renderSaveLoadButtons(); 
+                    renderCharList();
+                    updatePartyUI();
+                    window.addEventListener('resize', adjustNameSizes);
+                })
+                .catch(err => alert("データ読み込みエラー: all_characters.json"));
+
+            document.getElementById('searchBox').addEventListener('input', (e) => {
+                state.filters.text = e.target.value;
+                renderCharList();
+            });
+        });
+
+        function preprocessCharacter(char) {
+            const jsonStr = JSON.stringify(char);
+            const effects = new Set();
+            let match;
+            while ((match = CONFIG.REGEX.effects.exec(jsonStr)) !== null) {
+                effects.add(match[1]);
+            }
+            char._effects = Array.from(effects);
+            // 検索用のテキスト生成（全データを含める）
+            char._searchText = jsonStr.toLowerCase();
+            
+            const nameMatch = char.name.match(/^(.+?)([\[［].+[\]］])$/);
+            if (nameMatch) {
+                char._shortName = nameMatch[1];
+                char._title = nameMatch[2];
+            } else {
+                char._shortName = char.name;
+                char._title = "";
+            }
+            return char;
+        }
+
+        // --- レイアウト変更 ---
+        function changeLayoutMode() {
+            const val = document.getElementById('layoutSelect').value;
+            state.layoutMode = val;
+            localStorage.setItem(CONFIG.STORAGE_KEY_LAYOUT, val);
+            updatePartyUI();
+        }
+
+        // --- 基準キャラのセット・トグル ---
+        function setReference(id) {
+            if (state.referenceCharID === id) {
+                state.referenceCharID = null;
+            } else {
+                state.referenceCharID = id;
+            }
+            updatePartyUI();
+        }
+
+        // --- 全解除 ---
+        function clearAllParty() {
+            if (state.party.length === 0) return;
+            if(!confirm("現在の編成を全て解除しますか？")) return;
+            state.party = [];
+            state.referenceCharID = null; 
+            updatePartyUI();
+            renderCharList();
+        }
+
+        // --- 保存・削除機能 ---
+        function renderSaveLoadButtons() {
+            const container = document.getElementById('saveLoadArea');
+            container.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const div = document.createElement('div');
+                div.className = 'save-slot';
+                
+                const json = localStorage.getItem(CONFIG.STORAGE_KEY_PREFIX + i);
+                const ids = json ? JSON.parse(json) : [];
+                const canLoad = ids.length > 0;
+
+                let previewHtml = '';
+                if (canLoad) {
+                    const chars = ids.map(id => state.allChars.find(c => c.CharacterID === id)).filter(c => c);
+                    chars.forEach(c => {
+                        previewHtml += `<img src="${CONFIG.imgDir}${c.name}${CONFIG.ext}" class="preview-img" title="${c._shortName}">`;
+                    });
+                } else {
+                    previewHtml = '<span class="no-data">データなし</span>';
+                }
+
+                div.innerHTML = `
+                    <div class="slot-header">
+                        <span class="slot-label">パターン${i}</span>
+                        <div class="btn-row">
+                            <button class="btn-save" onclick="saveParty(${i})">保存</button>
+                            <button class="btn-load" onclick="loadParty(${i})" ${canLoad ? '' : 'disabled'}>読み出し</button>
+                            <button class="btn-delete" onclick="deleteParty(${i})" ${canLoad ? '' : 'disabled'}>削除</button>
+                        </div>
+                    </div>
+                    <div class="slot-preview">${previewHtml}</div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        function saveParty(slotIndex) {
+            if (state.party.length === 0) {
+                if(!confirm("編成が空です。空の状態を保存しますか？")) return;
+            }
+            const ids = state.party.map(c => c.CharacterID);
+            localStorage.setItem(CONFIG.STORAGE_KEY_PREFIX + slotIndex, JSON.stringify(ids));
+            renderSaveLoadButtons();
+        }
+
+        function loadParty(slotIndex) {
+            const json = localStorage.getItem(CONFIG.STORAGE_KEY_PREFIX + slotIndex);
+            if (!json) return;
+            try {
+                const ids = JSON.parse(json);
+                state.party = ids.map(id => state.allChars.find(c => c.CharacterID === id)).filter(c => c);
+                state.referenceCharID = null; 
+                updatePartyUI();
+                renderCharList();
+            } catch (e) {
+                console.error("Load failed", e);
+            }
+        }
+
+        function deleteParty(slotIndex) {
+            if(!confirm(`パターン${slotIndex}のデータを削除しますか？`)) return;
+            localStorage.removeItem(CONFIG.STORAGE_KEY_PREFIX + slotIndex);
+            renderSaveLoadButtons();
+        }
+
+        // --- フィルタ・リスト表示 ---
+        function createFilterButtons() {
+            createBtns('filter-attr', CONFIG.attributes, 'attr');
+            createBtns('filter-role', CONFIG.roles, 'role');
+
+            const allGroups = new Set();
+            state.allChars.forEach(c => c.group?.forEach(g => allGroups.add(g)));
+            createBtns('filter-group', Array.from(allGroups).sort(), 'group');
+
+            const allEffects = new Set();
+            state.allChars.forEach(c => c._effects.forEach(e => allEffects.add(e)));
+            createBtns('filter-effect', Array.from(allEffects).sort(), 'effect');
+
+            const allNames = new Set();
+            state.allChars.forEach(c => allNames.add(c._shortName));
+            createBtns('filter-name', Array.from(allNames).sort(), 'name');
+        }
+
+        function createBtns(containerId, items, type) {
+            const container = document.getElementById(containerId);
+            items.forEach(item => {
+                if(!item) return;
+                const btn = document.createElement('div');
+                btn.className = 'btn-filter';
+                btn.textContent = item;
+                btn.dataset.kind = type;
+                btn.dataset.val = item;
+                btn.onclick = () => toggleFilter(type, item, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function toggleFilter(type, value, btnElem) {
+            const targetSet = state.filters[type];
+            if (targetSet.has(value)) {
+                targetSet.delete(value);
+                btnElem.classList.remove('active');
+            } else {
+                targetSet.add(value);
+                btnElem.classList.add('active');
+            }
+            renderCharList();
+        }
+
+        function renderCharList() {
+            const listEl = document.getElementById('charList');
+            const sortMode = document.getElementById('sortSelect').value;
+            listEl.innerHTML = '';
+
+            // 入力キーワードの正規化処理（databaseスクリプト準拠）
+            const keywords = state.filters.text
+                .normalize('NFKC')
+                .toLowerCase()
+                .replace(/　/g, ' ')
+                .trim()
+                .split(/[ ]+/)
+                .filter(k => k);
+
+            let results = state.allChars.filter(char => {
+                // 1. テキスト検索（databaseスクリプトのロジック移植）
+                const matchKeywords = keywords.every(token => {
+                    // コロンを含む場合は特定フィールド検索
+                    if (token.includes(':') || token.includes('：')) {
+                        let [key, val] = token.split(/[:：]/);
+                        const targetProps = FIELD_MAP[key];
+                        if (targetProps && val) {
+                            return targetProps.some(prop => {
+                                const data = char[prop];
+                                return data && JSON.stringify(data).toLowerCase().includes(val);
+                            });
+                        }
+                    }
+                    // 通常検索
+                    return char._searchText.includes(token);
+                });
+                if (!matchKeywords) return false;
+
+                // 2. ボタンフィルタ
+                if (state.filters.attr.size > 0 && !state.filters.attr.has(char.attribute)) return false;
+                if (state.filters.role.size > 0 && !state.filters.role.has(char.role)) return false;
+                if (state.filters.group.size > 0 && !char.group?.some(g => state.filters.group.has(g))) return false;
+                if (state.filters.effect.size > 0 && !char._effects?.some(e => state.filters.effect.has(e))) return false;
+                if (state.filters.name.size > 0 && !state.filters.name.has(char._shortName)) return false;
+
+                return true;
+            });
+
+            results.sort((a, b) => {
+                if (sortMode === 'id_asc') return a.CharacterID - b.CharacterID;
+                if (sortMode === 'pos_asc') return (a.position || 9999) - (b.position || 9999);
+                if (sortMode === 'pos_desc') return (b.position || 0) - (a.position || 0);
+                return 0;
+            });
+
+            document.getElementById('hitCount').textContent = `HIT: ${results.length}件`;
+
+            results.forEach(char => {
+                const div = document.createElement('div');
+                div.className = `char-item attr-${char.attribute}`;
+                const isInParty = state.party.find(p => p.CharacterID === char.CharacterID);
+                if (isInParty) div.classList.add('selected');
+
+                const imgSrc = `${CONFIG.imgDir}${char.name}${CONFIG.ext}`;
+                div.innerHTML = `
+                    <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/45/333?text=IMG'">
+                    <div class="char-info">
+                        <div class="char-title scale-target-left">${char._title || ''}</div>
+                        <div class="char-name-main scale-target-left">${char._shortName}</div>
+                        <div class="char-pos">Pos:${char.position}</div>
+                    </div>
+                `;
+                div.onclick = () => togglePartySelection(char);
+                listEl.appendChild(div);
+            });
+            adjustNameSizes();
+        }
+
+        function adjustNameSizes() {
+            document.querySelectorAll('.scale-target-left').forEach(el => applyScale(el, 'left'));
+            document.querySelectorAll('.scale-target-center').forEach(el => applyScale(el, 'center'));
+        }
+        
+        function applyScale(el, origin) {
+            el.style.transform = 'none';
+            const parentW = el.parentElement.clientWidth;
+            const textW = el.scrollWidth;
+            if (textW > parentW) {
+                const scale = parentW / textW;
+                el.style.transformOrigin = `${origin} center`;
+                el.style.transform = `scale(${scale})`;
+            }
+        }
+
+        function togglePartySelection(char) {
+            const existing = state.party.find(p => p.CharacterID === char.CharacterID);
+            if (existing) {
+                removeFromParty(char.CharacterID);
+            } else {
+                if (state.party.length < 5) addToParty(char);
+            }
+        }
+
+        function addToParty(char) {
+            state.party.push(char);
+            updatePartyUI();
+            renderCharList();
+        }
+
+        function removeFromParty(id) {
+            state.party = state.party.filter(p => p.CharacterID !== id);
+            if (state.referenceCharID === id) state.referenceCharID = null;
+            updatePartyUI();
+            renderCharList();
+        }
+
+        // --- UI更新ロジック (並び替え対応) ---
+        function updatePartyUI() {
+            const isLeftMode = state.layoutMode === 'left';
+
+            // ソート順を変更
+            if (isLeftMode) {
+                // 左詰め：Pos昇順 (小->大)
+                state.party.sort((a, b) => (a.position || 0) - (b.position || 0));
+            } else {
+                // 右詰め：Pos降順 (大->小)
+                state.party.sort((a, b) => (b.position || 0) - (a.position || 0));
+            }
+
+            const slotsEl = document.getElementById('partySlots');
+            const skillsEl = document.getElementById('skillGrid');
+            slotsEl.innerHTML = '';
+            skillsEl.innerHTML = '';
+
+            const emptyCount = 5 - state.party.length;
+
+            const refChar = state.referenceCharID ? state.party.find(c => c.CharacterID === state.referenceCharID) : null;
+            if (state.referenceCharID && !refChar) {
+                state.referenceCharID = null;
+            }
+
+            for (let i = 0; i < 5; i++) {
+                const slot = document.createElement('div');
+                let char = null;
+                let isEmpty = false;
+
+                // 左詰め・右詰めの配置ロジック
+                if (isLeftMode) {
+                    // 左詰め: [Char, Char, Char, Empty, Empty]
+                    if (i < state.party.length) {
+                        char = state.party[i];
+                    } else {
+                        isEmpty = true;
+                    }
+                } else {
+                    // 右詰め: [Empty, Empty, Char, Char, Char]
+                    if (i < emptyCount) {
+                        isEmpty = true;
+                    } else {
+                        char = state.party[i - emptyCount];
+                    }
+                }
+
+                if (isEmpty) {
+                    slot.className = 'slot';
+                    slot.innerHTML = `<div style="margin-top:60px; color:#444; font-size:11px;">EMPTY</div>`;
+                } else {
+                    slot.className = `slot filled attr-${char.attribute}`;
+                    const imgSrc = `${CONFIG.imgDir}${char.name}${CONFIG.ext}`;
+
+                    const isReference = (state.referenceCharID === char.CharacterID);
+                    if (isReference) {
+                        slot.classList.add('is-reference');
+                    }
+
+                    // 距離表示の計算ロジック
+                    let diffDisplay = "";
+                    
+                    if (state.referenceCharID) {
+                        // 【基準モード】選択中のキャラからの相対距離
+                        if (isReference) {
+                            diffDisplay = `<div class="pos-diff" style="background:#fff; color:#000; border:none;">基準</div>`;
+                        } else {
+                            const diff = (char.position || 0) - (refChar.position || 0);
+                            const sign = diff > 0 ? "+" : "";
+                            const color = diff > 0 ? "#ffca28" : "#4db8ff"; // 後ろ(+)は黄色、前(-)は青
+                            diffDisplay = `<div class="pos-diff" style="color:${color}">${sign}${diff}</div>`;
+                        }
+                    } else {
+                        // 【通常モード】自分より「前（Pos小）」のキャラとの距離を表示
+                        const charIndexInParty = state.party.indexOf(char);
+                        let prevChar = null;
+
+                        if (isLeftMode) {
+                            // 左詰め(昇順): [前]...[後]。前のキャラは index - 1
+                            if (charIndexInParty > 0) {
+                                prevChar = state.party[charIndexInParty - 1];
+                            }
+                        } else {
+                            // 右詰め(降順): [後]...[前]。前のキャラは index + 1
+                            if (charIndexInParty < state.party.length - 1) {
+                                prevChar = state.party[charIndexInParty + 1];
+                            }
+                        }
+
+                        if (prevChar) {
+                            // 常に (自分のPos - 前のキャラのPos) で正の値を出す
+                            const diff = (char.position || 0) - (prevChar.position || 0);
+                            diffDisplay = `<div class="pos-diff">+${diff}</div>`;
+                        } else {
+                            diffDisplay = `<div class="pos-diff" style="color:#888; border:none; background:transparent;">Top</div>`;
+                        }
+                    }
+
+                    slot.onclick = (e) => {
+                        if (e.target.classList.contains('remove-btn')) return;
+                        setReference(char.CharacterID);
+                    };
+
+                    slot.innerHTML = `
+                        <button class="remove-btn" onclick="removeFromParty(${char.CharacterID})">×</button>
+                        <img src="${imgSrc}" alt="${char._shortName}">
+                        <div class="slot-text-container">
+                            <span class="slot-title scale-target-center">${char._title || ''}</span>
+                            <span class="slot-name scale-target-center">${char._shortName}</span>
+                        </div>
+                        <div class="pos-val">Pos:${char.position}</div>
+                        ${diffDisplay}
+                    `;
+                    addSkillCard(char, skillsEl);
+                }
+                slotsEl.appendChild(slot);
+            }
+            updateSkillDisplay();
+            adjustNameSizes();
+        }
+
+        function getSkillText(data) {
+            if (!data) return null;
+            if (Array.isArray(data)) {
+                if (data.length === 0) return null;
+                const obj = data[0];
+                return obj.awakened || obj.normal || obj.description || null;
+            }
+            return data.awakened || data.normal || data.description || null;
+        }
+
+        function addSkillCard(char, container) {
+            const card = document.createElement('div');
+            card.className = `skill-card attr-${char.attribute}`;
+            
+            const groups = (char.group || []).map(g => `<span class="tag-group">${g}</span>`).join("");
+            const effectTags = (char._effects || []).map(e => `<span class="tag-effect">${e}</span>`).join("");
+            
+            const exUlt = getSkillText(char.ex_ultimate);
+            const ult = getSkillText(char.ultimate);
+            const s1 = getSkillText(char.skill1);
+            const s2 = getSkillText(char.skill2);
+            const traits = getSkillText(char.traits); 
+            const item1 = getSkillText(char.magic_item1);
+            const item2 = getSkillText(char.magic_item2);
+
+            let detailsHtml = "";
+            if (exUlt) detailsHtml += `<div class="skill-section"><span class="skill-label">究極奥義</span><div class="skill-text">${exUlt}</div></div>`;
+            if (ult)   detailsHtml += `<div class="skill-section"><span class="skill-label">奥義</span><div class="skill-text">${ult}</div></div>`;
+            if (s1)    detailsHtml += `<div class="skill-section"><span class="skill-label">特技1</span><div class="skill-text">${s1}</div></div>`;
+            if (s2)    detailsHtml += `<div class="skill-section"><span class="skill-label">特技2</span><div class="skill-text">${s2}</div></div>`;
+            if (traits) detailsHtml += `<div class="skill-section"><span class="skill-label">特殊</span><div class="skill-text">${traits}</div></div>`;
+            if (item1) detailsHtml += `<div class="skill-section"><span class="skill-label">魔道具1</span><div class="skill-text">${item1}</div></div>`;
+            if (item2) detailsHtml += `<div class="skill-section"><span class="skill-label">魔道具2</span><div class="skill-text">${item2}</div></div>`;
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="card-title scale-target-center">${char._title || ''}</span>
+                    <span class="card-name scale-target-center">${char._shortName}</span>
+                </div>
+                <div class="basic-info">
+                    <span class="char-name-tag">${char._shortName}</span>
+                    ${groups} ${effectTags}
+                    ${(!groups && !effectTags) ? '<span style="color:#666">(タグなし)</span>' : ''}
+                </div>
+                <div class="full-details">
+                    ${detailsHtml || '<div style="color:#666">スキルデータなし</div>'}
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        function updateSkillDisplay() {
+            const mode = document.getElementById('displayModeSelect').value;
+            const skillGrid = document.getElementById('skillGrid');
+            const details = document.querySelectorAll('.full-details');
+
+            if (mode === 'none') {
+                skillGrid.style.display = 'none';
+            } else {
+                skillGrid.style.display = 'grid'; 
+                details.forEach(el => {
+                    if (mode === 'full') {
+                        el.classList.add('visible');
+                    } else {
+                        el.classList.remove('visible');
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

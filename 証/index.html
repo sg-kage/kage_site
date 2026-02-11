@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>討伐証 逆算計算機</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0c10; --card-bg: #11141a; --card-border: #1e2630;
+      --primary: #00e5ff; --primary-dim: rgba(0, 229, 255, 0.15);
+      --accent-red: #ff3d00; --accent-yellow: #ffea00;
+      --text-main: #f0f0f0; --text-sub: #90a4ae; --radius: 6px;
+    }
+    body { font-family: "Noto Sans JP", sans-serif; margin: 0; padding: 0.4em; background-color: var(--bg-dark); color: var(--text-main); }
+    h1 { text-align: center; color: var(--primary); font-size: 1.2em; margin: 0.2em 0; text-shadow: 0 0 10px var(--primary-dim); }
+    .disclaimer { text-align: center; font-size: 0.7em; color: var(--accent-yellow); margin-bottom: 0.4em; font-weight: bold; }
+
+    .container { max-width: 720px; margin: 0 auto; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4em; margin-bottom: 0.6em; }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); padding: 0.6em; border-radius: var(--radius); display: flex; flex-direction: column; gap: 0.4em; position: relative; }
+    
+    .mode-info { font-size: 0.65em; color: var(--text-sub); line-height: 1.3; margin-bottom: 0.2em; background: #000; padding: 0.4em; border-radius: 4px; border-left: 2px solid var(--primary); }
+    .form-row { display: flex; align-items: center; justify-content: space-between; height: 1.6em; }
+    label { font-size: 0.75em; font-weight: bold; color: var(--text-sub); }
+    
+    input[type="number"], select { 
+      width: 4.5em; background: #000; color: var(--primary); border: 1px solid #334155; 
+      border-radius: 4px; padding: 0.2em; text-align: right; font-size: 0.95em; font-family: "Roboto Mono", monospace;
+    }
+    .mode-switch { display: flex; background: #000; padding: 1px; border-radius: 4px; border: 1px solid #334155; width: 100%; margin-bottom: 2px; }
+    .mode-switch label { flex: 1; text-align: center; cursor: pointer; padding: 0.3em 0; border-radius: 4px; font-size: 0.75em; }
+    .mode-switch input { display: none; }
+    .mode-switch label:has(input:checked) { background: var(--primary); color: #000; font-weight: bold; }
+    .just-input { border-color: var(--primary) !important; }
+
+    button[type="submit"] { 
+      background: var(--primary); color: #000; border: none; border-radius: var(--radius); padding: 0.6em;
+      font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s;
+    }
+
+    .result-container { margin-top: 0.6em; display: none; border-top: 1px solid var(--card-border); padding-top: 0.6em; }
+    .timeline { position: relative; padding-left: 1.5em; }
+    .timeline::before { content: ''; position: absolute; left: 9px; top: 10px; bottom: 20px; width: 1px; background: #334155; }
+    
+    .tl-step { position: relative; background: #161b22; border: 1px solid var(--card-border); border-radius: var(--radius); padding: 0.4em 0.8em; margin-bottom: 0.3em; display: flex; align-items: center; gap: 0.6em; }
+    .tl-step.recover::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--primary); }
+    .tl-step.consume::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent-red); }
+    
+    .tl-icon-circle { width: 20px; height: 20px; background: #000; border: 1px solid #334155; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; left: -1.7em; font-size: 0.8em; }
+    .tl-main-val { font-size: 1em; font-weight: bold; color: #fff; font-family: "Roboto Mono", monospace; }
+    .tl-label { font-size: 0.6em; color: var(--text-sub); font-weight: bold; margin-bottom: 0px; display: block; }
+    .tl-sub { font-size: 0.75em; color: var(--text-sub); margin-left: 0.4em; }
+
+    .tags { display: flex; gap: 0.3em; margin-top: 0.1em; flex-wrap: wrap; }
+    .tag { font-size: 0.75em; padding: 1px 6px; border-radius: 3px; font-weight: bold; background: #000; border: 1px solid #334155; color: var(--primary); }
+    
+    .msg-box { padding: 0.5em 0.8em; border-radius: var(--radius); margin-bottom: 0.4em; font-size: 0.75em; }
+    .msg-info { border: 1px solid var(--primary-dim); color: var(--primary); background: rgba(0, 229, 255, 0.05); }
+    .msg-reason { border: 1px solid var(--accent-yellow); color: var(--accent-yellow); background: rgba(255, 234, 0, 0.05); margin-top: 0.4em;}
+    .ref-box { border: 1px dashed #444; color: #aaa; background: rgba(255, 255, 255, 0.02); margin-top: 0.4em; padding: 0.6em; border-radius: 4px; font-size: 0.72em; line-height: 1.5; }
+    .saved-toast { position: absolute; top: 2px; right: 5px; font-size: 0.55em; color: var(--primary); opacity: 0; transition: 0.5s; }
+
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; gap: 0.3em; } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>討伐証 計算機</h1>
+  <p class="disclaimer">※下一桁が9の状態を前提に10単位で計算</p>
+  <form id="calcForm">
+    <div class="form-grid">
+      <div class="card">
+        <div id="savedMsg1" class="saved-toast">保存完了</div>
+        <div class="mode-info">
+          60：最小消費で60単位 / 120：120単位優先<br>最大：目標スタミナ維持しつつ証を最大獲得
+        </div>
+        <div class="mode-switch">
+          <label><input type="radio" name="mode" value="MIN" checked> 60</label>
+          <label><input type="radio" name="mode" value="MAX_120"> 120</label>
+          <label><input type="radio" name="mode" value="LIMIT"> 最大</label>
+        </div>
+        <div class="form-row"><label>現在の証</label><input type="number" id="currentTicket" value="0"></div>
+        <div class="form-row"><label>現在スタミナ</label><input type="number" id="currentStamina" value="999"></div>
+        <div class="form-row"><label>最終配布</label><select id="finalBonusStamina"><option value="0">0</option><option value="100" selected>100</option><option value="200">200</option></select></div>
+        <div class="form-row"><label>目標着地</label><input type="number" id="targetStamina" class="just-input" value="999"></div>
+      </div>
+      <div class="card">
+        <div id="savedMsg2" class="saved-toast">保存完了</div>
+        <div class="form-row"><label>🥪 サンド(10回復)</label><input type="number" id="sandCount" value="31" max="35"></div>
+        <div class="form-row"><label>🍔 バーガー(30回復)</label><input type="number" id="burgerCount" value="30" max="30"></div>
+        <div class="form-row"><label>💎 石(100回復)</label><select id="stoneCount"></select></div>
+      </div>
+    </div>
+    <button type="submit">計算を開始</button>
+  </form>
+  <div id="result" class="result-container"></div>
+</div>
+
+<script>
+  const stoneSel = document.getElementById('stoneCount');
+  for(let i=0; i<=5; i++){
+    let opt = document.createElement('option'); opt.value = i; opt.textContent = i + "回";
+    stoneSel.appendChild(opt);
+  }
+
+  const STORAGE_KEY = 'priconne_calc_v27_final_v5';
+  function saveInputs() {
+    const data = {
+      mode: document.querySelector('input[name="mode"]:checked').value,
+      ticket: document.getElementById('currentTicket').value,
+      stamina: document.getElementById('currentStamina').value,
+      bonus: document.getElementById('finalBonusStamina').value,
+      target: document.getElementById('targetStamina').value,
+      sand: document.getElementById('sandCount').value,
+      burger: document.getElementById('burgerCount').value,
+      stone: document.getElementById('stoneCount').value
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    document.querySelectorAll('.saved-toast').forEach(el => { el.style.opacity = 1; setTimeout(() => el.style.opacity = 0, 800); });
+  }
+
+  function loadInputs() {
+    const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return;
+    const d = JSON.parse(raw);
+    if(d.mode) document.querySelector(`input[name="mode"][value="${d.mode}"]`).checked = true;
+    document.getElementById('currentTicket').value = d.ticket; document.getElementById('currentStamina').value = d.stamina;
+    document.getElementById('finalBonusStamina').value = d.bonus; document.getElementById('targetStamina').value = d.target;
+    document.getElementById('sandCount').value = d.sand; document.getElementById('burgerCount').value = d.burger;
+    document.getElementById('stoneCount').value = d.stone;
+  }
+  document.querySelectorAll('input, select').forEach(el => el.addEventListener('change', saveInputs));
+  window.addEventListener('DOMContentLoaded', loadInputs);
+
+  const SAFETY_THRESHOLD = 150;
+
+  function simulate(start, consume, items, bonus) {
+    let steps = [], cur = start, rem = consume, p = {...items};
+    let safetyLoop = 0;
+    while ((rem > 0 || p.stone > 0 || p.burger > 0 || p.sand > 0) && safetyLoop < 100) {
+      safetyLoop++;
+      let r = 0, used = {stone:0, burger:0, sand:0};
+      while (true) {
+        if (p.sand > 0 && cur + 10 <= 999) { p.sand--; used.sand++; cur += 10; r += 10; }
+        else if (p.burger > 0 && cur + 30 <= 999) { p.burger--; used.burger++; cur += 30; r += 30; }
+        else if (p.stone > 0 && cur + 100 <= 999) { p.stone--; used.stone++; cur += 100; r += 100; }
+        else break;
+      }
+      if (r > 0) steps.push({type:'recover', used, val:r, after:cur});
+      let maxCanConsume = cur - (SAFETY_THRESHOLD + 1);
+      let safeLimit = Math.floor(maxCanConsume / 10) * 10;
+      if (safeLimit > 0 && rem > 0) {
+        let d = Math.min(rem, safeLimit); cur -= d; rem -= d; steps.push({type:'consume', val:d, after:cur});
+      } else if (rem > 0 && p.stone === 0 && p.burger === 0 && p.sand === 0) {
+        cur -= rem; steps.push({type:'consume', val:rem, after:cur}); rem = 0;
+      } else break;
+    }
+    if (bonus > 0) { cur += bonus; steps.push({type:'bonus', val:bonus, after:cur}); }
+    return {steps, final:cur};
+  }
+
+  function solve(inputs, mode) {
+    const {ticket, stamina, targetStamina, bonusStamina, sandCount, burgerCount, stoneCount} = inputs;
+    let res = [];
+    for (let s = 0; s <= stoneCount; s++) {
+      for (let b = 0; b <= burgerCount; b++) {
+        const recovery = (sandCount * 10) + (b * 30) + (s * 100);
+        const mustC = (stamina + bonusStamina + recovery) - targetStamina;
+        if (mustC >= 0 && mustC % 10 === 0) {
+          const finalT = ticket + (mustC / 10);
+          if (finalT % 60 === 0) res.push({finalTicket: finalT, consume: mustC, items: {sand:sandCount, burger:b, stone:s}, mod: (finalT % 120 === 0 ? 120 : 60)});
+        }
+      }
+    }
+    if (!res.length) return null;
+    let best;
+    if (mode === 'MIN') best = res.sort((a,b)=>a.consume - b.consume)[0];
+    else if (mode === 'MAX_120') {
+      let r120 = res.filter(r=>r.mod === 120).sort((a,b)=>a.consume - b.consume);
+      best = r120.length ? r120[0] : res.sort((a,b)=>a.consume - b.consume)[0];
+    } else {
+      best = res.sort((a,b)=>b.finalTicket - a.finalTicket)[0];
+    }
+    if (mode === 'LIMIT' && best.mod === 60) {
+      const next120line = Math.ceil((best.finalTicket + 1) / 120) * 120;
+      const needStamina = (next120line - best.finalTicket) * 10;
+      best.failReason = `あと ${needStamina} スタミナ足りないため、120枚単位に届きませんでした。`;
+    }
+    return best;
+  }
+
+  document.getElementById('calcForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    const inputs = {
+      ticket: parseInt(document.getElementById('currentTicket').value) || 0,
+      stamina: parseInt(document.getElementById('currentStamina').value) || 0,
+      targetStamina: parseInt(document.getElementById('targetStamina').value) || 0,
+      bonusStamina: parseInt(document.getElementById('finalBonusStamina').value) || 0,
+      sandCount: parseInt(document.getElementById('sandCount').value) || 0,
+      burgerCount: parseInt(document.getElementById('burgerCount').value) || 0,
+      stoneCount: parseInt(document.getElementById('stoneCount').value) || 0
+    };
+    
+    const result = solve(inputs, mode);
+    const limitResult = solve(inputs, 'LIMIT'); 
+    
+    const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
+    if (result) {
+      const sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
+      let h = `<div class="msg-box msg-info">最適手順を表示します</div><div class="timeline">`;
+      sim.steps.forEach(s => {
+        if (s.type === 'recover') {
+          let t = ''; 
+          if(s.used.sand) t += `<span class="tag">🥪 サンド ${s.used.sand}個</span>`;
+          if(s.used.burger) t += `<span class="tag">🍔 バーガー ${s.used.burger}個</span>`;
+          if(s.used.stone) t += `<span class="tag">💎 石割 ${s.used.stone}回</span>`;
+          h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">アイテム使用</span><div class="tags">${t}</div><div class="tl-sub">→ スタミナ ${s.after}</div></div></div>`;
+        } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">スタミナ消費</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
+        else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終日配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
+      });
+
+      let totalItemsText = `使用合計: 🥪×${result.items.sand} 🍔×${result.items.burger} 💎×${result.items.stone}`;
+      h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span><div style="font-size:0.65em; color:var(--text-sub); margin-top:2px;">${totalItemsText}</div></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div></div>`;
+      
+      if (mode === 'LIMIT' && result.failReason) {
+        h += `<div class="msg-box msg-reason">💡 ${result.failReason}</div>`;
+      } else if (mode !== 'LIMIT' && limitResult) {
+        const addSand = limitResult.items.sand - result.items.sand;
+        const addBurger = limitResult.items.burger - result.items.burger;
+        const addStone = limitResult.items.stone - result.items.stone;
+        if (addSand > 0 || addBurger > 0 || addStone > 0) {
+          let addText = "";
+          if(addSand > 0) addText += `🥪×${addSand} `;
+          if(addBurger > 0) addText += `🍔×${addBurger} `;
+          if(addStone > 0) addText += `💎×${addStone} `;
+          h += `<div class="ref-box">【参考：最大効率】<br>追加で ${addText}を使うと、キリよく証を ${limitResult.finalTicket}枚獲得できます。</div>`;
+        }
+      }
+
+      // 「残りアイテム全投入」の計算を修正：
+      // 現在の計算結果（result）で余っているアイテムを特定して加算する
+      const remSand = inputs.sandCount - result.items.sand;
+      const remBurger = inputs.burgerCount - result.items.burger;
+      const remStone = inputs.stoneCount - result.items.stone;
+      const extraRecovery = (remSand * 10) + (remBurger * 30) + (remStone * 100);
+      const fullTix = result.finalTicket + (extraRecovery / 10);
+      
+      if (extraRecovery > 0) {
+          const remItemsNote = `🥪×${remSand} 🍔×${remBurger} 💎×${remStone}`;
+          h += `<div class="ref-box" style="border-style: solid; border-color: #333;">【参考：残りアイテムをフル投入】<br>残り ${remItemsNote} を追加投入すると、さらにスタミナを ${extraRecovery} 回復でき、証の総計は ${fullTix}枚 になります。</div>`;
+      } else {
+          h += `<div class="ref-box" style="border-style: solid; border-color: #333;">【参考：アイテム全使用】<br>すべてのアイテムを使用済みです。現在の結果が最大です。</div>`;
+      }
+      
+      resDiv.innerHTML = h;
+    } else resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">条件に合うルートがありません</div>';
+  });
+</script>
+</body>
+</html>

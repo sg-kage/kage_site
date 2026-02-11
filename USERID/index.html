@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日付確認ツール</title>
+    <style>
+        :root {
+            /* Windows 11 Dark Mode Colors */
+            --bg-color: #202020;
+            --card-bg: #2c2c2c;
+            --input-bg: #333333;
+            --input-border: #454545;
+            --text-main: #ffffff;
+            --text-sub: #d0d0d0;
+            --accent-color: #60cdff;
+            --accent-hover: #50b8e6;
+            --error-color: #ff99a4;
+            --success-color: #6cc288;
+            --note-bg: #3b3a30;
+            --note-border: #9d8808;
+        }
+
+        body {
+            font-family: "Segoe UI Variable", "Segoe UI", Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 8px;
+            border: 1px solid #404040;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 480px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: var(--text-main);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+        }
+
+        /* 入力欄とボタンを包むコンテナ（位置調整用） */
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 0.75rem;
+            /* 右側にボタン分の余白を確保 */
+            padding-right: 3rem; 
+            background-color: var(--input-bg);
+            color: var(--text-main);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            border-bottom: 2px solid var(--input-border);
+            font-size: 1rem;
+            box-sizing: border-box;
+            font-family: Consolas, "Courier New", monospace;
+            transition: all 0.2s ease;
+            letter-spacing: 0.1em;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus, select:focus {
+            outline: none;
+            border-bottom-color: var(--accent-color);
+            background-color: #3a3a3a;
+        }
+
+        /* 覗き見ボタンのデザイン */
+        .peek-btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 3rem;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+            /* 選択不可にする */
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+
+        .peek-btn:hover {
+            color: var(--text-main);
+        }
+        
+        .peek-btn:active {
+            color: var(--accent-color);
+        }
+
+        .result-box {
+            background-color: #3a3a3a;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--input-border);
+            text-align: center;
+            min-height: 1.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            margin-top: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .char-count {
+            font-size: 0.8rem;
+            text-align: right;
+            color: #888;
+            margin-top: 0.4rem;
+            min-height: 1.2em;
+        }
+
+        .note {
+            margin-top: 2.5rem;
+            font-size: 0.85rem;
+            color: #e0e0e0;
+            background-color: var(--note-bg);
+            border: 1px solid var(--note-border);
+            border-left: 4px solid var(--note-border);
+            padding: 1rem;
+            border-radius: 4px;
+            line-height: 1.5;
+        }
+        .note strong {
+            color: #ffdb4d;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .note p {
+            margin: 0.8rem 0 0 0;
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 0.65em auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>日付確認ツール</h1>
+
+    <div class="input-group">
+        <label for="ulidInput">プレイヤーID（先頭10文字・伏字）</label>
+        
+        <div class="input-wrapper">
+            <input type="password" id="ulidInput" placeholder="プレイヤーIDを入力" maxlength="10" autocomplete="off">
+            <button type="button" id="peekBtn" class="peek-btn" title="押している間だけ表示">👁️</button>
+        </div>
+
+        <div class="char-count" id="statusMsg">10文字入力してください</div>
+    </div>
+
+    <div class="input-group">
+        <label for="formatOption">表示オプション</label>
+        <select id="formatOption">
+            <option value="date" selected>日付のみ (年/月/日 曜日)</option>
+            <option value="hour">時間まで (年/月/日 曜日 時)</option>
+            <option value="minutes">分まで (年/月/日 曜日 時:分)</option>
+            <option value="seconds">秒まで (年/月/日 曜日 時:分:秒)</option>
+            <option value="full">詳細 (年/月/日 曜日 時:分:秒.ミリ秒)</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label>確認結果</label>
+        <div id="result" class="result-box">---</div>
+    </div>
+
+    <div class="note">
+        <strong>🔒 セキュリティとプライバシー</strong>
+        入力内容は伏字で保護され、ブラウザ外には送信されません。<br>
+        10文字を超える情報は入力時点でカットされます。
+        
+        <p>
+            <strong>📸 SNSへの投稿について</strong>
+            詳細な時刻まで特定されたくない場合は、念のため「日付のみ」にしておくことをおすすめします。
+        </p>
+    </div>
+</div>
+
+<script>
+    const ENCODING = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+    const inputEl = document.getElementById('ulidInput');
+    const selectEl = document.getElementById('formatOption');
+    const resultEl = document.getElementById('result');
+    const statusMsg = document.getElementById('statusMsg');
+    const peekBtn = document.getElementById('peekBtn');
+
+    // --- メイン処理 ---
+    function update() {
+        let rawInput = inputEl.value.trim().toUpperCase();
+        
+        if (rawInput.length > 10) {
+            rawInput = rawInput.substring(0, 10);
+            inputEl.value = rawInput;
+        }
+
+        if (rawInput.length < 10) {
+            resultEl.textContent = "---";
+            resultEl.style.color = "var(--accent-color)";
+            statusMsg.textContent = `残り ${10 - rawInput.length} 文字`;
+            statusMsg.style.color = "var(--text-sub)";
+            return;
+        }
+
+        statusMsg.textContent = "OK: 解析完了";
+        statusMsg.style.color = "var(--success-color)";
+
+        try {
+            const time = decodeTime(rawInput);
+            const date = new Date(time);
+            
+            if (isNaN(date.getTime())) {
+                throw new Error("Invalid Date");
+            }
+
+            resultEl.textContent = formatDate(date, selectEl.value);
+            resultEl.style.color = "var(--accent-color)";
+        } catch (e) {
+            resultEl.textContent = "無効な形式";
+            resultEl.style.color = "var(--error-color)";
+            statusMsg.textContent = "不正な文字が含まれています";
+            statusMsg.style.color = "var(--error-color)";
+        }
+    }
+
+    function decodeTime(id) {
+        let time = 0;
+        for (let i = 0; i < 10; i++) {
+            const char = id[i];
+            const val = ENCODING.indexOf(char);
+            if (val === -1) {
+                throw new Error("Invalid Character");
+            }
+            time = time * 32 + val;
+        }
+        return time;
+    }
+
+    function formatDate(date, format) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        const h = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+        const s = String(date.getSeconds()).padStart(2, '0');
+        const ms = String(date.getMilliseconds()).padStart(3, '0');
+
+        // 曜日を取得する処理を追加
+        const weekDays = ['(日)', '(月)', '(火)', '(水)', '(木)', '(金)', '(土)'];
+        const w = weekDays[date.getDay()];
+
+        switch (format) {
+            case 'date': return `${y}/${m}/${d} ${w}`;
+            case 'hour': return `${y}/${m}/${d} ${w} ${h}時`;
+            case 'minutes': return `${y}/${m}/${d} ${w} ${h}:${min}`;
+            case 'seconds': return `${y}/${m}/${d} ${w} ${h}:${min}:${s}`;
+            case 'full': default: return `${y}/${m}/${d} ${w} ${h}:${min}:${s}.${ms}`;
+        }
+    }
+
+    // --- 覗き見機能 (Hold to view) ---
+    const showPassword = () => inputEl.type = 'text';
+    const hidePassword = () => inputEl.type = 'password';
+
+    // マウス操作 (PC)
+    peekBtn.addEventListener('mousedown', showPassword);
+    peekBtn.addEventListener('mouseup', hidePassword);
+    peekBtn.addEventListener('mouseleave', hidePassword); // 押したままカーソルが外れた場合も隠す
+
+    // タッチ操作 (スマホ)
+    peekBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // タッチによる擬似クリックなどを防ぐ
+        showPassword();
+    });
+    peekBtn.addEventListener('touchend', hidePassword);
+
+    // --- 基本イベント ---
+    inputEl.addEventListener('input', update);
+    selectEl.addEventListener('change', update);
+    inputEl.addEventListener('paste', () => { setTimeout(update, 1); });
+
+</script>
+
+</body>
+</html>

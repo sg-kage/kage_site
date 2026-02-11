@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カゲマス 魔界殲滅戦争</title>
+    <style>
+        :root {
+            --bg-base: #0a0a0a;
+            --glass-bg: rgba(30, 30, 30, 0.8);
+            --accent-win: #60cdff;
+            --surface-selected: rgba(255, 255, 255, 0.08); /* 進行中の背景 */
+            --text-main: #ffffff;
+            --text-dim: #a0a0a0;
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --header-season: #2d3d25;
+            --header-battle: #253145;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: radial-gradient(circle at 50% 0%, #1c2333 0%, #0a0a0a 70%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 10px;
+            margin: 0;
+        }
+
+        .設定エリア {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-glass);
+            margin-bottom: 20px;
+            width: 95%;
+            max-width: 650px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .設定行 {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        select, input[type="date"] {
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid var(--border-glass);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .reg-btn {
+            display: inline-block;
+            background: #238636;
+            color: white;
+            text-decoration: none;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            margin-top: 6px;
+            transition: 0.2s;
+        }
+        .reg-btn:hover { filter: brightness(1.2); }
+
+        .table-wrapper {
+            width: 100%;
+            max-width: 720px; 
+            border-radius: 8px;
+            border: 1px solid var(--border-glass);
+            overflow: hidden;
+            background: rgba(15, 15, 15, 0.4);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        th {
+            padding: 14px;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+        .季節列 { background: var(--header-season); }
+        .殲滅列 { background: var(--header-battle); }
+        
+        td {
+            padding: 12px 6px;
+            border: 1px solid var(--border-glass);
+            font-family: 'Consolas', monospace;
+            color: var(--text-dim);
+            position: relative;
+        }
+
+        /* ▼ 進行中：Win11風の強調デザイン ▼ */
+        tr.進行中 td {
+            background: var(--surface-selected); /* 背景をわずかに明るく */
+            color: var(--text-main); /* 通常文字もはっきりさせる */
+        }
+
+        /* 左端のインジケーターバー */
+        tr.進行中 td:first-child::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 15%;
+            height: 70%;
+            width: 3px;
+            background: var(--accent-win);
+            border-radius: 0 2px 2px 0;
+            box-shadow: 0 0 8px var(--accent-win);
+        }
+
+        /* 曜日カラー設定（進行中でも色を保持） */
+        .土曜 { 
+            color: #58a6ff !important; 
+            text-shadow: 0 0 1px rgba(88, 166, 255, 0.5);
+        }
+        .日曜 { 
+            color: #ff7b72 !important; 
+            text-shadow: 0 0 1px rgba(255, 123, 114, 0.5);
+        }
+        
+        .年区切り td {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--accent-win);
+            font-weight: bold;
+            font-size: 0.75rem;
+            padding: 10px;
+        }
+
+        .kikan-sep { color: #666; margin: 0 4px; }
+        .hidden-btn { display: none !important; }
+
+        @media (max-width: 600px) {
+            table { font-size: 11px; }
+            .kikan-sep { display: block; margin: 2px 0; }
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="設定エリア">
+    <div class="設定行">
+        <span style="font-size: 0.9rem;">開始日(木)</span>
+        <input type="date" id="baseDate" value="2025-12-25" onchange="保存と生成()">
+    </div>
+    <div class="設定行">
+        <select id="calType" onchange="保存と生成()">
+            <option value="google">Google カレンダー</option>
+            <option value="ios">iOS (Apple)</option>
+            <option value="yahoo">Yahoo! カレンダー</option>
+        </select>
+        <select id="calTime" onchange="保存と生成()">
+            <option value="20">20:00</option>
+            <option value="21">21:00</option>
+            <option value="22" selected>22:00</option>
+            <option value="23">23:00</option>
+        </select>
+        <label style="font-size: 0.8rem; cursor: pointer; color: var(--text-dim);">
+            <input type="checkbox" id="hideBtn" onchange="保存と生成()"> 登録ボタン非表示
+        </label>
+    </div>
+    <div style="text-align: right; margin-top: 5px;">
+        <a href="https://www.shadow-garden-mog.jp/guildbattle-calendar/?from=ingame" target="_blank" style="color:var(--accent-win); font-size:0.75rem; text-decoration:none;">本家を確認 ≫</a>
+    </div>
+</div>
+
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th class="季節列">季節</th>
+                <th colspan="3" class="殲滅列">魔界殲滅戦争</th>
+            </tr>
+        </thead>
+        <tbody id="meisai"></tbody>
+    </table>
+</div>
+
+<script>
+    window.onload = function() {
+        const cacheType = localStorage.getItem('calType');
+        const cacheTime = localStorage.getItem('calTime');
+        const cacheHide = localStorage.getItem('hideBtn');
+        const cacheBase = localStorage.getItem('baseDate');
+        if (cacheType) document.getElementById('calType').value = cacheType;
+        if (cacheTime) document.getElementById('calTime').value = cacheTime;
+        if (cacheHide !== null) document.getElementById('hideBtn').checked = (cacheHide === 'true');
+        if (cacheBase) document.getElementById('baseDate').value = cacheBase;
+        生成();
+    };
+
+    function 保存と生成() {
+        localStorage.setItem('calType', document.getElementById('calType').value);
+        localStorage.setItem('calTime', document.getElementById('calTime').value);
+        localStorage.setItem('hideBtn', document.getElementById('hideBtn').checked);
+        localStorage.setItem('baseDate', document.getElementById('baseDate').value);
+        生成();
+    }
+
+    function getCalLink(title, dateObj, hour, type) {
+        const start = new Date(dateObj);
+        start.setHours(hour, 0, 0);
+        const end = new Date(start);
+        end.setHours(hour + 1, 0, 0);
+        const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        if (type === 'google') return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${fmt(start)}/${fmt(end)}`;
+        if (type === 'yahoo') return `https://calendar.yahoo.co.jp/?v=60&TITLE=${encodeURIComponent(title)}&ST=${fmt(start).slice(0,15)}Z&DUR=0100`;
+        if (type === 'ios') {
+            const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${title}\nDTSTART:${fmt(start)}\nDTEND:${fmt(end)}\nEND:VEVENT\nEND:VCALENDAR`;
+            return `data:text/calendar;charset=utf8,${encodeURIComponent(ics)}`;
+        }
+    }
+
+    function 書式(d) {
+        const y = d.getFullYear().toString().slice(-2);
+        const m = (d.getMonth() + 1).toString().padStart(2, '0');
+        const r = d.getDate().toString().padStart(2, '0');
+        const w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+        return `${y}/${m}/${r}<span style="font-size:0.8em; opacity:0.7">(${w})</span>`;
+    }
+
+    function 生成() {
+        const body = document.getElementById('meisai');
+        const calType = document.getElementById('calType').value;
+        const calHour = parseInt(document.getElementById('calTime').value);
+        const hideBtn = document.getElementById('hideBtn').checked;
+        body.innerHTML = '';
+        let d = new Date(document.getElementById('baseDate').value);
+        const today = new Date();
+        let currentYear = d.getFullYear();
+        for (let i = 0; i < 35; i++) {
+            let sEnd = new Date(d); sEnd.setDate(d.getDate() + 21);
+            let fri = new Date(d); fri.setDate(d.getDate() + 22);
+            let sat = new Date(d); sat.setDate(d.getDate() + 23);
+            let sun = new Date(d); sun.setDate(d.getDate() + 24);
+            if (d.getFullYear() !== currentYear) {
+                const sep = document.createElement('tr');
+                sep.className = '年区切り';
+                sep.innerHTML = `<td colspan="4">── ${d.getFullYear()} ──</td>`;
+                body.appendChild(sep);
+                currentYear = d.getFullYear();
+            }
+            const tr = document.createElement('tr');
+            if (today >= d && today <= new Date(sun.getTime() + 86400000)) tr.className = '進行中';
+            const btnClass = hideBtn ? 'reg-btn hidden-btn' : 'reg-btn';
+            const makeBtn = (title, date) => `<br><a href="${getCalLink(title, date, calHour, calType)}" class="${btnClass}" target="_blank">登録</a>`;
+            tr.innerHTML = `
+                <td>${書式(d)}<span class="kikan-sep">〜</span>${書式(sEnd)}</td>
+                <td>${書式(fri)}${makeBtn('カゲマス 殲滅戦 Day1', fri)}</td>
+                <td class="土曜">${書式(sat)}${makeBtn('カゲマス 殲滅戦 Day2', sat)}</td>
+                <td class="日曜">${書式(sun)}${makeBtn('カゲマス 殲滅戦 Day3', sun)}</td>
+            `;
+            body.appendChild(tr);
+            d.setDate(d.getDate() + 28);
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>戦力調整・組み合わせ探索ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      background: #181a1b;
+      color: #f1f1f1;
+      font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      margin: 1em auto;
+      max-width: 800px;
+      padding: 0 1em;
+    }
+    input, textarea, button {
+      background: #282c30;
+      color: #f1f1f1;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 0.5em;
+      font-size: 1em;
+      line-height: 1.4;
+      box-sizing: border-box;
+    }
+    input:focus, textarea:focus {
+      outline: 2px solid #555;
+      border-color: #555;
+    }
+    
+    /* レイアウト調整 */
+    .control-group {
+      background: #202225;
+      padding: 1em;
+      border-radius: 8px;
+      margin-bottom: 1em;
+      border: 1px solid #333;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.3em;
+      font-weight: bold;
+      font-size: 0.95em;
+    }
+    
+    /* 文字強調用 */
+    .highlight {
+      color: #61aeee;
+      font-weight: bold;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+      margin-bottom: 1em;
+    }
+    .input-item {
+      flex: 1;
+      min-width: 140px;
+    }
+    .input-item input {
+      width: 100%;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 5em;
+      width: 100%;
+      font-family: monospace;
+      margin-top: 0.5em;
+    }
+
+    /* 折りたたみエリアのデザイン */
+    details {
+      margin-bottom: 1em;
+      background: #1a1c1e;
+      border-radius: 4px;
+      border: 1px solid #333;
+    }
+    summary {
+      cursor: pointer;
+      padding: 0.5em;
+      color: #aaa;
+      font-size: 0.9em;
+      user-select: none;
+      transition: color 0.2s;
+    }
+    summary:hover {
+      color: #fff;
+      background: #2a2d30;
+    }
+    .details-content {
+      padding: 1em;
+      border-top: 1px solid #333;
+      font-size: 0.9em;
+      line-height: 1.6;
+    }
+    .details-content img {
+      margin-top: 0.5em;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #555;
+      border-radius: 4px;
+    }
+
+    /* ボタン周り */
+    .action-row {
+      display: flex;
+      gap: 0.5em;
+      margin-top: 1em;
+      flex-wrap: wrap;
+    }
+    button {
+      cursor: pointer;
+      transition: background 0.2s;
+      padding: 0.5em 1.2em;
+      font-weight: bold;
+      border: none;
+    }
+    .btn-calc {
+      background: #3b82f6;
+      color: white;
+      flex: 2;
+    }
+    .btn-calc:hover { background: #2563eb; }
+    
+    .btn-clear {
+      background: #4b5563;
+      color: white;
+    }
+    .btn-clear:hover { background: #374151; }
+    
+    .btn-reset {
+      background: #ef4444;
+      color: white;
+    }
+    .btn-reset:hover { background: #dc2626; }
+
+    /* 結果表示エリア */
+    .result-box {
+      background: #202225;
+      padding: 1em;
+      border-radius: 8px;
+      border: 1px solid #333;
+      margin-top: 1em;
+    }
+    .comb {
+      font-family: monospace;
+      background: #111;
+      margin: 0.3em 0;
+      padding: 0.4em;
+      border-radius: 4px;
+      word-break: break-all;
+      border-left: 3px solid #3b82f6;
+    }
+    h1 {
+      font-size: 1.4em;
+      margin: 0.5em 0 0.8em 0;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.3em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>戦力調整・組み合わせ探索ツール</h1>
+
+  <div class="control-group">
+    <div class="input-row">
+      <div class="input-item">
+        <label>現在戦力</label>
+        <input id="now" type="number" placeholder="例: 14552">
+      </div>
+      <div class="input-item">
+        <label>狙う戦力</label>
+        <input id="target" type="number" placeholder="例: 15000">
+      </div>
+      <div class="input-item" style="flex: 0 0 100px;">
+        <label>表示件数</label>
+        <input id="maxResults" type="number" min="1" value="5">
+      </div>
+    </div>
+
+    <label for="nums" style="margin-bottom:0.2em;">各キャラの戦力上昇値（+数値）</label>
+    
+    <details>
+      <summary>▶ 上昇値とは？（クリックで画像の例を見る）</summary>
+      <div class="details-content">
+        <p>
+          ゲーム内のランクアップ確認画面に表示される <span class="highlight">青色の数値（＋○○）</span> を入力してください。<br>
+          <span style="color:#aaa; font-size:0.9em;">※「+」記号が付いていても自動で削除します。<br>※空白や改行で区切って入力できます。</span>
+        </p>
+        <img src="images/help.png" alt="ランクアップ画面の例: 数値の上昇値を確認する場所" loading="lazy">
+      </div>
+    </details>
+
+    <textarea id="nums" placeholder="例: 241 180 52 300 ..."></textarea>
+
+    <div class="action-row">
+      <button class="btn-calc" onclick="calc()">計算する</button>
+      <button type="button" class="btn-clear" onclick="clearNums()">数値クリア</button>
+      <button type="button" class="btn-reset" onclick="clearAll()">リセット</button>
+    </div>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    // 組み合わせ探索ロジック
+    function combinations(arr, k) {
+      let res = [];
+      function helper(start, comb) {
+        if (comb.length > 0) res.push(comb);
+        for (let i = start; i < arr.length; i++) {
+          helper(i + 1, comb.concat([arr[i]]));
+        }
+      }
+      helper(0, []);
+      return res;
+    }
+
+    function formatNum(n) {
+      return n.toLocaleString('ja-JP');
+    }
+
+    function clearNums() {
+      document.getElementById('nums').value = '';
+      document.getElementById('nums').focus();
+    }
+
+    function clearAll() {
+      document.getElementById('now').value = '';
+      document.getElementById('target').value = '';
+      document.getElementById('maxResults').value = 5;
+      document.getElementById('nums').value = '';
+      document.getElementById('result').innerHTML = '';
+      // detailsが開いていれば閉じる
+      const details = document.querySelector('details');
+      if(details) details.removeAttribute('open');
+    }
+
+    function calc() {
+      const resultArea = document.getElementById('result');
+      
+      const nowVal = document.getElementById('now').value;
+      const targetVal = document.getElementById('target').value;
+      const now = nowVal === '' ? 0 : parseInt(nowVal, 10);
+      const target = targetVal === '' ? 0 : parseInt(targetVal, 10);
+
+      const numsRaw = document.getElementById('nums').value;
+      // 1. 改行・カンマ・全角スペースを半角スペースに
+      // 2. 「+」「＋」を削除して、数値だけを取り出す
+      const nums = numsRaw
+        .replace(/[\n\r]/g, " ")
+        .replace(/,/g, " ")
+        .replace(/[\u3000]/g, " ")
+        .replace(/[+＋]/g, "") // プラス記号除去
+        .split(' ')
+        .map(s => s.trim())
+        .filter(s => s !== '')
+        .map(s => parseInt(s, 10))
+        .filter(x => !isNaN(x));
+
+      if (nums.length === 0) {
+        resultArea.innerHTML = '<div class="result-box" style="color:#ff6b6b;">エラー: 上昇値（+数値）が入力されていません。</div>';
+        return;
+      }
+      
+      // 計算量爆発の抑止
+      if (nums.length > 22) {
+         if(!confirm(`入力された数値の個数(${nums.length})が多いため、計算に時間がかかります。\n続行しますか？`)) {
+           return;
+         }
+      }
+
+      const diff = Math.abs(target - now);
+      let maxResults = parseInt(document.getElementById('maxResults').value, 10);
+      if (isNaN(maxResults) || maxResults < 1) maxResults = 10;
+
+      resultArea.innerHTML = `
+        <div class="result-box">
+          <b>■設定</b><br>
+          現在戦力: ${formatNum(now)}<br>
+          狙う戦力: ${formatNum(target)}<br>
+          埋めるべき差分: <b>${formatNum(diff)}</b><br>
+          候補の数値: ${nums.length}個<br>
+          <hr style="border:0; border-top:1px solid #444; margin:0.5em 0;">
+          計算中...
+        </div>`;
+
+      // 画面更新を待つためにsetTimeoutを使用
+      setTimeout(() => {
+        let res = [];
+        // ソートして探索
+        const allCombs = combinations(nums, nums.length).sort((a,b)=>a.length-b.length);
+        
+        for (let c of allCombs) {
+          if (c.reduce((a,b)=>a+b,0) === diff) {
+            res.push(c);
+          }
+          if(res.length >= maxResults) break;
+        }
+
+        let html = `<b>■結果</b><br>`;
+        if (res.length === 0) {
+          html += `<span style="color:#aaa;">差分（${formatNum(diff)}）と一致する組み合わせは見つかりませんでした。</span>`;
+        } else {
+          html += `組み合わせを発見しました！（最大${maxResults}件）<br>
+                   <span style="font-size:0.9em; color:#888;">※対象キャラをランクアップしてください</span><br>`;
+          res.forEach(comb => {
+            html += `<div class="comb">[ ${comb.join(', ')} ]</div>`;
+          });
+        }
+        
+        resultArea.innerHTML = `
+          <div class="result-box">
+            <b>■設定</b><br>
+            現在戦力: ${formatNum(now)}<br>
+            狙う戦力: ${formatNum(target)}<br>
+            埋めるべき差分: <b>${formatNum(diff)}</b><br>
+            <hr style="border:0; border-top:1px solid #444; margin:0.5em 0;">
+            ${html}
+          </div>`;
+      }, 50); 
+    }
+  </script>
+</body>
+</html>
