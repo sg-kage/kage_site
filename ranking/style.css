@@ -35,15 +35,21 @@ body {
 .scroll-container { flex: 1; overflow: auto; border: 1px solid var(--border-line); background: #000; display: block; text-align: left; }
 
 .analysis-table {
-    border-collapse: separate; border-spacing: 0;
     table-layout: fixed; 
-    width: 100%; min-width: 1550px; margin: 0;
+    width: 100%;
+    margin: 0;
+    /* デフォルト（殲滅戦）の最小幅 */
+    min-width: 1550px;
 }
 
 .analysis-table th, .analysis-table td {
     border-right: 1px solid var(--border-line); border-bottom: 1px solid var(--border-line);
     padding: 0; height: 40px; background-color: var(--bg-black);
     white-space: nowrap; text-align: center; box-sizing: border-box; overflow: hidden;
+}
+/* シーズンモード用の幅上書き */
+.analysis-table.mode-ss {
+    min-width: 700px; /* 各列の合計 + α */
 }
 
 tbody tr:hover td { background-color: #111111 !important; }
@@ -113,7 +119,10 @@ thead .col-name { z-index: 105 !important; }
     .analysis-table { min-width: 1150px !important; }
     .analysis-table th, .analysis-table td { height: 32px; font-size: 9px !important; }
     thead tr:nth-child(2) th { top: 32px; }
-    
+    .analysis-table.mode-ss {
+        min-width: 450px !important; /* スマホのSSモードなら画面幅程度に */
+    }
+
     /* 固定位置の同期 */
     .col-rank { width: 25px !important; min-width: 25px !important; max-width: 25px !important; }
     .col-name {

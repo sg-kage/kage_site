@@ -104,11 +104,24 @@ function renderColgroups(mode) {
     if (oldColgroup) oldColgroup.remove();
     const colgroup = document.createElement('colgroup');
     const isMobile = window.innerWidth <= 480;
-    const nameWidth = isMobile ? "70px" : "200px";
+    
+    // 殲滅戦側と共通の幅定義
     const rankWidth = isMobile ? "25px" : "30px";
+    const nameWidth = isMobile ? "70px" : "200px";
+
     if (mode === 'ss') {
-        colgroup.innerHTML = `<col style="width:${rankWidth}"><col style="width:${nameWidth}"><col><col style="width:50px"><col style="width:60px"><col><col>`;
+        // ギルド名幅を ${nameWidth} に固定し、他の列も固定幅にすることで
+        // 殲滅戦側と同じギルド名表示エリアを確保します
+        colgroup.innerHTML = `
+            <col style="width:${rankWidth}">
+            <col style="width:${nameWidth}">
+            <col style="width:120px"> 
+            <col style="width:45px">
+            <col style="width:70px">
+            <col style="width:110px">
+            <col style="width:110px">`;
     } else {
+        // 殲滅戦（既存の定義を維持）
         colgroup.innerHTML = `<col style="width:${rankWidth}"><col style="width:${nameWidth}"><col style="width:${rankWidth}"><col><col style="width:${rankWidth}"><col><col style="width:${rankWidth}"><col><col><col><col style="width:${rankWidth}"><col><col style="width:${rankWidth}"><col><col style="width:${rankWidth}"><col>`;
     }
     mainTable.insertBefore(colgroup, tableHead);
@@ -116,8 +129,10 @@ function renderColgroups(mode) {
 
 function renderHeader(mode) {
     if (mode === 'ss') {
+        mainTable.classList.add('mode-ss'); // SSモード用のスタイルを適用
         tableHead.innerHTML = `<tr><th class="col-rank th-guild">順</th><th class="col-name th-guild">ギルド名</th><th class="th-total">スコア</th><th>人</th><th>平均</th><th>1位差</th><th>上差</th></tr>`;
     } else {
+        mainTable.classList.remove('mode-ss'); // 殲滅戦モードに戻す
         tableHead.innerHTML = `<tr><th rowspan="2" class="col-rank th-guild">順</th><th rowspan="2" class="col-name th-guild">ギルド名</th><th colspan="6" class="th-total">累計</th><th colspan="2" class="th-total">差分</th><th colspan="6" class="th-day">日間</th></tr><tr><th class="col-sub-rank">順</th><th>Day1</th><th class="col-sub-rank">順</th><th>Day2</th><th class="col-sub-rank">順</th><th>Day3</th><th>1位差</th><th>上差</th><th class="col-sub-rank">順</th><th>Day1</th><th class="col-sub-rank">順</th><th>Day2</th><th class="col-sub-rank">順</th><th>Day3</th></tr>`;
     }
 }
