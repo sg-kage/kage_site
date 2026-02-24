@@ -136,42 +136,59 @@ hr {
 }
 
 @media (max-width: 900px) and (orientation: landscape) {
-
-    /* 全体の上下余白を削る */
+    /* 全体の上下余白をさらに削る */
     body {
-        padding: 6px 10px;
+        padding: 4px 10px;
     }
 
     .container {
-        padding: 12px 15px;
+        padding: 8px 12px;
     }
 
     /* 見出しの高さを圧縮 */
     h2, h3 {
-        margin: 8px 0 10px;
-        font-size: 1.1em;
+        margin: 5px 0 8px;
+        font-size: 1rem;
     }
 
     hr {
-        margin: 15px 0;
+        margin: 10px 0;
     }
 
-    /* パーティエリアの縦幅を縮める */
+    /* ▼ 編成エリアの縦幅を極限まで狭める設定 ▼ */
     .party-container {
-        padding: 10px;
+        padding: 5px;          /* 枠内の余白を最小化 */
+        margin-bottom: 15px;   /* 下のスペースも詰める */
         min-height: auto;
     }
 
     .party-slot {
-        height: 110px;   /* 130 → 110 */
+        height: 85px;          /* 110pxから85pxへさらに縮小 */
+        justify-content: flex-start; /* アイコンを上詰めに配置 */
+        padding-top: 8px;      /* 上部に少しだけ隙間を確保 */
     }
 
     .party-slot img {
-        width: 50px;
-        height: 50px;
+        width: 38px;           /* アイコン画像を50pxから38pxへ縮小 */
+        height: 38px;
+        margin-bottom: 2px;
+    }
+
+    /* スロット内の文字サイズも少し小さくして枠内に収める */
+    .party-slot .char-name-party {
+        font-size: 0.75em;
+    }
+    .party-slot .char-pos, .party-slot .char-role {
+        font-size: 0.65em;
+    }
+
+    /* ▼ キャラ一覧のスクロール解除（先ほどの設定を統合） ▼ */
+    .character-list {
+        max-height: none;     /* 高さ制限を解除 */
+        height: auto;
+        overflow-y: visible;  /* スクロール解除 */
     }
 }
-
 @media (max-width: 900px) and (orientation: landscape) {
 
     .character-list {
@@ -180,4 +197,14 @@ hr {
         overflow-y: visible;  /* スクロール解除 */
     }
 
+}
+
+@media (max-width: 600px) {
+    /* ... 既存のスマホ用設定 ... */
+
+    /* 以下の3行を追加：キャラ一覧の枠の高さを自動調整し、スクロールを解除する */
+    .char-list-container {
+        height: auto;
+        overflow-y: visible;
+    }
 }
