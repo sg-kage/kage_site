@@ -200,11 +200,13 @@ hr {
 }
 
 @media (max-width: 600px) {
-    /* ... 既存のスマホ用設定 ... */
-
-    /* 以下の3行を追加：キャラ一覧の枠の高さを自動調整し、スクロールを解除する */
+    /* キャラ一覧のスクロール制限枠を完全に撤廃し、全キャラを表示する */
     .char-list-container {
-        height: auto;
-        overflow-y: visible;
+        height: auto !important;
+        overflow-y: visible !important;
+        
+        /* もし「外枠の線や背景色」自体もスクショの邪魔になるなら、以下の2行で透明にできます */
+        border: none !important;
+        background: transparent !important;
     }
 }
