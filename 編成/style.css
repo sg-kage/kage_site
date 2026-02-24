@@ -199,14 +199,20 @@ hr {
 
 }
 
+/* スマホの横画面（ランドスケープ）用 */
+@media (max-width: 950px) and (orientation: landscape) {
+    .char-list-container {
+        height: auto !important;        /* 高さを自動（中身に合わせる）にする */
+        overflow-y: visible !important; /* スクロールバーを消す */
+        border: none !important;        /* 念のため枠線も消す */
+    }
+}
+
+/* スマホの縦画面（ポートレート）用 */
 @media (max-width: 600px) {
-    /* キャラ一覧のスクロール制限枠を完全に撤廃し、全キャラを表示する */
     .char-list-container {
         height: auto !important;
         overflow-y: visible !important;
-        
-        /* もし「外枠の線や背景色」自体もスクショの邪魔になるなら、以下の2行で透明にできます */
         border: none !important;
-        background: transparent !important;
     }
 }
