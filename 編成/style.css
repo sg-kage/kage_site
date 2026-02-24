@@ -46,7 +46,7 @@ hr {
     margin: 40px 0;
 }
 
-/* パーティ編成スロット */
+/* パーティ編成スロット (style.css用) */
 .party-container {
     display: flex;
     justify-content: center;
@@ -79,6 +79,7 @@ hr {
     border-width: 3px;
     /* 属性カラーでボーダーを設定 */
 }
+
 /* 属性ごとのボーダー色 */
 .party-slot.attr-赤 { border-color: var(--red-attr); }
 .party-slot.attr-緑 { border-color: var(--green-attr); }
@@ -86,7 +87,6 @@ hr {
 .party-slot.attr-黄 { border-color: var(--yellow-attr); }
 .party-slot.attr-紫 { border-color: var(--purple-attr); }
 .party-slot.attr-黒 { border-color: var(--black-attr); }
-
 
 .party-slot img {
     width: 60px;
@@ -135,7 +135,10 @@ hr {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 画面幅に合わせて調整 */
 }
 
-@media (max-width: 900px) and (orientation: landscape) {
+/* =========================================
+   スマホの横画面（ランドスケープ）用
+========================================= */
+@media (max-width: 950px) and (orientation: landscape) {
     /* 全体の上下余白をさらに削る */
     body {
         padding: 4px 10px;
@@ -155,7 +158,7 @@ hr {
         margin: 10px 0;
     }
 
-    /* ▼ 編成エリアの縦幅を極限まで狭める設定 ▼ */
+    /* ▼ style.css用の編成エリア圧縮 ▼ */
     .party-container {
         padding: 5px;          /* 枠内の余白を最小化 */
         margin-bottom: 15px;   /* 下のスペースも詰める */
@@ -169,12 +172,11 @@ hr {
     }
 
     .party-slot img {
-        width: 38px;           /* アイコン画像を50pxから38pxへ縮小 */
+        width: 38px;           /* アイコン画像を縮小 */
         height: 38px;
         margin-bottom: 2px;
     }
 
-    /* スロット内の文字サイズも少し小さくして枠内に収める */
     .party-slot .char-name-party {
         font-size: 0.75em;
     }
@@ -182,35 +184,54 @@ hr {
         font-size: 0.65em;
     }
 
-    /* ▼ キャラ一覧のスクロール解除（先ほどの設定を統合） ▼ */
-    .character-list {
-        max-height: none;     /* 高さ制限を解除 */
-        height: auto;
-        overflow-y: visible;  /* スクロール解除 */
+    /* ▼ index.html用(.party-box等)の編成エリア圧縮 ▼ */
+    .party-box {
+        padding-top: 40px; /* 全解除ボタンのスペース確保 */
+        padding-bottom: 10px;
     }
-}
-@media (max-width: 900px) and (orientation: landscape) {
-
-    .character-list {
-        max-height: none;     /* 高さ制限を解除 */
-        height: auto;
-        overflow-y: visible;  /* スクロール解除 */
+    .party-slots { 
+        gap: 5px; 
+        flex-wrap: nowrap; /* 縦に折り返さず1行に収める */
+        min-height: auto;
     }
+    .slot { 
+        flex: 1; 
+        min-width: 0; 
+        width: auto; 
+        padding: 5px 2px; 
+        border-width: 1px;
+    }
+    .slot img { 
+        width: 100%; 
+        height: auto; 
+        aspect-ratio: 1/1; 
+        max-width: 50px; /* アイコンを小さくする */
+        margin-bottom: 2px;
+    }
+    .slot-title { font-size: 9px; }
+    .slot-name { font-size: 10px; }
+    .pos-diff { font-size: 9px; padding: 1px 4px; }
+    .pos-val { font-size: 9px; }
+    .remove-btn { width: 18px; height: 18px; font-size: 12px; right: -4px; top: -4px; }
 
-}
-
-/* スマホの横画面（ランドスケープ）用 */
-@media (max-width: 950px) and (orientation: landscape) {
+    /* ▼ キャラ一覧のスクロール解除と全表示（両対応） ▼ */
+    .character-list,
     .char-list-container {
-        height: auto !important;        /* 高さを自動（中身に合わせる）にする */
-        overflow-y: visible !important; /* スクロールバーを消す */
-        border: none !important;        /* 念のため枠線も消す */
+        max-height: none !important;
+        height: auto !important;
+        overflow-y: visible !important;
+        border: none !important;
     }
 }
 
-/* スマホの縦画面（ポートレート）用 */
+/* =========================================
+   スマホの縦画面（ポートレート）用
+========================================= */
 @media (max-width: 600px) {
+    /* ▼ キャラ一覧のスクロール解除と全表示（両対応） ▼ */
+    .character-list,
     .char-list-container {
+        max-height: none !important;
         height: auto !important;
         overflow-y: visible !important;
         border: none !important;
