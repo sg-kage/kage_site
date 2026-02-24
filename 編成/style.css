@@ -132,4 +132,52 @@ hr {
 /* スキル詳細比較エリア */
 .skill-comparison {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 画面幅に合わせて調整
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 画面幅に合わせて調整 */
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+
+    /* 全体の上下余白を削る */
+    body {
+        padding: 6px 10px;
+    }
+
+    .container {
+        padding: 12px 15px;
+    }
+
+    /* 見出しの高さを圧縮 */
+    h2, h3 {
+        margin: 8px 0 10px;
+        font-size: 1.1em;
+    }
+
+    hr {
+        margin: 15px 0;
+    }
+
+    /* パーティエリアの縦幅を縮める */
+    .party-container {
+        padding: 10px;
+        min-height: auto;
+    }
+
+    .party-slot {
+        height: 110px;   /* 130 → 110 */
+    }
+
+    .party-slot img {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+
+    .character-list {
+        max-height: none;     /* 高さ制限を解除 */
+        height: auto;
+        overflow-y: visible;  /* スクロール解除 */
+    }
+
+}
