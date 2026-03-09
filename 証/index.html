@@ -83,6 +83,7 @@
         <div class="form-row"><label>現在の証</label><input type="number" id="currentTicket" value="0"></div>
         <div class="form-row"><label>現在スタミナ</label><input type="number" id="currentStamina" value="999"></div>
         <div class="form-row"><label>最終配布</label><select id="finalBonusStamina"><option value="0">0</option><option value="100" selected>100</option><option value="200">200</option></select></div>
+        <div class="form-row"><label>最終日に配布消費</label><input type="checkbox" id="useBonusLastDay" style="width:auto;"></div>
         <div class="form-row"><label>目標着地</label><input type="number" id="targetStamina" class="just-input" value="999"></div>
       </div>
       <div class="card">
@@ -111,6 +112,7 @@
       ticket: document.getElementById('currentTicket').value,
       stamina: document.getElementById('currentStamina').value,
       bonus: document.getElementById('finalBonusStamina').value,
+      useBonusLastDay: document.getElementById('useBonusLastDay').checked,
       target: document.getElementById('targetStamina').value,
       sand: document.getElementById('sandCount').value,
       burger: document.getElementById('burgerCount').value,
@@ -125,7 +127,8 @@
     const d = JSON.parse(raw);
     if(d.mode) document.querySelector(`input[name="mode"][value="${d.mode}"]`).checked = true;
     document.getElementById('currentTicket').value = d.ticket; document.getElementById('currentStamina').value = d.stamina;
-    document.getElementById('finalBonusStamina').value = d.bonus; document.getElementById('targetStamina').value = d.target;
+    document.getElementById('finalBonusStamina').value = d.bonus; if(d.useBonusLastDay) document.getElementById('useBonusLastDay').checked = true;
+    document.getElementById('targetStamina').value = d.target;
     document.getElementById('sandCount').value = d.sand; document.getElementById('burgerCount').value = d.burger;
     document.getElementById('stoneCount').value = d.stone;
   }
@@ -202,12 +205,29 @@
       stoneCount: parseInt(document.getElementById('stoneCount').value) || 0
     };
     
+    const useBonusLastDay = document.getElementById('useBonusLastDay').checked && inputs.bonusStamina > 0;
     const result = solve(inputs, mode);
-    const limitResult = solve(inputs, 'LIMIT'); 
-    
+    const limitResult = solve(inputs, 'LIMIT');
+
     const resDiv = document.getElementById('result'); resDiv.style.display = 'block';
     if (result) {
-      const sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
+      let sim;
+      if (useBonusLastDay) {
+        const mainConsume = result.consume - inputs.bonusStamina;
+        if (mainConsume < 0) {
+          resDiv.innerHTML = '<div class="msg-box" style="border:1px solid var(--accent-red); color:var(--accent-red);">配布分が消費量を超えています。配布消費なしで計算してください。</div>';
+          return;
+        }
+        sim = simulate(inputs.stamina, mainConsume, result.items, 0);
+        let cur = sim.final;
+        cur -= inputs.bonusStamina;
+        sim.steps.push({type:'lastday_consume', val:inputs.bonusStamina, after:cur});
+        cur += inputs.bonusStamina;
+        sim.steps.push({type:'bonus', val:inputs.bonusStamina, after:cur});
+        sim.final = cur;
+      } else {
+        sim = simulate(inputs.stamina, result.consume, result.items, inputs.bonusStamina);
+      }
       let h = `<div class="msg-box msg-info">最適手順を表示します</div><div class="timeline">`;
       sim.steps.forEach(s => {
         if (s.type === 'recover') {
@@ -217,7 +237,8 @@
           if(s.used.stone) t += `<span class="tag">💎 石割 ${s.used.stone}回</span>`;
           h += `<div class="tl-step recover"><div class="tl-icon-circle">💊</div><div class="tl-content"><span class="tl-label">アイテム使用</span><div class="tags">${t}</div><div class="tl-sub">→ スタミナ ${s.after}</div></div></div>`;
         } else if (s.type === 'consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">スタミナ消費</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
-        else h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終日配布</span><span class="tl-main-val">+${s.val}</span></div></div>`;
+        else if (s.type === 'bonus') h += `<div class="tl-step"><div class="tl-icon-circle">🎁</div><div class="tl-content"><span class="tl-label">最終日配布</span><span class="tl-main-val">+${s.val}</span><span class="tl-sub">→ スタミナ ${s.after}</span></div></div>`;
+        else if (s.type === 'lastday_consume') h += `<div class="tl-step consume"><div class="tl-icon-circle">⚔️</div><div class="tl-content"><span class="tl-label">最終日消費</span><span class="tl-main-val">${s.val}</span><span class="tl-sub">残 ${s.after}</span></div></div>`;
       });
 
       let totalItemsText = `使用合計: 🥪×${result.items.sand} 🍔×${result.items.burger} 💎×${result.items.stone}`;
