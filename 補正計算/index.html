@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>補正計算</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="apple-touch-icon" href="../banana.webp">
+    <link rel="icon" type="image/webp" href="../banana.webp">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700&family=Orbitron:wght@700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #0b0d12;
+            --card-bg: rgba(20, 24, 33, 0.8);
+            --primary: #00f2ff;
+            --secondary: #0051ff;
+            --text-main: #e0e6ed;
+            --text-muted: #94a3b8;
+            --glow: 0 0 15px rgba(0, 242, 255, 0.4);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(0, 81, 255, 0.2) 0%, transparent 60%),
+                linear-gradient(135deg, #050608 0%, #13161f 100%);
+            color: var(--text-main);
+            font-family: 'Noto Sans JP', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1080px;
+            margin: 24px auto;
+            padding: 24px 24px 32px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+
+        h1 {
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8em;
+            letter-spacing: 4px;
+            margin: 0 0 6px 0;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.6);
+        }
+        h1::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            margin: 8px auto 0;
+            box-shadow: 0 0 10px var(--primary);
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.75em;
+            margin: 10px 0 18px;
+        }
+
+        /* テーブル風レイアウト */
+        /* 列: #, 名前, 基準, 補1, 補2, 補3, 矢印, 結果, 増加, 順位 */
+        .grid-cols {
+            display: grid;
+            grid-template-columns:
+                28px              /* # */
+                minmax(90px, 1.2fr) /* 名前 */
+                minmax(80px, 1fr)   /* 基準 */
+                minmax(58px, 0.7fr) /* 補1 */
+                minmax(58px, 0.7fr) /* 補2 */
+                minmax(58px, 0.7fr) /* 補3 */
+                18px              /* 矢印 */
+                minmax(90px, 1.1fr) /* 結果 */
+                minmax(80px, 0.9fr) /* 増加 */
+                42px;             /* 順位 */
+            gap: 6px 8px;
+            align-items: stretch;
+        }
+
+        .header-row {
+            padding: 4px 10px 8px;
+            border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+            margin-bottom: 8px;
+        }
+        .header-row > div {
+            font-size: 0.65em;
+            color: var(--primary);
+            letter-spacing: 0.06em;
+            text-align: center;
+            font-weight: 700;
+        }
+        .header-row .h-name { text-align: left; padding-left: 4px; }
+
+        .data-row {
+            padding: 8px 10px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            margin-bottom: 6px;
+            align-items: center;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .data-row:focus-within {
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
+        .data-row.rank-1 { border-left: 3px solid #ffd54a; }
+        .data-row.rank-2 { border-left: 3px solid #d0d7e2; }
+        .data-row.rank-3 { border-left: 3px solid #d18957; }
+
+        .row-index {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.95em;
+            color: var(--primary);
+            text-align: center;
+            text-shadow: 0 0 6px rgba(0,242,255,0.4);
+        }
+
+        .cell-input { display: flex; align-items: center; }
+        .cell-input input {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            padding: 5px 7px;
+            outline: none;
+            width: 100%;
+            min-width: 0;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .cell-input input:focus {
+            border-color: var(--primary);
+            background: rgba(0, 242, 255, 0.07);
+        }
+        .cell-input input::placeholder { color: #475569; }
+        .cell-input.is-name input { font-family: 'Noto Sans JP', sans-serif; }
+        .cell-input.is-num input { text-align: right; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .arrow {
+            color: var(--text-muted);
+            text-align: center;
+            font-size: 1em;
+            opacity: 0.6;
+        }
+
+        .cell-result {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: #fff;
+            text-align: right;
+            font-size: 0.95em;
+            text-shadow: 0 0 8px rgba(0, 242, 255, 0.15);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cell-gain {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: #6ee7b7;
+            text-align: right;
+            font-size: 0.85em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cell-gain.zero { color: var(--text-muted); }
+        .cell-gain.negative { color: #fca5a5; }
+
+        .rank-badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3em;
+            text-align: center;
+            color: var(--primary);
+            text-shadow: 0 0 8px rgba(0,242,255,0.5);
+            line-height: 1;
+        }
+        .data-row.rank-1 .rank-badge { color: #ffd54a; text-shadow: 0 0 10px rgba(255,213,74,0.6); }
+        .data-row.rank-2 .rank-badge { color: #d0d7e2; }
+        .data-row.rank-3 .rank-badge { color: #d18957; }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+        }
+        .btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 5px 14px;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.8em;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--primary); }
+
+        /* スマホ */
+        @media (max-width: 720px) {
+            .container {
+                margin: 10px;
+                padding: 16px 12px 20px;
+                width: auto;
+                border-radius: 14px;
+            }
+            h1 { font-size: 1.4em; letter-spacing: 2px; }
+            .subtitle { font-size: 0.7em; margin-bottom: 12px; }
+
+            .header-row { display: none; }
+
+            .data-row {
+                display: grid;
+                grid-template-columns: 24px 1fr 1fr 1fr 36px;
+                grid-template-areas:
+                    "idx  name name name rank"
+                    "idx  base r1   r2   r3"
+                    "idx  res  res  gain gain";
+                gap: 5px 6px;
+                padding: 8px 10px;
+            }
+            .grid-cols { /* reset header */ }
+
+            .row-index { grid-area: idx; font-size: 0.9em; align-self: center; }
+            .data-row .c-name { grid-area: name; }
+            .data-row .c-base { grid-area: base; }
+            .data-row .c-r1   { grid-area: r1; }
+            .data-row .c-r2   { grid-area: r2; }
+            .data-row .c-r3   { grid-area: r3; }
+            .data-row .c-arrow { display: none; }
+            .data-row .c-result { grid-area: res; }
+            .data-row .c-gain   { grid-area: gain; }
+            .data-row .c-rank   { grid-area: rank; align-self: center; }
+
+            .cell-input input { font-size: 0.85em; padding: 4px 6px; }
+            .cell-result { font-size: 0.95em; }
+            .cell-gain { font-size: 0.8em; }
+            .rank-badge { font-size: 1.15em; }
+
+            /* スマホ用の薄いラベル（プレースホルダで代用） */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>補正計算</h1>
+        <p class="subtitle">5体分の基準値と補正3つ(%)を入力 → 合計%で結果値と増加分を計算、右端に大きい順の順位を表示</p>
+
+        <!-- ヘッダー（PCのみ表示） -->
+        <div class="grid-cols header-row">
+            <div></div>
+            <div class="h-name">名前</div>
+            <div>基準値</div>
+            <div>補正1%</div>
+            <div>補正2%</div>
+            <div>補正3%</div>
+            <div></div>
+            <div>結果値</div>
+            <div>増加分</div>
+            <div>順位</div>
+        </div>
+
+        <!-- データ行 -->
+        <div id="rowArea"></div>
+
+        <div class="actions">
+            <a class="back-link" href="../">← トップへ戻る</a>
+            <button class="btn" id="clearBtn">クリア</button>
+        </div>
+    </div>
+
+    <script>
+        const ROW_COUNT = 5;
+        const RANK_MARKS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+        const fmt = new Intl.NumberFormat('ja-JP', { maximumFractionDigits: 2 });
+
+        const rowArea = document.getElementById('rowArea');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // データ行を生成
+        for (let i = 0; i < ROW_COUNT; i++) {
+            const row = document.createElement('div');
+            row.className = 'grid-cols data-row';
+            row.dataset.row = i;
+            row.innerHTML = `
+                <div class="row-index">#${i + 1}</div>
+                <div class="cell-input is-name c-name"><input type="text" data-idx="${i}" data-kind="name" placeholder="名前(任意)"></div>
+                <div class="cell-input is-num c-base"><input type="number" data-idx="${i}" data-kind="base" placeholder="基準値" inputmode="decimal"></div>
+                <div class="cell-input is-num c-r1"><input type="number" data-idx="${i}" data-kind="rate1" placeholder="補1%" inputmode="decimal" step="any"></div>
+                <div class="cell-input is-num c-r2"><input type="number" data-idx="${i}" data-kind="rate2" placeholder="補2%" inputmode="decimal" step="any"></div>
+                <div class="cell-input is-num c-r3"><input type="number" data-idx="${i}" data-kind="rate3" placeholder="補3%" inputmode="decimal" step="any"></div>
+                <div class="arrow c-arrow">→</div>
+                <div class="cell-result c-result" data-out="result">-</div>
+                <div class="cell-gain c-gain zero" data-out="gain">-</div>
+                <div class="rank-badge c-rank" data-out="rank">-</div>
+            `;
+            rowArea.appendChild(row);
+        }
+
+        const inputs = rowArea.querySelectorAll('input');
+        inputs.forEach(inp => inp.addEventListener('input', render));
+
+        clearBtn.addEventListener('click', () => {
+            inputs.forEach(inp => inp.value = '');
+            render();
+        });
+
+        function readNum(idx, kind) {
+            const raw = rowArea.querySelector(`input[data-idx="${idx}"][data-kind="${kind}"]`).value;
+            if (raw === '') return 0;
+            const n = Number(raw);
+            return Number.isFinite(n) ? n : 0;
+        }
+
+        function render() {
+            // 計算
+            const items = [];
+            for (let i = 0; i < ROW_COUNT; i++) {
+                const base = readNum(i, 'base');
+                const r1 = readNum(i, 'rate1');
+                const r2 = readNum(i, 'rate2');
+                const r3 = readNum(i, 'rate3');
+                const totalRate = r1 + r2 + r3;
+                const gain = base * (totalRate / 100);
+                const result = base + gain;
+                items.push({ idx: i, base, totalRate, gain, result });
+            }
+
+            // 結果値の降順で順位算出（同値は元順）
+            const sorted = items
+                .map((d, i) => ({ ...d, _orig: i }))
+                .sort((a, b) => (b.result - a.result) || (a._orig - b._orig));
+            const rankByIdx = {};
+            sorted.forEach((d, rank) => { rankByIdx[d.idx] = rank + 1; });
+
+            // 行に書き込み
+            items.forEach(d => {
+                const row = rowArea.querySelector(`.data-row[data-row="${d.idx}"]`);
+                const rank = rankByIdx[d.idx];
+
+                row.classList.remove('rank-1','rank-2','rank-3');
+                if (rank <= 3) row.classList.add(`rank-${rank}`);
+
+                const resultEl = row.querySelector('[data-out="result"]');
+                const gainEl   = row.querySelector('[data-out="gain"]');
+                const rankEl   = row.querySelector('[data-out="rank"]');
+
+                resultEl.textContent = fmt.format(d.result);
+                resultEl.title = `基準 ${fmt.format(d.base)} × ${fmt.format(d.totalRate)}%`;
+
+                const sign = d.gain > 0 ? '+' : '';
+                gainEl.textContent = `${sign}${fmt.format(d.gain)}`;
+                gainEl.classList.remove('zero', 'negative');
+                if (d.gain === 0) gainEl.classList.add('zero');
+                else if (d.gain < 0) gainEl.classList.add('negative');
+                gainEl.title = `合計補正率 ${fmt.format(d.totalRate)}%`;
+
+                rankEl.textContent = RANK_MARKS[rank - 1] || rank;
+            });
+        }
+
+        render();
+    </script>
+</body>
+</html>
