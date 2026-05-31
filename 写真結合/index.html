@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>写真結合</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="apple-touch-icon" href="../banana.webp">
+    <link rel="icon" type="image/webp" href="../banana.webp">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #0b0d12;
+            --card-bg: rgba(20, 24, 33, 0.8);
+            --primary: #00f2ff;
+            --secondary: #0051ff;
+            --text-main: #e0e6ed;
+            --text-muted: #94a3b8;
+            --glow: 0 0 15px rgba(0, 242, 255, 0.4);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(0, 81, 255, 0.2) 0%, transparent 60%),
+                linear-gradient(135deg, #050608 0%, #13161f 100%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            font-family: 'Noto Sans JP', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 980px;
+            margin: 32px auto;
+            padding: 32px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+
+        h1 {
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2em;
+            letter-spacing: 3px;
+            margin: 0 0 8px 0;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.6);
+        }
+        h1::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            margin: 10px auto 0;
+            box-shadow: 0 0 10px var(--primary);
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9em;
+            margin: 0 0 28px 0;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9em;
+            margin-bottom: 16px;
+        }
+        .back-link:hover { color: var(--primary); }
+
+        /* ドロップゾーン */
+        .dropzone {
+            border: 2px dashed rgba(0, 242, 255, 0.4);
+            border-radius: 16px;
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-out;
+            background: rgba(0, 242, 255, 0.03);
+        }
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--primary);
+            background: rgba(0, 242, 255, 0.1);
+            box-shadow: var(--glow);
+        }
+        .dropzone .dz-icon { font-size: 2.4em; display: block; margin-bottom: 8px; }
+        .dropzone .dz-sub { color: var(--text-muted); font-size: 0.82em; margin-top: 6px; }
+
+        /* 設定パネル */
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .panel-title {
+            font-weight: 700;
+            font-size: 0.95em;
+            margin: 0 0 14px 0;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+
+        .mode-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+        .mode-tabs button {
+            flex: 1;
+            min-width: 90px;
+            padding: 12px 8px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.03);
+            color: var(--text-main);
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9em;
+            font-weight: 700;
+            transition: all 0.15s;
+        }
+        .mode-tabs button .m-icon { display: block; font-size: 1.4em; margin-bottom: 4px; }
+        .mode-tabs button.active {
+            border-color: var(--primary);
+            background: rgba(0, 242, 255, 0.12);
+            color: var(--primary);
+            box-shadow: var(--glow);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-top: 18px;
+        }
+        .ctrl label {
+            display: block;
+            font-size: 0.8em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .ctrl .val { color: var(--primary); font-weight: 700; }
+        .ctrl input[type=range] { width: 100%; accent-color: var(--primary); }
+        .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+        .seg button {
+            flex: 1; min-width: 70px; padding: 8px; font-family: inherit; font-size: 0.82em;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.03);
+            color: var(--text-main); border-radius: 8px; cursor: pointer;
+        }
+        .seg button.active { border-color: var(--primary); color: var(--primary); background: rgba(0,242,255,0.1); }
+
+        /* サムネイル一覧 */
+        .thumbs {
+            display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;
+        }
+        .thumb {
+            position: relative;
+            width: 96px; height: 96px;
+            border-radius: 10px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(0,0,0,0.4);
+            cursor: grab;
+        }
+        .thumb.dragging { opacity: 0.4; }
+        .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .thumb.loading::after {
+            content: '…'; position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); font-size: 1.4em; background: rgba(0,0,0,0.4);
+        }
+        .thumb .idx {
+            position: absolute; top: 4px; left: 4px;
+            background: rgba(0,0,0,0.7); color: var(--primary);
+            font-size: 0.7em; font-weight: 700; padding: 1px 6px; border-radius: 6px; z-index: 1;
+        }
+        .thumb .ops {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            display: flex; justify-content: space-between;
+            background: linear-gradient(transparent, rgba(0,0,0,0.85));
+            padding: 4px; z-index: 1;
+        }
+        .thumb .ops button {
+            background: rgba(255,255,255,0.12); border: none; color: #fff;
+            width: 24px; height: 22px; border-radius: 5px; cursor: pointer; font-size: 0.85em;
+            display: flex; align-items: center; justify-content: center; padding: 0;
+        }
+        .thumb .ops button:hover { background: var(--primary); color: #000; }
+        .thumb .ops .del:hover { background: #ff0055; color: #fff; }
+
+        .actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+        .btn {
+            flex: 1; min-width: 140px;
+            padding: 14px; border-radius: 12px; cursor: pointer;
+            font-family: inherit; font-weight: 700; font-size: 1em;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.04); color: var(--text-main);
+            transition: all 0.15s;
+        }
+        .btn:hover:not(:disabled) { border-color: var(--primary); box-shadow: var(--glow); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: #001018; border: none;
+        }
+        .btn-primary:hover:not(:disabled) { filter: brightness(1.1); box-shadow: var(--glow); }
+
+        /* プレビュー */
+        .preview-wrap {
+            margin-top: 22px; text-align: center;
+            background:
+                linear-gradient(45deg, #1a1d26 25%, transparent 25%),
+                linear-gradient(-45deg, #1a1d26 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #1a1d26 75%),
+                linear-gradient(-45deg, transparent 75%, #1a1d26 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        #preview { max-width: 100%; height: auto; border-radius: 6px; display: none; }
+        .preview-info { color: var(--text-muted); font-size: 0.8em; margin-top: 10px; }
+        .preview-warn { color: #ffcc00; font-size: 0.8em; margin-top: 6px; }
+        .empty-hint { color: var(--text-muted); font-size: 0.9em; padding: 30px 0; }
+
+        @media (max-width: 600px) {
+            .container { margin: 12px; padding: 20px 16px; }
+            h1 { font-size: 1.6em; }
+            .thumb { width: 72px; height: 72px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a class="back-link" href="../">← カゲマス トップ</a>
+        <h1>写真結合</h1>
+        <p class="subtitle">複数の画像を 縦 / 横 / グリッド に結合（端末内で処理・アップロードなし）</p>
+
+        <!-- 画像の追加 -->
+        <div class="dropzone" id="dropzone">
+            <span class="dz-icon">🖼️</span>
+            <div>クリックで画像を選択 / ここにドラッグ＆ドロップ</div>
+            <div class="dz-sub">複数枚まとめて追加できます（貼り付け Ctrl+V も可）</div>
+            <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        </div>
+
+        <!-- サムネイル -->
+        <div class="thumbs" id="thumbs"></div>
+
+        <!-- 設定 -->
+        <div class="panel">
+            <p class="panel-title">レイアウト</p>
+            <div class="mode-tabs" id="modeTabs">
+                <button data-mode="vertical" class="active"><span class="m-icon">⬍</span>縦結合</button>
+                <button data-mode="horizontal"><span class="m-icon">⬌</span>横結合</button>
+                <button data-mode="grid"><span class="m-icon">▦</span>グリッド</button>
+            </div>
+
+            <div class="controls">
+                <div class="ctrl" id="colsCtrl" style="display:none;">
+                    <label>列数: <span class="val" id="colsVal">2</span></label>
+                    <input type="range" id="cols" min="1" max="8" value="2">
+                </div>
+
+                <div class="ctrl">
+                    <label>すき間: <span class="val" id="gapVal">0</span> px</label>
+                    <input type="range" id="gap" min="0" max="100" value="0">
+                </div>
+
+                <div class="ctrl">
+                    <label>外側の余白: <span class="val" id="padVal">0</span> px</label>
+                    <input type="range" id="pad" min="0" max="120" value="0">
+                </div>
+
+                <div class="ctrl">
+                    <label>余白・すき間の色</label>
+                    <div class="seg" id="bgSeg">
+                        <button data-v="transparent" class="active">透明</button>
+                        <button data-v="#ffffff">白</button>
+                        <button data-v="#000000">黒</button>
+                    </div>
+                </div>
+
+                <!-- 縦・横モード用 -->
+                <div class="ctrl" id="sizingCtrl">
+                    <label id="sizingLabel">画像幅をそろえる</label>
+                    <div class="seg" id="sizing">
+                        <button data-v="fit" class="active">縮小して合わせる</button>
+                        <button data-v="enlarge">拡大して合わせる</button>
+                        <button data-v="none">そのまま（中央配置）</button>
+                    </div>
+                </div>
+
+                <!-- グリッドモード用 -->
+                <div class="ctrl" id="gridFitCtrl" style="display:none;">
+                    <label>セルの埋め方</label>
+                    <div class="seg" id="gridFit">
+                        <button data-v="contain" class="active">全体を表示</button>
+                        <button data-v="cover">埋める（切り抜き）</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作ボタン -->
+        <div class="actions">
+            <button class="btn" id="clearBtn" disabled>すべて削除</button>
+            <button class="btn" id="dlJpgBtn" disabled>JPEGで保存</button>
+            <button class="btn btn-primary" id="dlBtn" disabled>PNGで保存</button>
+        </div>
+
+        <!-- プレビュー -->
+        <div class="preview-wrap">
+            <canvas id="preview"></canvas>
+            <div class="empty-hint" id="emptyHint">画像を追加するとここにプレビューが表示されます</div>
+            <div class="preview-info" id="info"></div>
+            <div class="preview-warn" id="warn"></div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        // ブラウザの canvas 上限を超えて真っ白になるのを防ぐための安全値
+        const MAX_SIDE = 12000;       // 1辺の最大px
+        const MAX_AREA = 1e8;         // 総ピクセル数の上限（約 10000×10000）
+
+        const state = {
+            images: [],          // { id, img, w, h, name, url, ready }
+            mode: 'vertical',
+            cols: 2,
+            gap: 0,
+            pad: 0,
+            bg: 'transparent',   // transparent | #ffffff | #000000
+            sizing: 'fit',       // fit | enlarge | none （縦・横）
+            gridFit: 'contain'   // contain | cover （グリッド）
+        };
+        let dragId = null;
+        let rafId = null;
+
+        const $ = (id) => document.getElementById(id);
+        const dropzone = $('dropzone');
+        const fileInput = $('fileInput');
+        const thumbsEl = $('thumbs');
+        const canvas = $('preview');
+        const ctx = canvas.getContext('2d');
+
+        const readyImages = () => state.images.filter(i => i.ready);
+
+        /* ---------- 画像の取り込み（選択順を保持） ---------- */
+        function addFiles(fileList) {
+            const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+            files.forEach(file => {
+                const url = URL.createObjectURL(file);
+                // 先に同期で配列へ入れて並び順を確定させる（onload完了順に依存しない）
+                const item = {
+                    id: 'i' + Date.now() + Math.random().toString(36).slice(2, 7),
+                    img: null, w: 0, h: 0, name: file.name, url, ready: false
+                };
+                state.images.push(item);
+                const img = new Image();
+                img.onload = () => {
+                    item.img = img;
+                    item.w = img.naturalWidth;
+                    item.h = img.naturalHeight;
+                    item.ready = true;
+                    renderThumbs();
+                    scheduleRender();
+                };
+                img.onerror = () => { remove(item.id); };
+                img.src = url;
+            });
+            renderThumbs();
+        }
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', e => { addFiles(e.target.files); fileInput.value = ''; });
+
+        ['dragenter', 'dragover'].forEach(ev =>
+            dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); }));
+        ['dragleave', 'drop'].forEach(ev =>
+            dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+        dropzone.addEventListener('drop', e => { if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+        window.addEventListener('paste', e => {
+            if (e.clipboardData && e.clipboardData.files.length) addFiles(e.clipboardData.files);
+        });
+
+        /* ---------- サムネイル描画 ---------- */
+        function renderThumbs() {
+            thumbsEl.innerHTML = '';
+            state.images.forEach((it, i) => {
+                const d = document.createElement('div');
+                d.className = 'thumb' + (it.ready ? '' : ' loading');
+                d.draggable = true;
+                d.dataset.id = it.id;
+                d.innerHTML = `
+                    <span class="idx">${i + 1}</span>
+                    <img src="${it.url}" alt="">
+                    <div class="ops">
+                        <button class="left" title="左へ">◀</button>
+                        <button class="del" title="削除">✕</button>
+                        <button class="right" title="右へ">▶</button>
+                    </div>`;
+                d.querySelector('.left').onclick = (e) => { e.stopPropagation(); move(i, -1); };
+                d.querySelector('.right').onclick = (e) => { e.stopPropagation(); move(i, 1); };
+                d.querySelector('.del').onclick = (e) => { e.stopPropagation(); remove(it.id); };
+
+                d.addEventListener('dragstart', () => { dragId = it.id; d.classList.add('dragging'); });
+                d.addEventListener('dragend', () => { dragId = null; d.classList.remove('dragging'); });
+                d.addEventListener('dragover', e => e.preventDefault());
+                d.addEventListener('drop', e => { e.preventDefault(); reorder(dragId, it.id); });
+
+                thumbsEl.appendChild(d);
+            });
+            const has = readyImages().length > 0;
+            $('clearBtn').disabled = state.images.length === 0;
+            $('dlBtn').disabled = !has;
+            $('dlJpgBtn').disabled = !has;
+        }
+
+        function move(i, dir) {
+            const j = i + dir;
+            if (j < 0 || j >= state.images.length) return;
+            [state.images[i], state.images[j]] = [state.images[j], state.images[i]];
+            renderThumbs(); scheduleRender();
+        }
+        function reorder(fromId, toId) {
+            if (!fromId || fromId === toId) return;
+            const from = state.images.findIndex(x => x.id === fromId);
+            const to = state.images.findIndex(x => x.id === toId);
+            if (from < 0 || to < 0) return;
+            const [moved] = state.images.splice(from, 1);
+            state.images.splice(to, 0, moved);
+            renderThumbs(); scheduleRender();
+        }
+        function remove(id) {
+            const it = state.images.find(x => x.id === id);
+            if (it) URL.revokeObjectURL(it.url);
+            state.images = state.images.filter(x => x.id !== id);
+            renderThumbs(); scheduleRender();
+        }
+        $('clearBtn').onclick = () => {
+            state.images.forEach(it => URL.revokeObjectURL(it.url));
+            state.images = [];
+            renderThumbs(); scheduleRender();
+        };
+
+        /* ---------- コントロール ---------- */
+        $('modeTabs').querySelectorAll('button').forEach(b => {
+            b.onclick = () => {
+                $('modeTabs').querySelectorAll('button').forEach(x => x.classList.remove('active'));
+                b.classList.add('active');
+                state.mode = b.dataset.mode;
+                const grid = state.mode === 'grid';
+                $('colsCtrl').style.display = grid ? '' : 'none';
+                $('gridFitCtrl').style.display = grid ? '' : 'none';
+                $('sizingCtrl').style.display = grid ? 'none' : '';
+                updateSizingLabel();
+                scheduleRender();
+            };
+        });
+        function bindRange(id, key, valId) {
+            $(id).oninput = e => { state[key] = +e.target.value; $(valId).textContent = e.target.value; scheduleRender(); };
+        }
+        bindRange('cols', 'cols', 'colsVal');
+        bindRange('gap', 'gap', 'gapVal');
+        bindRange('pad', 'pad', 'padVal');
+
+        function bindSeg(segId, key) {
+            $(segId).querySelectorAll('button').forEach(b => {
+                b.onclick = () => {
+                    $(segId).querySelectorAll('button').forEach(x => x.classList.remove('active'));
+                    b.classList.add('active');
+                    state[key] = b.dataset.v;
+                    scheduleRender();
+                };
+            });
+        }
+        bindSeg('bgSeg', 'bg');
+        bindSeg('sizing', 'sizing');
+        bindSeg('gridFit', 'gridFit');
+
+        function updateSizingLabel() {
+            const lbl = $('sizingLabel');
+            if (state.mode === 'vertical') lbl.textContent = '画像幅をそろえる';
+            else if (state.mode === 'horizontal') lbl.textContent = '画像の高さをそろえる';
+        }
+
+        /* ---------- 結合ロジック ----------
+           各セルは drawImage の9引数形式に統一:
+           { img, sx, sy, sw, sh, dx, dy, dw, dh } */
+        function cellFull(it, dx, dy, dw, dh) {
+            return { img: it.img, sx: 0, sy: 0, sw: it.w, sh: it.h, dx, dy, dw, dh };
+        }
+
+        function computeLayout() {
+            const imgs = readyImages();
+            if (!imgs.length) return null;
+            const gap = state.gap, pad = state.pad, sizing = state.sizing;
+
+            if (state.mode === 'vertical') {
+                let targetW;
+                if (sizing === 'fit') targetW = Math.min(...imgs.map(i => i.w));
+                else targetW = Math.max(...imgs.map(i => i.w)); // enlarge / none
+                const cells = [];
+                let y = pad;
+                imgs.forEach(it => {
+                    let w, h;
+                    if (sizing === 'none') { w = it.w; h = it.h; }
+                    else { const s = targetW / it.w; w = targetW; h = it.h * s; }
+                    cells.push(cellFull(it, pad + (targetW - w) / 2, y, w, h));
+                    y += h + gap;
+                });
+                return { width: targetW + pad * 2, height: y - gap + pad, cells };
+            }
+
+            if (state.mode === 'horizontal') {
+                let targetH;
+                if (sizing === 'fit') targetH = Math.min(...imgs.map(i => i.h));
+                else targetH = Math.max(...imgs.map(i => i.h)); // enlarge / none
+                const cells = [];
+                let x = pad;
+                imgs.forEach(it => {
+                    let w, h;
+                    if (sizing === 'none') { w = it.w; h = it.h; }
+                    else { const s = targetH / it.h; h = targetH; w = it.w * s; }
+                    cells.push(cellFull(it, x, pad + (targetH - h) / 2, w, h));
+                    x += w + gap;
+                });
+                return { width: x - gap + pad, height: targetH + pad * 2, cells };
+            }
+
+            // grid: 均一セル（基準 = 全画像の最大幅・最大高）
+            const cols = Math.max(1, state.cols);
+            const rows = Math.ceil(imgs.length / cols);
+            const cellW = Math.max(...imgs.map(i => i.w));
+            const cellH = Math.max(...imgs.map(i => i.h));
+            const cells = [];
+            imgs.forEach((it, idx) => {
+                const c = idx % cols, r = Math.floor(idx / cols);
+                const cx = pad + c * (cellW + gap);
+                const cy = pad + r * (cellH + gap);
+                if (state.gridFit === 'cover') {
+                    // セルを完全に埋める（ソース矩形を中央クロップ）
+                    const s = Math.max(cellW / it.w, cellH / it.h);
+                    const sw = cellW / s, sh = cellH / s;
+                    cells.push({
+                        img: it.img,
+                        sx: (it.w - sw) / 2, sy: (it.h - sh) / 2, sw, sh,
+                        dx: cx, dy: cy, dw: cellW, dh: cellH
+                    });
+                } else {
+                    // contain（全体表示・中央配置）
+                    const s = Math.min(cellW / it.w, cellH / it.h);
+                    const w = it.w * s, h = it.h * s;
+                    cells.push(cellFull(it, cx + (cellW - w) / 2, cy + (cellH - h) / 2, w, h));
+                }
+            });
+            return {
+                width: pad * 2 + cols * cellW + (cols - 1) * gap,
+                height: pad * 2 + rows * cellH + (rows - 1) * gap,
+                cells
+            };
+        }
+
+        /* ---------- 描画（rAFでスロットル） ---------- */
+        function scheduleRender() {
+            if (rafId) return;
+            rafId = requestAnimationFrame(() => { rafId = null; renderNow(); });
+        }
+
+        function renderNow() {
+            const layout = computeLayout();
+            const hint = $('emptyHint'), info = $('info'), warn = $('warn');
+            if (!layout) {
+                canvas.style.display = 'none';
+                hint.style.display = '';
+                info.textContent = '';
+                warn.textContent = '';
+                return;
+            }
+            hint.style.display = 'none';
+            canvas.style.display = 'inline-block';
+
+            // 上限を超える場合は全体を縮小して出力（真っ白化を防ぐ）
+            const rawW = layout.width, rawH = layout.height;
+            const scale = Math.min(1, MAX_SIDE / rawW, MAX_SIDE / rawH, Math.sqrt(MAX_AREA / (rawW * rawH)));
+
+            canvas.width = Math.max(1, Math.round(rawW * scale));
+            canvas.height = Math.max(1, Math.round(rawH * scale));
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (state.bg !== 'transparent') {
+                ctx.fillStyle = state.bg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            ctx.imageSmoothingQuality = 'high';
+            layout.cells.forEach(c => ctx.drawImage(
+                c.img, c.sx, c.sy, c.sw, c.sh,
+                c.dx * scale, c.dy * scale, c.dw * scale, c.dh * scale
+            ));
+
+            info.textContent = `${readyImages().length} 枚 ・ 出力サイズ ${canvas.width} × ${canvas.height} px`;
+            warn.textContent = scale < 1
+                ? `⚠ サイズ上限を超えたため ${Math.round(scale * 100)}% に縮小して出力します（元: ${Math.round(rawW)} × ${Math.round(rawH)} px）`
+                : '';
+        }
+
+        /* ---------- 保存 ---------- */
+        function download(type, ext) {
+            if (!readyImages().length) return;
+            // 保留中の描画を確定させてから canvas を読む
+            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+            renderNow();
+
+            let url;
+            if (type === 'image/jpeg' && state.bg === 'transparent') {
+                // 透過 → JPEG は白背景で焼き込む
+                const tmp = document.createElement('canvas');
+                tmp.width = canvas.width; tmp.height = canvas.height;
+                const tctx = tmp.getContext('2d');
+                tctx.fillStyle = '#ffffff';
+                tctx.fillRect(0, 0, tmp.width, tmp.height);
+                tctx.drawImage(canvas, 0, 0);
+                url = tmp.toDataURL(type, 0.92);
+            } else {
+                url = canvas.toDataURL(type, 0.92);
+            }
+            const a = document.createElement('a');
+            const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            a.href = url;
+            a.download = `結合_${state.mode}_${ts}.${ext}`;
+            a.click();
+        }
+        $('dlBtn').onclick = () => download('image/png', 'png');
+        $('dlJpgBtn').onclick = () => download('image/jpeg', 'jpg');
+
+        updateSizingLabel();
+        renderNow();
+    })();
+    </script>
+</body>
+</html>
