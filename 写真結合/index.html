@@ -657,6 +657,12 @@
         }
 
         /* ---------- 保存 ---------- */
+        // 端末のローカル時刻（日本の端末なら日本時間）でファイル名用のタイムスタンプを作る
+        function timestamp() {
+            const d = new Date();
+            const p = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+        }
         function download(type, ext) {
             if (!readyImages().length) return;
             // 保留中の描画を確定させてから canvas を読む
@@ -677,7 +683,7 @@
                 url = canvas.toDataURL(type, 0.92);
             }
             const a = document.createElement('a');
-            const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            const ts = timestamp();
             a.href = url;
             a.download = `結合_${state.mode}_${ts}.${ext}`;
             a.click();
@@ -690,7 +696,7 @@
             if (!readyImages().length) return;
             if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
             renderNow();
-            const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            const ts = timestamp();
             canvas.toBlob(blob => {
                 if (!blob) return;
                 const file = new File([blob], `結合_${state.mode}_${ts}.png`, { type: 'image/png' });
