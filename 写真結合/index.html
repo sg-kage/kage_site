@@ -237,6 +237,12 @@
             border: 1px solid rgba(255,255,255,0.08);
         }
         #preview { max-width: 100%; height: auto; border-radius: 6px; display: none; }
+        #resultImg { max-width: 100%; height: auto; border-radius: 6px; display: none; }
+        .preview-tip {
+            display: none;
+            color: var(--primary); font-size: 0.82em; margin-top: 10px;
+            font-weight: 700;
+        }
         .preview-info { color: var(--text-muted); font-size: 0.8em; margin-top: 10px; }
         .preview-warn { color: #ffcc00; font-size: 0.8em; margin-top: 6px; }
         .empty-hint { color: var(--text-muted); font-size: 0.9em; padding: 30px 0; }
@@ -324,13 +330,16 @@
         <div class="actions">
             <button class="btn" id="clearBtn" disabled>すべて削除</button>
             <button class="btn" id="dlJpgBtn" disabled>JPEGで保存</button>
-            <button class="btn btn-primary" id="dlBtn" disabled>PNGで保存</button>
+            <button class="btn" id="dlBtn" disabled>PNGで保存</button>
+            <button class="btn btn-primary" id="shareBtn" disabled style="display:none;">📤 共有・保存</button>
         </div>
 
         <!-- プレビュー -->
         <div class="preview-wrap">
             <canvas id="preview"></canvas>
+            <img id="resultImg" alt="結合結果">
             <div class="empty-hint" id="emptyHint">画像を追加するとここにプレビューが表示されます</div>
+            <div class="preview-tip" id="tip">▶ 画像を長押しすると端末に保存できます</div>
             <div class="preview-info" id="info"></div>
             <div class="preview-warn" id="warn"></div>
         </div>
@@ -354,6 +363,10 @@
         };
         let dragId = null;
         let rafId = null;
+        let imgTimer = null;
+
+        // タッチ端末では canvas を長押し保存できないため、結果を <img> で表示する
+        const isTouch = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 
         const $ = (id) => document.getElementById(id);
         const dropzone = $('dropzone');
@@ -361,6 +374,7 @@
         const thumbsEl = $('thumbs');
         const canvas = $('preview');
         const ctx = canvas.getContext('2d');
+        const resultImg = $('resultImg');
 
         const readyImages = () => state.images.filter(i => i.ready);
 
@@ -434,6 +448,7 @@
             $('clearBtn').disabled = state.images.length === 0;
             $('dlBtn').disabled = !has;
             $('dlJpgBtn').disabled = !has;
+            $('shareBtn').disabled = !has;
         }
 
         function move(i, dir) {
@@ -592,13 +607,16 @@
             const hint = $('emptyHint'), info = $('info'), warn = $('warn');
             if (!layout) {
                 canvas.style.display = 'none';
+                resultImg.style.display = 'none';
+                $('tip').style.display = 'none';
                 hint.style.display = '';
                 info.textContent = '';
                 warn.textContent = '';
                 return;
             }
             hint.style.display = 'none';
-            canvas.style.display = 'inline-block';
+            // タッチ端末では裏で canvas に合成し、長押し保存できる <img> を表示
+            canvas.style.display = isTouch ? 'none' : 'inline-block';
 
             // 上限を超える場合は全体を縮小して出力（真っ白化を防ぐ）
             const rawW = layout.width, rawH = layout.height;
@@ -622,6 +640,20 @@
             warn.textContent = scale < 1
                 ? `⚠ サイズ上限を超えたため ${Math.round(scale * 100)}% に縮小して出力します（元: ${Math.round(rawW)} × ${Math.round(rawH)} px）`
                 : '';
+
+            if (isTouch) scheduleResultImage();
+        }
+
+        // 連続更新中は重い toDataURL を間引き、落ち着いてから <img> を更新する
+        function scheduleResultImage() {
+            if (imgTimer) clearTimeout(imgTimer);
+            imgTimer = setTimeout(() => {
+                imgTimer = null;
+                if (!readyImages().length) return;
+                resultImg.src = canvas.toDataURL('image/png');
+                resultImg.style.display = 'inline-block';
+                $('tip').style.display = 'block';
+            }, 150);
         }
 
         /* ---------- 保存 ---------- */
@@ -652,6 +684,31 @@
         }
         $('dlBtn').onclick = () => download('image/png', 'png');
         $('dlJpgBtn').onclick = () => download('image/jpeg', 'jpg');
+
+        /* ---------- 共有（Web Share API：カメラロール保存・他アプリ共有） ---------- */
+        function shareImage() {
+            if (!readyImages().length) return;
+            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+            renderNow();
+            const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            canvas.toBlob(blob => {
+                if (!blob) return;
+                const file = new File([blob], `結合_${state.mode}_${ts}.png`, { type: 'image/png' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({ files: [file], title: '写真結合' })
+                        .catch(() => { /* ユーザーがキャンセルした場合など */ });
+                } else {
+                    // ファイル共有に非対応の端末はダウンロードにフォールバック
+                    download('image/png', 'png');
+                }
+            }, 'image/png');
+        }
+        // 共有に対応する端末でのみボタンを表示
+        if (navigator.share) {
+            const sb = $('shareBtn');
+            sb.style.display = '';
+            sb.onclick = shareImage;
+        }
 
         updateSizingLabel();
         renderNow();
