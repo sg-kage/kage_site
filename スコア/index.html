@@ -22,8 +22,6 @@
       --text-dim: #475569;
       --gold: #f5d77a;
       --gold-dim: rgba(245, 215, 122, 0.14);
-      --red: #f87171;
-      --red-dim: rgba(248, 113, 113, 0.10);
       --mono: 'JetBrains Mono', monospace;
       --sans: 'Noto Sans JP', sans-serif;
     }
@@ -180,7 +178,6 @@
     }
     .summary-value small { font-size: 0.7rem; color: var(--text-sub); font-weight: 500; }
     .summary.is-ok .summary-value { color: var(--gold); text-shadow: 0 0 14px rgba(245, 215, 122, 0.5); }
-    .summary.is-ng .summary-value { color: var(--red); text-shadow: 0 0 14px rgba(248, 113, 113, 0.45); }
 
     /* =============== メイン =============== */
     main {
@@ -255,7 +252,6 @@
     }
     .legend-dot.normal { background: var(--green-bright); box-shadow: 0 0 6px var(--green-glow); }
     .legend-dot.ok { background: var(--gold); box-shadow: 0 0 6px rgba(245, 215, 122, 0.5); }
-    .legend-dot.ng { background: var(--red); box-shadow: 0 0 6px rgba(248, 113, 113, 0.4); }
 
     /* =============== グリッド =============== */
     #headerRow {
@@ -338,13 +334,6 @@
     .cell-ok { background-color: #0d0b06; }
     .cell-ok:hover { background-color: #1a160c; }
 
-    /* HP超過（ワンパン不可） */
-    .cell-ng { background-color: #0c0707; }
-    .cell-ng:hover { background-color: #1a0f0f; }
-    .cell-ng .cell-result { color: var(--red); opacity: 0.75; text-shadow: none; }
-    .cell-ng .cell-damage { color: var(--red); opacity: 0.55; }
-    .cell-ng .cell-buff { background: linear-gradient(180deg, rgba(80, 20, 20, 0.55) 0%, rgba(5, 5, 5, 0) 100%); border-bottom-color: rgba(248, 113, 113, 0.2); }
-
     /* 検索ヒット */
     .highlight-cell {
       background-color: #050505 !important;
@@ -366,7 +355,6 @@
     .highlight-cell .cell-result { color: var(--green-bright); text-shadow: 0 0 15px rgba(16, 185, 129, 0.8); }
     .highlight-cell .cell-damage { color: #d1fae5; }
     .highlight-cell.cell-ok .cell-result { color: var(--gold); }
-    .highlight-cell.cell-ng .cell-result { color: var(--red); opacity: 1; }
 
     .cell-empty { background-color: #000000; opacity: 0.4; cursor: default; }
 
@@ -491,7 +479,6 @@
     <div class="legend">
       <span class="legend-chip"><span class="legend-dot normal"></span>必要HP% / 必要ダメージ</span>
       <span class="legend-chip"><span class="legend-dot ok"></span>ダメージ0でも達成</span>
-      <span class="legend-chip"><span class="legend-dot ng"></span>HP100%超＝ワンパン不可</span>
     </div>
 
     <div id="headerRow"></div>
@@ -530,11 +517,10 @@
         return { state: 'ok', percentStr: '0%', damageStr: '達成', damageRaw: 0 };
       }
       const percent = damage / baseValue;
-      const state = fraction > 1 ? 'ng' : 'normal';
       return {
-        state,
+        state: 'normal',
         percentStr: (percent * 100).toFixed(2) + '%',
-        damageStr: state === 'ng' ? '不可' : nf.format(damage),
+        damageStr: nf.format(damage),
         damageRaw: damage
       };
     };
@@ -591,15 +577,11 @@
       const data = calculateResult(baseValue, adjustedValue, targetPercent);
       summaryEl.hidden = false;
       summaryEl.classList.toggle('is-ok', data.state === 'ok');
-      summaryEl.classList.toggle('is-ng', data.state === 'ng');
       summaryBonus.textContent = `ボーナス ${targetPercent}%`;
 
       if (data.state === 'ok') {
         summaryDamage.textContent = '0（ダメージ不要で達成）';
         summaryPercent.textContent = '0%';
-      } else if (data.state === 'ng') {
-        summaryDamage.textContent = 'ワンパン不可';
-        summaryPercent.innerHTML = `${data.percentStr} <small>(HP超過)</small>`;
       } else {
         summaryDamage.textContent = nf.format(data.damageRaw);
         summaryPercent.textContent = data.percentStr;
@@ -695,10 +677,6 @@
       renderGrid();
 
       const data = calculateResult(Number(baseValueInput.value), Number(adjustedValueInput.value), p);
-      if (data.state === 'ng') {
-        showToast(`ボーナス${p}%はHP超過のためワンパン不可`);
-        return;
-      }
       if (data.state === 'ok') {
         showToast(`ボーナス${p}%はダメージ0でも達成`);
         return;
