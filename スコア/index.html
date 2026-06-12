@@ -4,108 +4,265 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>季節イベ最大スコア計算</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="description" content="カゲマス季節イベントの目標Ptに必要な与ダメージを、スコアボーナス%別に逆算するツール">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
-  
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            // ネオングリーン系
-            primary: {
-              DEFAULT: '#10b981', // Emerald 500
-              glow: '#34d399',    // Emerald 400
-              dark: '#064e3b',    // Emerald 900
-            },
-          },
-          fontFamily: {
-            mono: ['"JetBrains Mono"', 'monospace'],
-            sans: ['"Noto Sans JP"', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 
   <style>
-    /* 確実に黒背景にするための設定 */
-    body {
-      background-color: #050505; 
-      background-image: radial-gradient(circle at 50% 0%, #064e3b 0%, #000000 70%);
-      color: #e2e8f0;
-      font-family: 'Noto Sans JP', sans-serif;
-      min-height: 100vh;
+    :root {
+      --bg: #050505;
+      --panel: rgba(16, 16, 16, 0.72);
+      --green: #10b981;
+      --green-bright: #34d399;
+      --green-deep: #064e3b;
+      --green-glow: rgba(16, 185, 129, 0.35);
+      --text: #e2e8f0;
+      --text-sub: #94a3b8;
+      --text-dim: #475569;
+      --gold: #f5d77a;
+      --gold-dim: rgba(245, 215, 122, 0.14);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.10);
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Noto Sans JP', sans-serif;
     }
 
-    /* --- 入力エリア --- */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(6, 78, 59, 0.85) 0%, rgba(0, 0, 0, 0) 60%),
+        repeating-linear-gradient(0deg, rgba(16, 185, 129, 0.025) 0 1px, transparent 1px 44px),
+        repeating-linear-gradient(90deg, rgba(16, 185, 129, 0.025) 0 1px, transparent 1px 44px);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* =============== ヘッダー =============== */
     .dashboard-header {
-      background: rgba(5, 5, 5, 0.85);
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      padding: 14px 16px 12px;
+      background: rgba(5, 5, 5, 0.88);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(16, 185, 129, 0.3);
       position: sticky;
       top: 0;
       z-index: 50;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
+    .header-inner { width: 100%; max-width: 72rem; }
+
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      background: linear-gradient(95deg, #a7f3d0 0%, var(--green-bright) 55%, #5eead4 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.45));
+      white-space: nowrap;
+    }
+    .subtitle {
+      font-size: 0.72rem;
+      color: var(--text-sub);
+      letter-spacing: 0.03em;
+    }
+
+    .inputs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
 
     .input-group {
       position: relative;
       background: rgba(20, 20, 20, 0.6);
       border-radius: 8px;
-      padding: 8px 12px;
+      padding: 8px 12px 6px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      transition: all 0.3s ease;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
     }
-
     .input-group:focus-within {
-      background: rgba(6, 78, 59, 0.6);
-      border-color: #10b981;
-      /* 緑のグロー */
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+      background: rgba(6, 78, 59, 0.45);
+      border-color: var(--green);
+      box-shadow: 0 0 15px var(--green-glow);
     }
-
     .label-text {
-      font-size: 0.7rem;
-      color: #34d399; /* 明るい緑 */
+      display: block;
+      font-size: 0.68rem;
+      color: var(--green-bright);
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       letter-spacing: 0.05em;
     }
-
     .input-field {
       background: transparent;
+      border: none;
       color: #f0fdf4;
-      font-family: 'JetBrains Mono';
-      font-size: 1.1rem;
+      font-family: var(--mono);
+      font-size: 1.05rem;
       font-weight: 500;
       outline: none;
       width: 100%;
     }
-    .input-field::placeholder { color: #475569; }
-
-    input[type=number]::-webkit-inner-spin-button, 
+    .input-field::placeholder { color: var(--text-dim); }
+    input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
-    /* --- グリッドレイアウト --- */
-    #gridContainer {
-      display: grid;
-      gap: 1px;
-      background-color: #064e3b; /* 枠線の色 */
-      border: 1px solid #064e3b;
-      border-radius: 0 0 8px 8px;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    .unit-readout {
+      font-size: 0.66rem;
+      font-family: var(--mono);
+      color: var(--text-sub);
+      min-height: 1em;
+      margin-top: 1px;
+    }
+    .search-icon {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(52, 211, 153, 0.3);
+      pointer-events: none;
     }
 
-    /* --- 列ヘッダー --- */
+    /* 結果サマリー（ボーナス%入力時のみ表示） */
+    .summary {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      background: linear-gradient(90deg, rgba(6, 78, 59, 0.55), rgba(6, 78, 59, 0.15));
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      border-radius: 8px;
+      padding: 8px 14px;
+      box-shadow: inset 0 0 25px rgba(16, 185, 129, 0.08);
+    }
+    .summary[hidden] { display: none; }
+    .summary-bonus {
+      font-family: var(--mono);
+      font-weight: 700;
+      color: #fff;
+      background: var(--green);
+      border-radius: 6px;
+      padding: 2px 10px;
+      font-size: 0.85rem;
+      text-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+      white-space: nowrap;
+    }
+    .summary-item { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+    .summary-label { font-size: 0.68rem; color: var(--text-sub); font-weight: 700; }
+    .summary-value {
+      font-family: var(--mono);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--green-bright);
+      text-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+    }
+    .summary-value small { font-size: 0.7rem; color: var(--text-sub); font-weight: 500; }
+    .summary.is-ok .summary-value { color: var(--gold); text-shadow: 0 0 14px rgba(245, 215, 122, 0.5); }
+    .summary.is-ng .summary-value { color: var(--red); text-shadow: 0 0 14px rgba(248, 113, 113, 0.45); }
+
+    /* =============== メイン =============== */
+    main {
+      width: 100%;
+      max-width: 72rem;
+      padding: 14px 8px 48px;
+    }
+    @media (min-width: 640px) { main { padding-left: 24px; padding-right: 24px; } }
+
+    /* 使い方ヘルプ */
+    .help {
+      margin-bottom: 10px;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+    .help summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--green-bright);
+      letter-spacing: 0.04em;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .help summary::-webkit-details-marker { display: none; }
+    .help summary::before { content: '▸'; transition: transform 0.2s ease; }
+    .help[open] summary::before { transform: rotate(90deg); }
+    .help-body {
+      padding: 4px 16px 14px;
+      font-size: 0.78rem;
+      line-height: 1.9;
+      color: var(--text-sub);
+    }
+    .help-body code {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: #a7f3d0;
+      background: rgba(6, 78, 59, 0.5);
+      border-radius: 4px;
+      padding: 1px 6px;
+    }
+    .help-body strong { color: var(--text); }
+
+    /* 凡例 */
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+      padding: 0 2px;
+      font-size: 0.68rem;
+      color: var(--text-sub);
+    }
+    .legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .legend-dot {
+      width: 9px; height: 9px;
+      border-radius: 2px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .legend-dot.normal { background: var(--green-bright); box-shadow: 0 0 6px var(--green-glow); }
+    .legend-dot.ok { background: var(--gold); box-shadow: 0 0 6px rgba(245, 215, 122, 0.5); }
+    .legend-dot.ng { background: var(--red); box-shadow: 0 0 6px rgba(248, 113, 113, 0.4); }
+
+    /* =============== グリッド =============== */
     #headerRow {
       display: grid;
       gap: 1px;
-      margin-bottom: 0;
-      background-color: #064e3b;
-      border: 1px solid #064e3b;
+      background-color: var(--green-deep);
+      border: 1px solid var(--green-deep);
       border-bottom: none;
       border-radius: 8px 8px 0 0;
       overflow: hidden;
@@ -113,122 +270,235 @@
     .header-cell {
       text-align: center;
       background: #020617;
-      color: #34d399;
-      font-size: 0.75rem;
-      font-weight: bold;
+      color: var(--green-bright);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 700;
       padding: 8px 0;
-      border-bottom: 2px solid #10b981;
+      border-bottom: 2px solid var(--green);
+      white-space: nowrap;
     }
 
-    /* --- セルデザイン --- */
+    #gridContainer {
+      display: grid;
+      gap: 1px;
+      background-color: var(--green-deep);
+      border: 1px solid var(--green-deep);
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    }
+
     .cell {
-      background-color: #0a0a0a; /* 基本の黒 */
+      background-color: #0a0a0a;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
       height: 70px;
       position: relative;
-      transition: background-color 0.2s;
+      transition: background-color 0.15s;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
-    .cell:hover {
-      background-color: #1a1a1a;
-    }
+    .cell:hover { background-color: #161d18; }
+    .cell:active { background-color: #0f2419; }
 
-    /* バフ% (ヘッダー) */
     .cell-buff {
       width: 100%;
       text-align: center;
-      /* 緑のグラデーション */
       background: linear-gradient(180deg, rgba(6, 78, 59, 0.8) 0%, rgba(5, 5, 5, 0) 100%);
       color: #ffffff;
-      font-family: 'JetBrains Mono';
-      font-size: 0.75rem;
-      font-weight: bold;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 700;
       padding: 4px 0;
       border-bottom: 1px solid rgba(16, 185, 129, 0.2);
       margin-bottom: 4px;
     }
-
-    /* 結果% (メイン) */
     .cell-result {
       color: #ffffff;
-      font-family: 'JetBrains Mono';
-      font-size: 1rem;
+      font-family: var(--mono);
+      font-size: 0.98rem;
       font-weight: 700;
       line-height: 1.2;
       text-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
     }
-
-    /* ダメージ (サブ) */
     .cell-damage {
-      color: #94a3b8;
-      font-family: 'JetBrains Mono';
-      font-size: 0.65rem;
+      color: var(--text-sub);
+      font-family: var(--mono);
+      font-size: 0.63rem;
       margin-top: 2px;
       font-weight: 500;
     }
 
-    /* --- ハイライト (検索ヒット) --- */
+    /* ダメージ0で達成 */
+    .cell-ok .cell-result { color: var(--gold); text-shadow: 0 0 10px rgba(245, 215, 122, 0.35); }
+    .cell-ok .cell-damage { color: var(--gold); opacity: 0.85; }
+    .cell-ok { background-color: #0d0b06; }
+    .cell-ok:hover { background-color: #1a160c; }
+
+    /* HP超過（ワンパン不可） */
+    .cell-ng { background-color: #0c0707; }
+    .cell-ng:hover { background-color: #1a0f0f; }
+    .cell-ng .cell-result { color: var(--red); opacity: 0.75; text-shadow: none; }
+    .cell-ng .cell-damage { color: var(--red); opacity: 0.55; }
+    .cell-ng .cell-buff { background: linear-gradient(180deg, rgba(80, 20, 20, 0.55) 0%, rgba(5, 5, 5, 0) 100%); border-bottom-color: rgba(248, 113, 113, 0.2); }
+
+    /* 検索ヒット */
     .highlight-cell {
       background-color: #050505 !important;
-      /* 緑の発光 */
-      box-shadow: inset 0 0 0 2px #34d399, 0 0 30px rgba(16, 185, 129, 0.4);
+      box-shadow: inset 0 0 0 2px var(--green-bright), 0 0 30px rgba(16, 185, 129, 0.4);
       z-index: 10;
+      animation: hitPulse 1.2s ease-out;
     }
-    
+    @keyframes hitPulse {
+      0%   { box-shadow: inset 0 0 0 2px var(--green-bright), 0 0 0 rgba(16, 185, 129, 0); }
+      40%  { box-shadow: inset 0 0 0 2px var(--green-bright), 0 0 45px rgba(16, 185, 129, 0.85); }
+      100% { box-shadow: inset 0 0 0 2px var(--green-bright), 0 0 30px rgba(16, 185, 129, 0.4); }
+    }
     .highlight-cell .cell-buff {
-      background: #10b981;
+      background: var(--green);
       color: #ffffff;
       text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
       border-bottom: none;
     }
-    
-    .highlight-cell .cell-result {
-      color: #34d399;
-      text-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
-    }
-    .highlight-cell .cell-damage {
-      color: #d1fae5; 
+    .highlight-cell .cell-result { color: var(--green-bright); text-shadow: 0 0 15px rgba(16, 185, 129, 0.8); }
+    .highlight-cell .cell-damage { color: #d1fae5; }
+    .highlight-cell.cell-ok .cell-result { color: var(--gold); }
+    .highlight-cell.cell-ng .cell-result { color: var(--red); opacity: 1; }
+
+    .cell-empty { background-color: #000000; opacity: 0.4; cursor: default; }
+
+    /* 入力不備メッセージ */
+    .grid-message {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      background: var(--panel);
+      border: 1px dashed rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
     }
 
-    /* 空白セル */
-    .cell-empty {
-      background-color: #000000;
-      opacity: 0.4;
+    /* トースト */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translate(-50%, 16px);
+      background: rgba(6, 78, 59, 0.92);
+      border: 1px solid var(--green-bright);
+      color: #ecfdf5;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 9px 18px;
+      border-radius: 999px;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 100;
+      max-width: 92vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    /* =============== レスポンシブ =============== */
+    @media (max-width: 700px) {
+      .dashboard-header { padding: 10px 10px 10px; }
+      .title-row { margin-bottom: 8px; gap: 8px; }
+      h1 { font-size: 1rem; }
+      .subtitle { font-size: 0.64rem; }
+      .inputs {
+        grid-template-columns: 1fr 1fr;
+      }
+      .input-group:nth-child(3) { grid-column: 1 / -1; }
+      .input-field { font-size: 0.95rem; }
+      .summary { gap: 8px 12px; padding: 7px 10px; }
+      .summary-value { font-size: 1.05rem; }
+      .cell { height: 64px; }
+      .cell-result { font-size: 0.85rem; }
+      .cell-damage { font-size: 0.58rem; }
+      .header-cell { font-size: 0.62rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
   </style>
 </head>
-<body class="flex flex-col items-center">
+<body>
 
-  <div class="dashboard-header w-full flex justify-center py-4 px-4">
-    <div class="w-full max-w-6xl grid grid-cols-3 gap-4">
-      
-      <div class="input-group">
-        <label class="label-text">相手HP</label>
-        <input type="number" id="baseValueInput" value="100000000" class="input-field">
+  <header class="dashboard-header">
+    <div class="header-inner">
+      <div class="title-row">
+        <h1>季節イベ 最大スコア計算</h1>
+        <p class="subtitle">目標Ptに必要な与ダメージをスコアボーナス%別に逆算</p>
       </div>
-      
-      <div class="input-group">
-        <label class="label-text">目標Pt(スコア)</label>
-        <input type="number" id="adjustedValueInput" value="600000" class="input-field">
-      </div>
-      
-      <div class="input-group" style="border-color: rgba(52, 211, 153, 0.3);">
-        <label class="label-text" style="color: #34d399;">ボーナス検索 (%)</label>
-        <input type="number" id="targetPercentInput" placeholder="-" class="input-field" style="color: #34d399;">
-        <div class="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400/30 pointer-events-none">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+
+      <div class="inputs">
+        <div class="input-group">
+          <label class="label-text" for="baseValueInput">相手HP</label>
+          <input type="number" id="baseValueInput" value="100000000" class="input-field" min="0">
+          <div class="unit-readout" id="hpReadout"></div>
+        </div>
+
+        <div class="input-group">
+          <label class="label-text" for="adjustedValueInput">目標Pt（スコア）</label>
+          <input type="number" id="adjustedValueInput" value="600000" class="input-field" min="0">
+          <div class="unit-readout" id="ptReadout"></div>
+        </div>
+
+        <div class="input-group">
+          <label class="label-text" for="targetPercentInput">ボーナス検索（%）</label>
+          <input type="number" id="targetPercentInput" placeholder="0〜100" class="input-field" min="0" max="100">
+          <div class="unit-readout"></div>
+          <div class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
         </div>
       </div>
 
+      <div class="summary" id="summary" hidden>
+        <span class="summary-bonus" id="summaryBonus"></span>
+        <span class="summary-item">
+          <span class="summary-label">必要ダメージ</span>
+          <span class="summary-value" id="summaryDamage"></span>
+        </span>
+        <span class="summary-item">
+          <span class="summary-label">HP割合</span>
+          <span class="summary-value" id="summaryPercent"></span>
+        </span>
+      </div>
     </div>
-  </div>
+  </header>
 
-  <div class="w-full max-w-6xl pt-4 pb-12 px-2 sm:px-6">
+  <main>
+    <details class="help">
+      <summary>使い方・計算式</summary>
+      <div class="help-body">
+        スコアは <code>(20,000 + 280,000 × 与ダメージ ÷ 相手HP) × (1 + スコアボーナス%)</code> で計算されます。<br>
+        この表は、<strong>各スコアボーナス%のときに目標Ptへ届くために必要なHP割合と与ダメージ</strong>を逆算したものです。<br>
+        ・セルの上段＝スコアボーナス%、中段＝必要なHP割合、下段＝必要な与ダメージ<br>
+        ・<strong>ボーナス検索</strong>に手持ちのボーナス%を入れると、該当セルが光り、上部に結果が大きく表示されます<br>
+        ・セルを<strong>タップ</strong>するとそのボーナス%を選択し、必要ダメージをコピーします
+      </div>
+    </details>
+
+    <div class="legend">
+      <span class="legend-chip"><span class="legend-dot normal"></span>必要HP% / 必要ダメージ</span>
+      <span class="legend-chip"><span class="legend-dot ok"></span>ダメージ0でも達成</span>
+      <span class="legend-chip"><span class="legend-dot ng"></span>HP100%超＝ワンパン不可</span>
+    </div>
+
     <div id="headerRow"></div>
     <div id="gridContainer"></div>
-  </div>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
 
   <script>
     const baseValueInput = document.getElementById('baseValueInput');
@@ -236,93 +506,226 @@
     const targetPercentInput = document.getElementById('targetPercentInput');
     const gridContainer = document.getElementById('gridContainer');
     const headerRow = document.getElementById('headerRow');
+    const hpReadout = document.getElementById('hpReadout');
+    const ptReadout = document.getElementById('ptReadout');
+    const summaryEl = document.getElementById('summary');
+    const summaryBonus = document.getElementById('summaryBonus');
+    const summaryDamage = document.getElementById('summaryDamage');
+    const summaryPercent = document.getElementById('summaryPercent');
+    const toastEl = document.getElementById('toast');
 
+    const SCORE_BASE = 20000;    // ダメージ0でも入る基礎スコア
+    const SCORE_RANGE = 280000;  // HP100%与ダメで加算される最大スコア
+    const STORAGE_KEY = 'kage_score_inputs';
+    const nf = new Intl.NumberFormat('ja-JP');
+
+    // ---- 計算（ロジックは従来と同一） ----
+    // 必要HP割合 = (目標Pt / (1+ボーナス) - 20000) / 280000
     const calculateResult = (baseValue, adjustedValue, percentage) => {
-      const h6 = percentage / 100;
-      const adjusted = (adjustedValue / (1 + h6) - 20000) / 280000;
-      const result = Math.ceil(baseValue * adjusted);
-      const percent = result / baseValue;
-      
+      const fraction = (adjustedValue / (1 + percentage / 100) - SCORE_BASE) / SCORE_RANGE;
+      const damage = Math.ceil(baseValue * fraction);
+
+      if (damage <= 0) {
+        // ダメージ0でも基礎スコア×ボーナスで目標到達
+        return { state: 'ok', percentStr: '0%', damageStr: '達成', damageRaw: 0 };
+      }
+      const percent = damage / baseValue;
+      const state = fraction > 1 ? 'ng' : 'normal';
       return {
+        state,
         percentStr: (percent * 100).toFixed(2) + '%',
-        damageStr: new Intl.NumberFormat('ja-JP').format(result)
+        damageStr: state === 'ng' ? '不可' : nf.format(damage),
+        damageRaw: damage
       };
     };
+
+    // ---- 億/万 表記 ----
+    const toJpUnits = (v) => {
+      if (!Number.isFinite(v) || v <= 0) return '';
+      const oku = Math.floor(v / 1e8);
+      const man = Math.floor((v % 1e8) / 1e4);
+      const rest = Math.floor(v % 1e4);
+      let s = '';
+      if (oku) s += nf.format(oku) + '億';
+      if (man) s += man + '万';
+      if (rest) s += rest;
+      return '= ' + s;
+    };
+
+    const updateReadouts = () => {
+      hpReadout.textContent = toJpUnits(Number(baseValueInput.value));
+      ptReadout.textContent = toJpUnits(Number(adjustedValueInput.value));
+    };
+
+    // ---- localStorage ----
+    const saveInputs = () => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          hp: baseValueInput.value, pt: adjustedValueInput.value
+        }));
+      } catch (_) { /* プライベートモード等は無視 */ }
+    };
+    const loadInputs = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && saved.hp > 0) baseValueInput.value = saved.hp;
+        if (saved && saved.pt > 0) adjustedValueInput.value = saved.pt;
+      } catch (_) { /* 破損時はデフォルト値のまま */ }
+    };
+
+    // ---- トースト ----
+    let toastTimer = null;
+    const showToast = (msg) => {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+    };
+
+    // ---- 結果サマリー ----
+    const renderSummary = (baseValue, adjustedValue, targetPercent) => {
+      if (targetPercent < 0 || !(baseValue > 0) || !(adjustedValue > 0)) {
+        summaryEl.hidden = true;
+        return;
+      }
+      const data = calculateResult(baseValue, adjustedValue, targetPercent);
+      summaryEl.hidden = false;
+      summaryEl.classList.toggle('is-ok', data.state === 'ok');
+      summaryEl.classList.toggle('is-ng', data.state === 'ng');
+      summaryBonus.textContent = `ボーナス ${targetPercent}%`;
+
+      if (data.state === 'ok') {
+        summaryDamage.textContent = '0（ダメージ不要で達成）';
+        summaryPercent.textContent = '0%';
+      } else if (data.state === 'ng') {
+        summaryDamage.textContent = 'ワンパン不可';
+        summaryPercent.innerHTML = `${data.percentStr} <small>(HP超過)</small>`;
+      } else {
+        summaryDamage.textContent = nf.format(data.damageRaw);
+        summaryPercent.textContent = data.percentStr;
+      }
+    };
+
+    // ---- グリッド描画 ----
+    const getColumns = () => window.innerWidth >= 768 ? 10 : 5;
 
     const renderGrid = () => {
       gridContainer.innerHTML = '';
       headerRow.innerHTML = '';
-      
+
       const baseValue = Number(baseValueInput.value);
       const adjustedValue = Number(adjustedValueInput.value);
       const targetPercent = targetPercentInput.value === '' ? -1 : Number(targetPercentInput.value);
-      
-      const isPC = window.innerWidth >= 768;
-      const columns = isPC ? 10 : 5;
 
+      updateReadouts();
+      renderSummary(baseValue, adjustedValue, targetPercent);
+
+      if (!(baseValue > 0) || !(adjustedValue > 0)) {
+        headerRow.style.display = 'none';
+        gridContainer.style.display = 'block';
+        gridContainer.style.backgroundColor = 'transparent';
+        gridContainer.style.border = 'none';
+        gridContainer.innerHTML = '<div class="grid-message">相手HPと目標Ptを入力してください</div>';
+        return;
+      }
+      headerRow.style.display = 'grid';
+      gridContainer.style.display = 'grid';
+      gridContainer.style.backgroundColor = '';
+      gridContainer.style.border = '';
+
+      const columns = getColumns();
       gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
       headerRow.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
 
       const step = 100 / columns;
-      for(let i = 0; i < columns; i++) {
+      const colRanges = [];
+      for (let i = 0; i < columns; i++) {
+        const start = i * step;
+        const end = (i === columns - 1) ? 100 : start + step - 1;
+        colRanges.push({ start, end });
+
         const div = document.createElement('div');
         div.className = 'header-cell';
-        div.textContent = `${i * step}% ～`; 
+        div.textContent = `${start}–${end}%`;
         headerRow.appendChild(div);
       }
 
-      const colRanges = [];
-      for(let i=0; i<columns; i++) {
-        const start = i * step;
-        let end = start + step - 1;
-        if(i === columns - 1) end = 100; 
-        colRanges.push({ start, end });
-      }
-
-      const maxRows = isPC ? 11 : 21;
+      const maxRows = (columns === 10) ? 11 : 21;
+      let highlightCell = null;
 
       for (let r = 0; r < maxRows; r++) {
         for (let c = 0; c < columns; c++) {
-          
           const p = colRanges[c].start + r;
-          
+          const cell = document.createElement('div');
+
           if (p <= colRanges[c].end) {
             const data = calculateResult(baseValue, adjustedValue, p);
             const isHighlight = (p === targetPercent);
-
-            const cell = document.createElement('div');
-            cell.className = `cell ${isHighlight ? 'highlight-cell' : ''}`;
-            
+            const stateClass = data.state === 'normal' ? '' : ` cell-${data.state}`;
+            cell.className = `cell${stateClass}${isHighlight ? ' highlight-cell' : ''}`;
             cell.innerHTML = `
               <div class="cell-buff">${p}%</div>
               <div class="cell-result">${data.percentStr}</div>
               <div class="cell-damage">${data.damageStr}</div>
             `;
-            
-            gridContainer.appendChild(cell);
-            
-            if(isHighlight) {
-              setTimeout(() => {
-                cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }, 100);
-            }
-
+            cell.dataset.percent = p;
+            if (isHighlight) highlightCell = cell;
           } else {
-             const cell = document.createElement('div');
-             cell.className = 'cell cell-empty';
-             gridContainer.appendChild(cell);
+            cell.className = 'cell cell-empty';
           }
+          gridContainer.appendChild(cell);
         }
       }
+      return highlightCell;
     };
 
-    const handleInput = () => renderGrid();
-    window.addEventListener('resize', renderGrid);
-    
-    baseValueInput.addEventListener('input', handleInput);
-    adjustedValueInput.addEventListener('input', handleInput);
-    targetPercentInput.addEventListener('input', handleInput);
+    // 検索入力時のみヒットセルへスクロール（resize等では飛ばない）
+    const renderAndScroll = () => {
+      const hit = renderGrid();
+      if (hit) setTimeout(() => hit.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    };
 
+    // ---- セルタップ: ボーナス%選択＋必要ダメージをコピー ----
+    gridContainer.addEventListener('click', async (e) => {
+      const cell = e.target.closest('.cell');
+      if (!cell || cell.dataset.percent === undefined) return;
+
+      const p = Number(cell.dataset.percent);
+      targetPercentInput.value = p;
+      renderGrid();
+
+      const data = calculateResult(Number(baseValueInput.value), Number(adjustedValueInput.value), p);
+      if (data.state === 'ng') {
+        showToast(`ボーナス${p}%はHP超過のためワンパン不可`);
+        return;
+      }
+      if (data.state === 'ok') {
+        showToast(`ボーナス${p}%はダメージ0でも達成`);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(String(data.damageRaw));
+        showToast(`ボーナス${p}% 必要ダメージ ${nf.format(data.damageRaw)} をコピー`);
+      } catch (_) {
+        showToast(`ボーナス${p}% 必要ダメージ ${nf.format(data.damageRaw)}`);
+      }
+    });
+
+    // ---- イベント ----
+    baseValueInput.addEventListener('input', () => { saveInputs(); renderGrid(); });
+    adjustedValueInput.addEventListener('input', () => { saveInputs(); renderGrid(); });
+    targetPercentInput.addEventListener('input', renderAndScroll);
+
+    // 列数が変わるときだけ再描画（スマホのアドレスバー伸縮などでは再描画しない）
+    let currentColumns = getColumns();
+    window.addEventListener('resize', () => {
+      if (getColumns() !== currentColumns) {
+        currentColumns = getColumns();
+        renderGrid();
+      }
+    });
+
+    loadInputs();
     renderGrid();
   </script>
 </body>

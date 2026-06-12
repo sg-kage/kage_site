@@ -1,239 +1,438 @@
-/* ベーススタイル */
+/* =========================================================
+   カゲマス 編成シミュレーター テーマ
+   （トップページと同系のシアン×グラスモーフィズム）
+   ========================================================= */
 :root {
-    --bg-color: #1a1a1a;
-    --card-bg: #2a2a2a;
-    --text-color: #e0e0e0;
-    --accent-color: #00ffcc; /* エメラルドグリーン */
-    --border-color: #444;
-
+    --bg-body: #0b0d12;
+    --bg-panel: rgba(20, 24, 33, 0.85);
+    --bg-slot: rgba(13, 16, 22, 0.9);
+    --bg-input: #161b26;
+    --primary: #00f2ff;
+    --primary-dim: rgba(0, 242, 255, 0.25);
+    --text-main: #e0e6ed;
+    --text-muted: #94a3b8;
+    --border: #2b3342;
     /* 属性カラー */
-    --red-attr: #ff4d4d;
-    --green-attr: #4dff4d;
-    --blue-attr: #4d4dff;
-    --yellow-attr: #ffff4d;
-    --purple-attr: #cc00ff;
-    --black-attr: #666;
+    --color-red: #FF6347;
+    --color-green: #32CD32;
+    --color-yellow: #FFD700;
+    --color-blue: #1E90FF;
 }
+
+* { box-sizing: border-box; }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    margin: 0;
+    font-family: 'Noto Sans JP', "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-body);
+    background-image:
+        radial-gradient(circle at 50% 0%, rgba(0, 81, 255, 0.18) 0%, transparent 55%),
+        repeating-linear-gradient(0deg, rgba(0, 242, 255, 0.015) 0 1px, transparent 1px 48px),
+        repeating-linear-gradient(90deg, rgba(0, 242, 255, 0.015) 0 1px, transparent 1px 48px);
+    background-attachment: fixed;
+    color: var(--text-main);
+    margin: 0 auto;
     padding: 20px;
+    font-size: 14px;
+    width: 96%;
+    max-width: 1800px;
+}
+
+/* --- ページヘッダー --- */
+.page-header { margin-bottom: 14px; }
+.page-header h1 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 14px rgba(0, 242, 255, 0.45);
+}
+.page-header h1::after {
+    content: '';
+    display: block;
+    width: 90px;
+    height: 2px;
+    margin-top: 6px;
+    background: linear-gradient(90deg, var(--primary), transparent);
+    box-shadow: 0 0 8px var(--primary);
+}
+.page-sub {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
     line-height: 1.6;
 }
+.page-sub a { color: #4db8ff; text-decoration: none; }
+.page-sub a:hover { text-decoration: underline; }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    background-color: #222;
-    padding: 30px;
+h2 { border-left: 4px solid var(--primary); padding-left: 12px; margin-bottom: 10px; color: #fff; font-size: 1.15rem; }
+
+.info-link { margin-bottom: 20px; font-size: 12px; color: #ccc; padding-left: 5px; }
+.info-link a { color: #4db8ff; text-decoration: none; }
+.info-link a:hover { text-decoration: underline; }
+
+/* --- パーティ編成エリア --- */
+.party-box {
+    background: rgba(8, 10, 16, 0.92);
+    padding: 18px 18px 12px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--primary-dim);
+    position: relative;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55), inset 0 0 40px rgba(0, 81, 255, 0.05);
+}
+
+@media (min-width: 601px) {
+    .party-box {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0, 242, 255, 0.4);
+    }
+}
+
+.clear-all-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(127, 29, 29, 0.85);
+    color: #fff;
+    border: 1px solid #b91c1c;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    z-index: 1001;
+    transition: 0.2s;
+}
+.clear-all-btn:hover { background: #d32f2f; box-shadow: 0 0 10px rgba(255, 77, 77, 0.4); }
+
+.party-slots {
+    display: flex; gap: 8px; justify-content: center; min-height: 190px; flex-wrap: wrap; margin-top: 10px;
+}
+
+.slot {
+    width: 110px;
+    padding: 10px 5px;
+    background: var(--bg-slot);
+    border: 2px dashed #353e50;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-}
-
-h2, h3 {
-    color: var(--accent-color);
-    border-left: 4px solid var(--accent-color);
-    padding-left: 10px;
-    margin-bottom: 25px;
-}
-
-hr {
-    border: none;
-    border-top: 1px solid var(--border-color);
-    margin: 40px 0;
-}
-
-/* パーティ編成スロット (style.css用) */
-.party-container {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    background-color: #0d0d0d;
-    padding: 25px;
-    border-radius: 10px;
-    margin-bottom: 30px;
-    min-height: 160px; /* スロットが空でも高さを保つ */
-    align-items: center;
-}
-
-.party-slot {
-    width: 100px;
-    height: 130px;
-    border: 2px dashed var(--border-color);
-    border-radius: 8px;
+    position: relative;
+    text-align: center;
+    transition: 0.2s;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    font-size: 0.8em;
-    position: relative;
-    background-color: var(--card-bg);
-    transition: all 0.2s ease-in-out;
 }
-
-.party-slot.filled {
+.slot.filled {
     border-style: solid;
-    border-width: 3px;
-    /* 属性カラーでボーダーを設定 */
+    background: var(--bg-panel);
+    cursor: pointer; /* クリックできることを示す */
+}
+.slot.filled:hover { box-shadow: 0 0 12px rgba(0, 242, 255, 0.15); }
+
+/* 基準選択されたときのスロットスタイル */
+.slot.is-reference {
+    border-color: #fff !important;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+    background: #232b3a;
+    transform: translateY(-2px);
+    z-index: 5;
 }
 
-/* 属性ごとのボーダー色 */
-.party-slot.attr-赤 { border-color: var(--red-attr); }
-.party-slot.attr-緑 { border-color: var(--green-attr); }
-.party-slot.attr-青 { border-color: var(--blue-attr); }
-.party-slot.attr-黄 { border-color: var(--yellow-attr); }
-.party-slot.attr-紫 { border-color: var(--purple-attr); }
-.party-slot.attr-黒 { border-color: var(--black-attr); }
-
-.party-slot img {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-bottom: 5px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+.slot img {
+    width: 75px; height: 75px;
+    border-radius: 50%; object-fit: cover; margin-bottom: 5px; border: 3px solid #555;
 }
 
-.party-slot .char-name-party {
+.slot.attr-赤 { border-color: var(--color-red); }
+.slot.attr-緑 { border-color: var(--color-green); }
+.slot.attr-黄 { border-color: var(--color-yellow); }
+.slot.attr-青 { border-color: var(--color-blue); }
+
+/* 空スロットの案内 */
+.slot-empty-label {
+    margin-top: 52px;
+    color: #4a5568;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    line-height: 1.7;
+}
+.slot-empty-label span {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0;
+    color: #3a4458;
+}
+
+.remove-btn { position: absolute; top: -8px; right: -8px; background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-weight: bold; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+.pos-diff { font-size: 11px; color: #ffca28; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 4px; border: 1px solid #555; white-space: nowrap; }
+.pos-val { font-size: 11px; color: #aaa; margin-top: 2px; font-family: monospace; white-space: nowrap; }
+
+.slot-text-container { width: 100%; overflow: hidden; margin-top: 2px; display: flex; flex-direction: column; align-items: center; }
+.slot-title { font-size: 10px; color: #999; white-space: nowrap; display: block; width: 100%; transform-origin: center; }
+.slot-name { font-size: 12px; font-weight: bold; color: #fff; white-space: nowrap; display: block; width: 100%; transform-origin: center; margin-top: 1px; }
+
+/* 操作ヒント */
+.usage-hint {
+    text-align: center;
+    font-size: 10px;
+    color: #5b6b85;
+    margin-top: 8px;
+    letter-spacing: 0.04em;
+}
+
+/* --- スキル表示 --- */
+.skill-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 10px; align-items: start; }
+.skill-card { background: var(--bg-panel); padding: 8px; border-radius: 8px; font-size: 10px; border: 1px solid var(--border); border-top: 3px solid #444; transition: all 0.2s; overflow: hidden; }
+.skill-card.attr-赤 { border-top-color: var(--color-red); }
+.skill-card.attr-緑 { border-top-color: var(--color-green); }
+.skill-card.attr-黄 { border-top-color: var(--color-yellow); }
+.skill-card.attr-青 { border-top-color: var(--color-blue); }
+
+.card-header { margin-bottom: 6px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 4px; }
+.card-title { font-size: 9px; color: #888; white-space: nowrap; display: block; width: 100%; transform-origin: center; overflow: visible; }
+.card-name { font-size: 12px; font-weight: bold; color: #eee; white-space: nowrap; display: block; width: 100%; transform-origin: center; overflow: visible; margin-top: 1px; }
+
+.basic-info { margin-bottom: 5px; min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+
+/* タグ（キャラ名、グループ、効果） */
+.char-name-tag {
+    display: inline-block; background: #2a3142; color: #fff;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 9px;
+    border: 1px solid #475066;
     font-weight: bold;
-    color: var(--accent-color);
-    font-size: 0.9em;
-    margin-top: 2px;
 }
-.party-slot .char-pos, .party-slot .char-role {
-    font-size: 0.75em;
-    color: #bbb;
+.skill-card.attr-赤 .char-name-tag { color: var(--color-red); }
+.skill-card.attr-緑 .char-name-tag { color: var(--color-green); }
+.skill-card.attr-黄 .char-name-tag { color: var(--color-yellow); }
+.skill-card.attr-青 .char-name-tag { color: var(--color-blue); }
+
+.tag-group {
+    display: inline-block; background: #2a3142; color: #fff;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 9px;
+    border: 1px solid #475066;
+}
+.tag-effect {
+    display: inline-block; background: #143246; color: #81ecec;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 9px;
+    border: 1px solid #2381b8;
 }
 
-.remove-btn {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 0.9em;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-}
-.remove-btn:hover {
-    background-color: #c0392b;
-}
+.full-details { display: none; margin-top: 10px; padding-top: 5px; border-top: 1px dashed #444; }
+.full-details.visible { display: block; }
 
-/* スキル詳細比較エリア */
-.skill-comparison {
+.skill-section { margin-bottom: 8px; }
+.skill-label { font-weight: bold; color: #ffca28; margin-bottom: 2px; font-size: 10px; border-bottom: 1px solid #333; display: inline-block; }
+.skill-text { color: #ccc; line-height: 1.3; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+
+/* --- コントロール --- */
+.control-panel { background: var(--bg-panel); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
+.controls-row { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+.search-box {
+    flex-grow: 1; padding: 10px; border-radius: 8px;
+    border: 1px solid #3a445a; background: var(--bg-input); color: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-box:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.25);
+}
+.search-box::placeholder { color: #5b6b85; }
+.sort-select { background: var(--bg-input); color: #fff; border: 1px solid #3a445a; padding: 8px; border-radius: 8px; }
+
+.toggle-switch { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #ccc; cursor: pointer; user-select: none; }
+.toggle-switch input { margin: 0; }
+
+.static-filters { margin-bottom: 10px; }
+.filter-group { margin-bottom: 8px; }
+.label-row { font-size: 11px; color: #8aa0c0; margin-bottom: 4px; font-weight: bold; }
+.btn-container { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.btn-filter { background: #232b3a; border: 1px solid #3a445a; color: #b9c4d6; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; transition: 0.2s; }
+.btn-filter:hover { background: #2d374a; border-color: #51608a; }
+.btn-filter.active { background: #0e7490; color: white; border-color: var(--primary); box-shadow: 0 0 8px rgba(0, 242, 255, 0.25); }
+
+.btn-filter[data-kind="attr"][data-val="赤"].active { background: var(--color-red); border-color: var(--color-red); box-shadow: 0 0 8px rgba(255, 99, 71, 0.4); }
+.btn-filter[data-kind="attr"][data-val="緑"].active { background: var(--color-green); border-color: var(--color-green); color: #06270d; box-shadow: 0 0 8px rgba(50, 205, 50, 0.4); }
+.btn-filter[data-kind="attr"][data-val="黄"].active { background: var(--color-yellow); color: #332b00; border-color: var(--color-yellow); box-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+.btn-filter[data-kind="attr"][data-val="青"].active { background: var(--color-blue); border-color: var(--color-blue); box-shadow: 0 0 8px rgba(30, 144, 255, 0.4); }
+
+details.more-filters, details.save-load-details { margin-top: 10px; border-top: 1px dashed #3a445a; padding-top: 10px; }
+details.save-load-details { margin-top: 0; border-top: none; border-bottom: 1px solid #2b3342; padding-bottom: 10px; margin-bottom: 15px; }
+
+summary.more-summary { cursor: pointer; font-size: 12px; color: #8aa0c0; font-weight: bold; width: fit-content; }
+summary.more-summary:hover { color: var(--primary); }
+.details-content { margin-top: 10px; }
+
+.save-load-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 画面幅に合わせて調整 */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
 }
 
-/* =========================================
-   スマホの横画面（ランドスケープ）用
-========================================= */
-@media (max-width: 950px) and (orientation: landscape) {
-    /* 全体の上下余白をさらに削る */
-    body {
-        padding: 4px 10px;
-    }
-
-    .container {
-        padding: 8px 12px;
-    }
-
-    /* 見出しの高さを圧縮 */
-    h2, h3 {
-        margin: 5px 0 8px;
-        font-size: 1rem;
-    }
-
-    hr {
-        margin: 10px 0;
-    }
-
-    /* ▼ style.css用の編成エリア圧縮 ▼ */
-    .party-container {
-        padding: 5px;          /* 枠内の余白を最小化 */
-        margin-bottom: 15px;   /* 下のスペースも詰める */
-        min-height: auto;
-    }
-
-    .party-slot {
-        height: 85px;          /* 110pxから85pxへさらに縮小 */
-        justify-content: flex-start; /* アイコンを上詰めに配置 */
-        padding-top: 8px;      /* 上部に少しだけ隙間を確保 */
-    }
-
-    .party-slot img {
-        width: 38px;           /* アイコン画像を縮小 */
-        height: 38px;
-        margin-bottom: 2px;
-    }
-
-    .party-slot .char-name-party {
-        font-size: 0.75em;
-    }
-    .party-slot .char-pos, .party-slot .char-role {
-        font-size: 0.65em;
-    }
-
-    /* ▼ index.html用(.party-box等)の編成エリア圧縮 ▼ */
-    .party-box {
-        padding-top: 40px; /* 全解除ボタンのスペース確保 */
-        padding-bottom: 10px;
-    }
-    .party-slots { 
-        gap: 5px; 
-        flex-wrap: nowrap; /* 縦に折り返さず1行に収める */
-        min-height: auto;
-    }
-    .slot { 
-        flex: 1; 
-        min-width: 0; 
-        width: auto; 
-        padding: 5px 2px; 
-        border-width: 1px;
-    }
-    .slot img { 
-        width: 100%; 
-        height: auto; 
-        aspect-ratio: 1/1; 
-        max-width: 50px; /* アイコンを小さくする */
-        margin-bottom: 2px;
-    }
-    .slot-title { font-size: 9px; }
-    .slot-name { font-size: 10px; }
-    .pos-diff { font-size: 9px; padding: 1px 4px; }
-    .pos-val { font-size: 9px; }
-    .remove-btn { width: 18px; height: 18px; font-size: 12px; right: -4px; top: -4px; }
-
-    /* ▼ キャラ一覧のスクロール解除と全表示（両対応） ▼ */
-    .character-list,
-    .char-list-container {
-        max-height: none !important;
-        height: auto !important;
-        overflow-y: visible !important;
-        border: none !important;
-    }
+.save-slot {
+    display: flex; flex-direction: column; gap: 5px;
+    background: var(--bg-input); padding: 8px;
+    border-radius: 8px; border: 1px solid var(--border);
 }
 
-/* =========================================
-   スマホの縦画面（ポートレート）用
-========================================= */
+.slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.slot-label { font-size: 11px; color: #8aa0c0; font-weight: bold; }
+.btn-row { display: flex; gap: 5px; }
+
+.btn-save, .btn-load, .btn-delete { border: none; border-radius: 4px; padding: 3px 10px; font-size: 10px; cursor: pointer; color: white; transition: 0.2s; }
+.btn-save { background: #3a445a; }
+.btn-save:hover { background: #51608a; }
+.btn-load { background: #0369a1; }
+.btn-load:hover { background: #0284c7; box-shadow: 0 0 8px rgba(2, 132, 199, 0.4); }
+.btn-load:disabled { background: #232b3a; color: #4a5568; cursor: not-allowed; box-shadow: none; }
+.btn-delete { background: #7f1d1d; }
+.btn-delete:hover { background: #b91c1c; }
+.btn-delete:disabled { background: #232b3a; color: #4a5568; cursor: not-allowed; }
+
+.slot-preview {
+    display: flex; gap: 2px; align-items: center;
+    background: #0a0d13; padding: 4px; border-radius: 4px; border: 1px solid #2b3342;
+    height: 32px; overflow: hidden; justify-content: center;
+}
+.preview-img {
+    width: 28px; height: 28px; border-radius: 3px; object-fit: cover; border: 1px solid #555;
+}
+.no-data { font-size: 10px; color: #4a5568; }
+
+/* --- キャラリスト --- */
+.char-list-container { height: 500px; overflow-y: scroll; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: rgba(7, 9, 14, 0.9); }
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+
+.char-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: #1b212d; border-radius: 8px; cursor: pointer; border: 1px solid #2b3342; transition: 0.2s; position: relative; }
+.char-item:hover { background: #232b3a; transform: translateX(2px); border-color: #51608a; }
+
+.char-item.selected { background: rgba(0, 132, 199, 0.18); border-color: var(--primary); box-shadow: 0 0 8px rgba(0, 242, 255, 0.18); }
+.char-item.selected::after {
+    content: "✔"; position: absolute; top: -5px; right: -5px;
+    background: var(--primary); color: #001318; border-radius: 50%;
+    width: 16px; height: 16px; font-size: 10px; text-align: center; line-height: 16px; font-weight: bold;
+}
+
+.char-item img { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; flex-shrink: 0; border: 2px solid transparent; background: #232b3a; }
+.char-item.attr-赤 img { border-color: var(--color-red); }
+.char-item.attr-緑 img { border-color: var(--color-green); }
+.char-item.attr-黄 img { border-color: var(--color-yellow); }
+.char-item.attr-青 img { border-color: var(--color-blue); }
+
+.char-info { overflow: hidden; width: 100%; display: flex; flex-direction: column; justify-content: center; }
+.char-title { font-size: 10px; color: #aaa; white-space: nowrap; overflow: visible; line-height: 1.2; transform-origin: left center; width: 100%; display: block; }
+.char-name-main { font-size: 12px; font-weight: bold; color: #eee; white-space: nowrap; overflow: visible; line-height: 1.3; margin-bottom: 2px; transform-origin: left center; width: 100%; display: block; }
+.char-pos { font-size: 10px; color: #5b6b85; font-family: monospace; }
+
+/* フッター */
+.creator-link {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #2b3342;
+    text-align: center;
+    font-size: 12px;
+    color: #5b6b85;
+    line-height: 1.6;
+}
+.creator-link a { color: #8aa0c0; text-decoration: none; }
+.creator-link a:hover { color: var(--primary); text-decoration: underline; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #161b26; }
+::-webkit-scrollbar-thumb { background: #3a445a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #51608a; }
+
+/* スマホ用 (5つ横並び強制 & キャラ一覧自動調整) */
 @media (max-width: 600px) {
-    /* ▼ キャラ一覧のスクロール解除と全表示（両対応） ▼ */
-    .character-list,
-    .char-list-container {
-        max-height: none !important;
-        height: auto !important;
-        overflow-y: visible !important;
-        border: none !important;
+    body { padding: 10px; }
+    .page-header h1 { font-size: 1.15rem; }
+    .page-sub { font-size: 10px; }
+    h2 { font-size: 1.1rem; margin-bottom: 10px; }
+
+    .party-box {
+        padding: 45px 10px 10px;
     }
+
+    .party-slots {
+        gap: 2px;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        min-height: 140px;
+        overflow-x: auto;
+        padding-top: 10px;
+    }
+    .slot {
+        flex: 1; min-width: 0;
+        width: auto; padding: 4px 1px; border-width: 1px;
+    }
+    .slot img {
+        width: 100%; height: auto; aspect-ratio: 1/1;
+        max-width: 60px; border-width: 2px; margin-bottom: 2px;
+    }
+    .slot-empty-label { margin-top: 36px; font-size: 9px; }
+    .slot-empty-label span { font-size: 8px; }
+
+    .slot-title { font-size: 8px; }
+    .slot-name { font-size: 9px; }
+    .card-name { font-size: 10px; }
+    .pos-val { font-size: 9px; }
+    .pos-diff { font-size: 9px; padding: 1px 4px; }
+    .remove-btn { width: 18px; height: 18px; line-height: 18px; right: -4px; top: -4px; }
+    .usage-hint { font-size: 9px; }
+
+    .skill-grid { gap: 2px; }
+    .skill-card { padding: 4px; }
+
+    .save-load-container { grid-template-columns: 1fr; }
+
+    .char-grid {
+        grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+        gap: 4px;
+    }
+    .char-item {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 6px 2px;
+        gap: 2px;
+    }
+    .char-info {
+        align-items: center;
+        width: 100%;
+    }
+    .char-title {
+        text-align: center;
+        transform-origin: center;
+        font-size: 8px;
+    }
+    .char-name-main {
+        text-align: center;
+        transform-origin: center;
+        font-size: 10px;
+        margin-bottom: 0;
+    }
+    .char-pos {
+        display: none;
+    }
+    .char-item img {
+        margin: 0;
+        width: 40px; height: 40px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
