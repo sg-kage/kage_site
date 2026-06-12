@@ -211,16 +211,39 @@
   <div id="result"></div>
 
   <script>
-    // 組み合わせ探索ロジック
-    function combinations(arr, k) {
-      let res = [];
-      function helper(start, comb) {
-        if (comb.length > 0) res.push(comb);
-        for (let i = start; i < arr.length; i++) {
-          helper(i + 1, comb.concat([arr[i]]));
+    // 組み合わせ探索ロジック（枝刈り付きDFS・少ない個数の組み合わせから順に探索）
+    function findCombinations(nums, diff, maxResults) {
+      const n = nums.length;
+      // 枝刈り用: i番目以降を選んだ場合に加算できる最大値・最小値
+      const maxSuffix = new Array(n + 1).fill(0);
+      const minSuffix = new Array(n + 1).fill(0);
+      for (let i = n - 1; i >= 0; i--) {
+        maxSuffix[i] = maxSuffix[i + 1] + Math.max(nums[i], 0);
+        minSuffix[i] = minSuffix[i + 1] + Math.min(nums[i], 0);
+      }
+
+      const res = [];
+      const comb = [];
+
+      function dfs(start, sum, remaining) {
+        if (remaining === 0) {
+          if (sum === diff) res.push(comb.slice());
+          return;
+        }
+        for (let i = start; i <= n - remaining; i++) {
+          const s = sum + nums[i];
+          // 残りをどう選んでも diff に届かない／必ず超える枝は打ち切り
+          if (s + maxSuffix[i + 1] < diff || s + minSuffix[i + 1] > diff) continue;
+          comb.push(nums[i]);
+          dfs(i + 1, s, remaining - 1);
+          comb.pop();
+          if (res.length >= maxResults) return;
         }
       }
-      helper(0, []);
+
+      for (let k = 1; k <= n && res.length < maxResults; k++) {
+        dfs(0, 0, k);
+      }
       return res;
     }
 
@@ -271,9 +294,9 @@
         return;
       }
       
-      // 計算量爆発の抑止
-      if (nums.length > 22) {
-         if(!confirm(`入力された数値の個数(${nums.length})が多いため、計算に時間がかかります。\n続行しますか？`)) {
+      // 計算量爆発の抑止（枝刈り探索で高速化済みのため閾値を緩和）
+      if (nums.length > 40) {
+         if(!confirm(`入力された数値の個数(${nums.length})が多いため、計算に時間がかかる場合があります。\n続行しますか？`)) {
            return;
          }
       }
@@ -295,16 +318,7 @@
 
       // 画面更新を待つためにsetTimeoutを使用
       setTimeout(() => {
-        let res = [];
-        // ソートして探索
-        const allCombs = combinations(nums, nums.length).sort((a,b)=>a.length-b.length);
-        
-        for (let c of allCombs) {
-          if (c.reduce((a,b)=>a+b,0) === diff) {
-            res.push(c);
-          }
-          if(res.length >= maxResults) break;
-        }
+        const res = findCombinations(nums, diff, maxResults);
 
         let html = `<b>■結果</b><br>`;
         if (res.length === 0) {
