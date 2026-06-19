@@ -148,7 +148,7 @@
             }
 
             // JSONの取得先を kage_character サイトに変更
-            fetch('https://sg-kage.github.io/kage_character/characters/all_characters.json')
+            fetch('https://sg-kage.github.io/kage_character/characters/all_characters_ja.json')
                 .then(res => res.json())
                 .then(data => {
                     state.allChars = data.map(c => preprocessCharacter(c));
@@ -158,7 +158,7 @@
                     updatePartyUI();
                     window.addEventListener('resize', adjustNameSizes);
                 })
-                .catch(err => alert("データ読み込みエラー: all_characters.json"));
+                .catch(err => alert("データ読み込みエラー: all_characters_ja.json"));
 
             document.getElementById('searchBox').addEventListener('input', (e) => {
                 state.filters.text = e.target.value;
