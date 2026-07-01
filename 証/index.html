@@ -73,10 +73,11 @@
       <div class="card">
         <div id="savedMsg1" class="saved-toast">保存完了</div>
         <div class="mode-info">
-          60：最小消費で60単位 / 120：120単位優先<br>最大：目標スタミナ維持しつつ証を最大獲得
+          60：最小消費で60単位 / 90：90単位優先 / 120：120単位優先<br>最大：目標スタミナ維持しつつ証を最大獲得
         </div>
         <div class="mode-switch">
           <label><input type="radio" name="mode" value="MIN" checked> 60</label>
+          <label><input type="radio" name="mode" value="MAX_90"> 90</label>
           <label><input type="radio" name="mode" value="MAX_120"> 120</label>
           <label><input type="radio" name="mode" value="LIMIT"> 最大</label>
         </div>
@@ -171,15 +172,24 @@
         const mustC = (stamina + bonusStamina + recovery) - targetStamina;
         if (mustC >= 0 && mustC % 10 === 0) {
           const finalT = ticket + (mustC / 10);
-          if (finalT % 60 === 0) res.push({finalTicket: finalT, consume: mustC, items: {sand:sandCount, burger:b, stone:s}, mod: (finalT % 120 === 0 ? 120 : 60)});
+          const is60 = finalT % 60 === 0, is90 = finalT % 90 === 0, is120 = finalT % 120 === 0;
+          if (is60 || is90) {
+            const modTier = is120 ? 120 : (is90 ? 90 : 60);
+            res.push({finalTicket: finalT, consume: mustC, items: {sand:sandCount, burger:b, stone:s}, mod: modTier, is60, is90, is120});
+          }
         }
       }
     }
     if (!res.length) return null;
     let best;
-    if (mode === 'MIN') best = res.sort((a,b)=>a.consume - b.consume)[0];
-    else if (mode === 'MAX_120') {
-      let r120 = res.filter(r=>r.mod === 120).sort((a,b)=>a.consume - b.consume);
+    if (mode === 'MIN') {
+      let r60 = res.filter(r=>r.is60).sort((a,b)=>a.consume - b.consume);
+      best = r60.length ? r60[0] : res.sort((a,b)=>a.consume - b.consume)[0];
+    } else if (mode === 'MAX_90') {
+      let r90 = res.filter(r=>r.is90).sort((a,b)=>a.consume - b.consume);
+      best = r90.length ? r90[0] : res.sort((a,b)=>a.consume - b.consume)[0];
+    } else if (mode === 'MAX_120') {
+      let r120 = res.filter(r=>r.is120).sort((a,b)=>a.consume - b.consume);
       best = r120.length ? r120[0] : res.sort((a,b)=>a.consume - b.consume)[0];
     } else {
       best = res.sort((a,b)=>b.finalTicket - a.finalTicket)[0];
