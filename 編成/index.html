@@ -23,13 +23,13 @@
         <div class="usage-hint">スロットのキャラをタップ＝基準に設定（各キャラとのPos差を表示）／ もう一度タップで解除</div>
     </div>
 
-    <div style="margin-bottom: 5px; text-align: right; display: flex; gap: 10px; justify-content: flex-end;">
-        <select id="layoutSelect" class="sort-select" onchange="changeLayoutMode()" style="font-size: 12px; padding: 4px;">
+    <div class="view-options">
+        <select id="layoutSelect" class="sort-select" onchange="changeLayoutMode()">
             <option value="left">並び：左が前衛</option>
             <option value="right">並び：右が前衛</option>
         </select>
 
-        <select id="displayModeSelect" class="sort-select" onchange="updateSkillDisplay()" style="font-size: 12px; padding: 4px;">
+        <select id="displayModeSelect" class="sort-select" onchange="updateSkillDisplay()">
             <option value="none" selected>表示無</option>
             <option value="summary">概要を表示</option>
             <option value="full">詳細を表示</option>
@@ -37,22 +37,25 @@
     </div>
 
     <div class="skill-grid" id="skillGrid"></div>
-    <div style="text-align: right; font-size: 11px; color: #aaa; margin-bottom: 5px;" id="hitCount">HIT: 0件</div>
+    <div class="hit-count" id="hitCount">HIT: 0件</div>
 
     <div class="control-panel">
         <details class="save-load-details">
             <summary class="more-summary">▼ 編成パターンの保存・読込・削除</summary>
-            <div class="save-load-container" id="saveLoadArea">
-                </div>
+            <div class="save-load-container" id="saveLoadArea"></div>
         </details>
 
         <div class="controls-row">
-            <input type="text" id="searchBox" class="search-box" placeholder="検索: 名前, 特技:気絶 など">
+            <div class="search-wrap">
+                <input type="text" id="searchBox" class="search-box" placeholder="検索: 名前, 特技:気絶 など">
+                <button id="searchClear" class="search-clear" title="検索をクリア" hidden>×</button>
+            </div>
             <select id="sortSelect" class="sort-select" onchange="renderCharList()">
                 <option value="id_asc" selected>標準</option>
                 <option value="pos_asc">Pos順 (前衛から)</option>
                 <option value="pos_desc">Pos順 (後衛から)</option>
             </select>
+            <button id="filterResetBtn" class="filter-reset-btn" onclick="resetAllFilters()" hidden>解除</button>
         </div>
 
         <div class="static-filters">
@@ -98,37 +101,40 @@
     </footer>
 
     <script>
+        // =====================================================
+        // 定数・状態
+        // =====================================================
         const CONFIG = {
             attributes: ["赤", "緑", "黄", "青"],
             roles: ["アタッカー", "タンク", "サポーター"],
-            // 画像の参照先を kage_character サイトに変更
+            // 画像・JSONの参照先は kage_character サイト
             imgDir: 'https://sg-kage.github.io/kage_character/image/characters/',
             ext: '.webp',
             REGEX: {
-                cleanName: /\[.*$/, 
-                effects: /『([^』]+)』/g, 
-                splitColon: /[:：]/,
-                titlePart: /\[(.*)\]$/
+                effects: /『([^』]+)』/g
             },
             STORAGE_KEY_PREFIX: 'kage_party_slot_',
             STORAGE_KEY_LAYOUT: 'kage_layout_mode'
         };
 
-        // 検索フィールドのマッピング定義
+        // 画像欠損時のフォールバック（1px透明GIF）
+        const FALLBACK_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+        // 検索フィールドのマッピング定義（"特技:気絶" 形式）
         const FIELD_MAP = {
-            "特殊": ["traits"], 
-            "特技": ["skill1", "skill2"], 
-            "奥義": ["ultimate","ex_ultimate"],
-            "魔道具": ["magic_item1", "magic_item2"], 
-            "コンボ": ["combo"], 
+            "特殊": ["traits"],
+            "特技": ["skill1", "skill2"],
+            "奥義": ["ultimate", "ex_ultimate"],
+            "魔道具": ["magic_item1", "magic_item2"],
+            "コンボ": ["combo"],
             "通常": ["normal_attack"]
         };
 
         let state = {
             allChars: [],
             party: [],
-            referenceCharID: null, 
-            layoutMode: 'left', // 'right' or 'left'
+            referenceCharID: null,
+            layoutMode: 'left', // 'left' or 'right'
             filters: {
                 attr: new Set(),
                 role: new Set(),
@@ -139,33 +145,55 @@
             }
         };
 
+        // =====================================================
+        // 初期化
+        // =====================================================
         document.addEventListener('DOMContentLoaded', () => {
-            // レイアウトモードの読み込み
             const savedLayout = localStorage.getItem(CONFIG.STORAGE_KEY_LAYOUT);
             if (savedLayout) {
                 state.layoutMode = savedLayout;
                 document.getElementById('layoutSelect').value = savedLayout;
             }
 
-            // JSONの取得先を kage_character サイトに変更
             fetch('https://sg-kage.github.io/kage_character/characters/all_characters_ja.json')
                 .then(res => res.json())
                 .then(data => {
                     state.allChars = data.map(c => preprocessCharacter(c));
                     createFilterButtons();
-                    renderSaveLoadButtons(); 
+                    renderSaveLoadButtons();
                     renderCharList();
                     updatePartyUI();
-                    window.addEventListener('resize', adjustNameSizes);
+                    window.addEventListener('resize', debounce(adjustNameSizes, 150));
                 })
                 .catch(err => alert("データ読み込みエラー: all_characters_ja.json"));
 
-            document.getElementById('searchBox').addEventListener('input', (e) => {
+            const searchBox = document.getElementById('searchBox');
+            const searchClear = document.getElementById('searchClear');
+            searchBox.addEventListener('input', (e) => {
                 state.filters.text = e.target.value;
+                searchClear.hidden = !e.target.value;
                 renderCharList();
+            });
+            searchClear.addEventListener('click', () => {
+                searchBox.value = '';
+                state.filters.text = '';
+                searchClear.hidden = true;
+                renderCharList();
+                searchBox.focus();
             });
         });
 
+        function debounce(fn, ms) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), ms);
+            };
+        }
+
+        // =====================================================
+        // データ処理
+        // =====================================================
         function preprocessCharacter(char) {
             const jsonStr = JSON.stringify(char);
             const effects = new Set();
@@ -176,7 +204,7 @@
             char._effects = Array.from(effects);
             // 検索用のテキスト生成（全データを含める）
             char._searchText = jsonStr.toLowerCase();
-            
+
             const nameMatch = char.name.match(/^(.+?)([\[［].+[\]］])$/);
             if (nameMatch) {
                 char._shortName = nameMatch[1];
@@ -188,101 +216,13 @@
             return char;
         }
 
-        // --- レイアウト変更 ---
-        function changeLayoutMode() {
-            const val = document.getElementById('layoutSelect').value;
-            state.layoutMode = val;
-            localStorage.setItem(CONFIG.STORAGE_KEY_LAYOUT, val);
-            updatePartyUI();
+        function imgUrl(char) {
+            return `${CONFIG.imgDir}${encodeURIComponent(char.name)}${CONFIG.ext}`;
         }
 
-        // --- 基準キャラのセット・トグル ---
-        function setReference(id) {
-            if (state.referenceCharID === id) {
-                state.referenceCharID = null;
-            } else {
-                state.referenceCharID = id;
-            }
-            updatePartyUI();
-        }
-
-        // --- 全解除 ---
-        function clearAllParty() {
-            if (state.party.length === 0) return;
-            if(!confirm("現在の編成を全て解除しますか？")) return;
-            state.party = [];
-            state.referenceCharID = null; 
-            updatePartyUI();
-            renderCharList();
-        }
-
-        // --- 保存・削除機能 ---
-        function renderSaveLoadButtons() {
-            const container = document.getElementById('saveLoadArea');
-            container.innerHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                const div = document.createElement('div');
-                div.className = 'save-slot';
-                
-                const json = localStorage.getItem(CONFIG.STORAGE_KEY_PREFIX + i);
-                const ids = json ? JSON.parse(json) : [];
-                const canLoad = ids.length > 0;
-
-                let previewHtml = '';
-                if (canLoad) {
-                    const chars = ids.map(id => state.allChars.find(c => c.CharacterID === id)).filter(c => c);
-                    chars.forEach(c => {
-                        previewHtml += `<img src="${CONFIG.imgDir}${c.name}${CONFIG.ext}" class="preview-img" title="${c._shortName}">`;
-                    });
-                } else {
-                    previewHtml = '<span class="no-data">データなし</span>';
-                }
-
-                div.innerHTML = `
-                    <div class="slot-header">
-                        <span class="slot-label">パターン${i}</span>
-                        <div class="btn-row">
-                            <button class="btn-save" onclick="saveParty(${i})">保存</button>
-                            <button class="btn-load" onclick="loadParty(${i})" ${canLoad ? '' : 'disabled'}>読み出し</button>
-                            <button class="btn-delete" onclick="deleteParty(${i})" ${canLoad ? '' : 'disabled'}>削除</button>
-                        </div>
-                    </div>
-                    <div class="slot-preview">${previewHtml}</div>
-                `;
-                container.appendChild(div);
-            }
-        }
-
-        function saveParty(slotIndex) {
-            if (state.party.length === 0) {
-                if(!confirm("編成が空です。空の状態を保存しますか？")) return;
-            }
-            const ids = state.party.map(c => c.CharacterID);
-            localStorage.setItem(CONFIG.STORAGE_KEY_PREFIX + slotIndex, JSON.stringify(ids));
-            renderSaveLoadButtons();
-        }
-
-        function loadParty(slotIndex) {
-            const json = localStorage.getItem(CONFIG.STORAGE_KEY_PREFIX + slotIndex);
-            if (!json) return;
-            try {
-                const ids = JSON.parse(json);
-                state.party = ids.map(id => state.allChars.find(c => c.CharacterID === id)).filter(c => c);
-                state.referenceCharID = null; 
-                updatePartyUI();
-                renderCharList();
-            } catch (e) {
-                console.error("Load failed", e);
-            }
-        }
-
-        function deleteParty(slotIndex) {
-            if(!confirm(`パターン${slotIndex}のデータを削除しますか？`)) return;
-            localStorage.removeItem(CONFIG.STORAGE_KEY_PREFIX + slotIndex);
-            renderSaveLoadButtons();
-        }
-
-        // --- フィルタ・リスト表示 ---
+        // =====================================================
+        // フィルタ
+        // =====================================================
         function createFilterButtons() {
             createBtns('filter-attr', CONFIG.attributes, 'attr');
             createBtns('filter-role', CONFIG.roles, 'role');
@@ -303,7 +243,7 @@
         function createBtns(containerId, items, type) {
             const container = document.getElementById(containerId);
             items.forEach(item => {
-                if(!item) return;
+                if (!item) return;
                 const btn = document.createElement('div');
                 btn.className = 'btn-filter';
                 btn.textContent = item;
@@ -326,6 +266,32 @@
             renderCharList();
         }
 
+        function countActiveFilters() {
+            const f = state.filters;
+            return f.attr.size + f.role.size + f.group.size + f.effect.size + f.name.size
+                + (f.text.trim() ? 1 : 0);
+        }
+
+        function resetAllFilters() {
+            const f = state.filters;
+            f.attr.clear(); f.role.clear(); f.group.clear(); f.effect.clear(); f.name.clear();
+            f.text = "";
+            document.querySelectorAll('.btn-filter.active').forEach(b => b.classList.remove('active'));
+            document.getElementById('searchBox').value = '';
+            document.getElementById('searchClear').hidden = true;
+            renderCharList();
+        }
+
+        function updateFilterResetBtn() {
+            const btn = document.getElementById('filterResetBtn');
+            const count = countActiveFilters();
+            btn.hidden = count === 0;
+            btn.textContent = `解除 (${count})`;
+        }
+
+        // =====================================================
+        // キャラリスト表示
+        // =====================================================
         function renderCharList() {
             const listEl = document.getElementById('charList');
             const sortMode = document.getElementById('sortSelect').value;
@@ -370,13 +336,13 @@
             });
 
             results.sort((a, b) => {
-                if (sortMode === 'id_asc') return a.CharacterID - b.CharacterID;
-                if (sortMode === 'pos_asc') return (a.position || 9999) - (b.position || 9999);
-                if (sortMode === 'pos_desc') return (b.position || 0) - (a.position || 0);
-                return 0;
+                if (sortMode === 'pos_asc') return ((a.position || 9999) - (b.position || 9999)) || (a.CharacterID - b.CharacterID);
+                if (sortMode === 'pos_desc') return ((b.position || 0) - (a.position || 0)) || (a.CharacterID - b.CharacterID);
+                return a.CharacterID - b.CharacterID;
             });
 
             document.getElementById('hitCount').textContent = `HIT: ${results.length}件`;
+            updateFilterResetBtn();
 
             results.forEach(char => {
                 const div = document.createElement('div');
@@ -384,9 +350,8 @@
                 const isInParty = state.party.find(p => p.CharacterID === char.CharacterID);
                 if (isInParty) div.classList.add('selected');
 
-                const imgSrc = `${CONFIG.imgDir}${char.name}${CONFIG.ext}`;
                 div.innerHTML = `
-                    <img src="${imgSrc}" onerror="this.onerror=null;this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">
+                    <img src="${imgUrl(char)}" alt="${char._shortName}" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">
                     <div class="char-info">
                         <div class="char-title scale-target-left">${char._title || ''}</div>
                         <div class="char-name-main scale-target-left">${char._shortName}</div>
@@ -399,11 +364,12 @@
             adjustNameSizes();
         }
 
+        // 親幅からはみ出す名前を縮小表示する
         function adjustNameSizes() {
             document.querySelectorAll('.scale-target-left').forEach(el => applyScale(el, 'left'));
             document.querySelectorAll('.scale-target-center').forEach(el => applyScale(el, 'center'));
         }
-        
+
         function applyScale(el, origin) {
             el.style.transform = 'none';
             const parentW = el.parentElement.clientWidth;
@@ -415,6 +381,9 @@
             }
         }
 
+        // =====================================================
+        // パーティ編成
+        // =====================================================
         function togglePartySelection(char) {
             const existing = state.party.find(p => p.CharacterID === char.CharacterID);
             if (existing) {
@@ -437,17 +406,37 @@
             renderCharList();
         }
 
-        // --- UI更新ロジック (並び替え対応) ---
+        function clearAllParty() {
+            if (state.party.length === 0) return;
+            if (!confirm("現在の編成を全て解除しますか？")) return;
+            state.party = [];
+            state.referenceCharID = null;
+            updatePartyUI();
+            renderCharList();
+        }
+
+        // 基準キャラのセット・トグル
+        function setReference(id) {
+            state.referenceCharID = (state.referenceCharID === id) ? null : id;
+            updatePartyUI();
+        }
+
+        function changeLayoutMode() {
+            const val = document.getElementById('layoutSelect').value;
+            state.layoutMode = val;
+            localStorage.setItem(CONFIG.STORAGE_KEY_LAYOUT, val);
+            updatePartyUI();
+        }
+
+        // --- パーティUI更新（並び替え対応） ---
         function updatePartyUI() {
             const isLeftMode = state.layoutMode === 'left';
 
-            // ソート順を変更
+            // 左詰め：Pos昇順／右詰め：Pos降順（同PosはID順で安定化）
             if (isLeftMode) {
-                // 左詰め：Pos昇順 (小->大)
-                state.party.sort((a, b) => (a.position || 0) - (b.position || 0));
+                state.party.sort((a, b) => ((a.position || 0) - (b.position || 0)) || (a.CharacterID - b.CharacterID));
             } else {
-                // 右詰め：Pos降順 (大->小)
-                state.party.sort((a, b) => (b.position || 0) - (a.position || 0));
+                state.party.sort((a, b) => ((b.position || 0) - (a.position || 0)) || (a.CharacterID - b.CharacterID));
             }
 
             const slotsEl = document.getElementById('partySlots');
@@ -467,16 +456,14 @@
                 let char = null;
                 let isEmpty = false;
 
-                // 左詰め・右詰めの配置ロジック
+                // 左詰め: [Char, ..., Empty] ／ 右詰め: [Empty, ..., Char]
                 if (isLeftMode) {
-                    // 左詰め: [Char, Char, Char, Empty, Empty]
                     if (i < state.party.length) {
                         char = state.party[i];
                     } else {
                         isEmpty = true;
                     }
                 } else {
-                    // 右詰め: [Empty, Empty, Char, Char, Char]
                     if (i < emptyCount) {
                         isEmpty = true;
                     } else {
@@ -489,7 +476,6 @@
                     slot.innerHTML = `<div class="slot-empty-label">EMPTY<span>下のリストから追加</span></div>`;
                 } else {
                     slot.className = `slot filled attr-${char.attribute}`;
-                    const imgSrc = `${CONFIG.imgDir}${char.name}${CONFIG.ext}`;
 
                     const isReference = (state.referenceCharID === char.CharacterID);
                     if (isReference) {
@@ -498,16 +484,16 @@
 
                     // 距離表示の計算ロジック
                     let diffDisplay = "";
-                    
+
                     if (state.referenceCharID) {
                         // 【基準モード】選択中のキャラからの相対距離
                         if (isReference) {
-                            diffDisplay = `<div class="pos-diff" style="background:#fff; color:#000; border:none;">基準</div>`;
+                            diffDisplay = `<div class="pos-diff is-base">基準</div>`;
                         } else {
                             const diff = (char.position || 0) - (refChar.position || 0);
                             const sign = diff > 0 ? "+" : "";
-                            const color = diff > 0 ? "#ffca28" : "#4db8ff"; // 後ろ(+)は黄色、前(-)は青
-                            diffDisplay = `<div class="pos-diff" style="color:${color}">${sign}${diff}</div>`;
+                            const cls = diff > 0 ? "is-back" : "is-front"; // 後ろ(+)は黄色、前(-)は青
+                            diffDisplay = `<div class="pos-diff ${cls}">${sign}${diff}</div>`;
                         }
                     } else {
                         // 【通常モード】自分より「前（Pos小）」のキャラとの距離を表示
@@ -515,12 +501,12 @@
                         let prevChar = null;
 
                         if (isLeftMode) {
-                            // 左詰め(昇順): [前]...[後]。前のキャラは index - 1
+                            // 左詰め(昇順): 前のキャラは index - 1
                             if (charIndexInParty > 0) {
                                 prevChar = state.party[charIndexInParty - 1];
                             }
                         } else {
-                            // 右詰め(降順): [後]...[前]。前のキャラは index + 1
+                            // 右詰め(降順): 前のキャラは index + 1
                             if (charIndexInParty < state.party.length - 1) {
                                 prevChar = state.party[charIndexInParty + 1];
                             }
@@ -531,7 +517,7 @@
                             const diff = (char.position || 0) - (prevChar.position || 0);
                             diffDisplay = `<div class="pos-diff">+${diff}</div>`;
                         } else {
-                            diffDisplay = `<div class="pos-diff" style="color:#888; border:none; background:transparent;">Top</div>`;
+                            diffDisplay = `<div class="pos-diff is-top">Top</div>`;
                         }
                     }
 
@@ -542,7 +528,7 @@
 
                     slot.innerHTML = `
                         <button class="remove-btn" onclick="removeFromParty(${char.CharacterID})">×</button>
-                        <img src="${imgSrc}" alt="${char._shortName}">
+                        <img src="${imgUrl(char)}" alt="${char._shortName}" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">
                         <div class="slot-text-container">
                             <span class="slot-title scale-target-center">${char._title || ''}</span>
                             <span class="slot-name scale-target-center">${char._shortName}</span>
@@ -558,6 +544,9 @@
             adjustNameSizes();
         }
 
+        // =====================================================
+        // スキルカード
+        // =====================================================
         function getSkillText(data) {
             if (!data) return null;
             if (Array.isArray(data)) {
@@ -571,26 +560,23 @@
         function addSkillCard(char, container) {
             const card = document.createElement('div');
             card.className = `skill-card attr-${char.attribute}`;
-            
+
             const groups = (char.group || []).map(g => `<span class="tag-group">${g}</span>`).join("");
             const effectTags = (char._effects || []).map(e => `<span class="tag-effect">${e}</span>`).join("");
-            
-            const exUlt = getSkillText(char.ex_ultimate);
-            const ult = getSkillText(char.ultimate);
-            const s1 = getSkillText(char.skill1);
-            const s2 = getSkillText(char.skill2);
-            const traits = getSkillText(char.traits); 
-            const item1 = getSkillText(char.magic_item1);
-            const item2 = getSkillText(char.magic_item2);
 
-            let detailsHtml = "";
-            if (exUlt) detailsHtml += `<div class="skill-section"><span class="skill-label">究極奥義</span><div class="skill-text">${exUlt}</div></div>`;
-            if (ult)   detailsHtml += `<div class="skill-section"><span class="skill-label">奥義</span><div class="skill-text">${ult}</div></div>`;
-            if (s1)    detailsHtml += `<div class="skill-section"><span class="skill-label">特技1</span><div class="skill-text">${s1}</div></div>`;
-            if (s2)    detailsHtml += `<div class="skill-section"><span class="skill-label">特技2</span><div class="skill-text">${s2}</div></div>`;
-            if (traits) detailsHtml += `<div class="skill-section"><span class="skill-label">特殊</span><div class="skill-text">${traits}</div></div>`;
-            if (item1) detailsHtml += `<div class="skill-section"><span class="skill-label">魔道具1</span><div class="skill-text">${item1}</div></div>`;
-            if (item2) detailsHtml += `<div class="skill-section"><span class="skill-label">魔道具2</span><div class="skill-text">${item2}</div></div>`;
+            const sections = [
+                ["究極奥義", getSkillText(char.ex_ultimate)],
+                ["奥義", getSkillText(char.ultimate)],
+                ["特技1", getSkillText(char.skill1)],
+                ["特技2", getSkillText(char.skill2)],
+                ["特殊", getSkillText(char.traits)],
+                ["魔道具1", getSkillText(char.magic_item1)],
+                ["魔道具2", getSkillText(char.magic_item2)]
+            ];
+            const detailsHtml = sections
+                .filter(([, text]) => text)
+                .map(([label, text]) => `<div class="skill-section"><span class="skill-label">${label}</span><div class="skill-text">${text}</div></div>`)
+                .join("");
 
             card.innerHTML = `
                 <div class="card-header">
@@ -617,7 +603,7 @@
             if (mode === 'none') {
                 skillGrid.style.display = 'none';
             } else {
-                skillGrid.style.display = 'grid'; 
+                skillGrid.style.display = 'grid';
                 details.forEach(el => {
                     if (mode === 'full') {
                         el.classList.add('visible');
@@ -625,7 +611,77 @@
                         el.classList.remove('visible');
                     }
                 });
+                // 非表示中は幅0で計測されるため、表示後に名前スケールを再計算する
+                adjustNameSizes();
             }
+        }
+
+        // =====================================================
+        // 編成パターンの保存・読込・削除
+        // =====================================================
+        function renderSaveLoadButtons() {
+            const container = document.getElementById('saveLoadArea');
+            container.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const div = document.createElement('div');
+                div.className = 'save-slot';
+
+                const json = localStorage.getItem(CONFIG.STORAGE_KEY_PREFIX + i);
+                const ids = json ? JSON.parse(json) : [];
+                const canLoad = ids.length > 0;
+
+                let previewHtml = '';
+                if (canLoad) {
+                    const chars = ids.map(id => state.allChars.find(c => c.CharacterID === id)).filter(c => c);
+                    chars.forEach(c => {
+                        previewHtml += `<img src="${imgUrl(c)}" class="preview-img" alt="${c._shortName}" title="${c._shortName}" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">`;
+                    });
+                } else {
+                    previewHtml = '<span class="no-data">データなし</span>';
+                }
+
+                div.innerHTML = `
+                    <div class="slot-header">
+                        <span class="slot-label">パターン${i}</span>
+                        <div class="btn-row">
+                            <button class="btn-save" onclick="saveParty(${i})">保存</button>
+                            <button class="btn-load" onclick="loadParty(${i})" ${canLoad ? '' : 'disabled'}>読み出し</button>
+                            <button class="btn-delete" onclick="deleteParty(${i})" ${canLoad ? '' : 'disabled'}>削除</button>
+                        </div>
+                    </div>
+                    <div class="slot-preview">${previewHtml}</div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        function saveParty(slotIndex) {
+            if (state.party.length === 0) {
+                if (!confirm("編成が空です。空の状態を保存しますか？")) return;
+            }
+            const ids = state.party.map(c => c.CharacterID);
+            localStorage.setItem(CONFIG.STORAGE_KEY_PREFIX + slotIndex, JSON.stringify(ids));
+            renderSaveLoadButtons();
+        }
+
+        function loadParty(slotIndex) {
+            const json = localStorage.getItem(CONFIG.STORAGE_KEY_PREFIX + slotIndex);
+            if (!json) return;
+            try {
+                const ids = JSON.parse(json);
+                state.party = ids.map(id => state.allChars.find(c => c.CharacterID === id)).filter(c => c);
+                state.referenceCharID = null;
+                updatePartyUI();
+                renderCharList();
+            } catch (e) {
+                console.error("Load failed", e);
+            }
+        }
+
+        function deleteParty(slotIndex) {
+            if (!confirm(`パターン${slotIndex}のデータを削除しますか？`)) return;
+            localStorage.removeItem(CONFIG.STORAGE_KEY_PREFIX + slotIndex);
+            renderSaveLoadButtons();
         }
     </script>
 </body>
