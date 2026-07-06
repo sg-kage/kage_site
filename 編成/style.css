@@ -109,7 +109,7 @@ h2 { border-left: 4px solid var(--primary); padding-left: 12px; margin-bottom: 1
 }
 .clear-all-btn:hover { background: #d32f2f; box-shadow: 0 0 10px rgba(255, 77, 77, 0.4); }
 
-.share-btn {
+.copy-url-btn {
     position: absolute;
     top: 10px;
     right: 80px;
@@ -123,8 +123,8 @@ h2 { border-left: 4px solid var(--primary); padding-left: 12px; margin-bottom: 1
     z-index: 1001;
     transition: 0.2s;
 }
-.share-btn:hover { background: #0369a1; box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
-.share-btn:disabled { background: #166534; border-color: #22c55e; cursor: default; }
+.copy-url-btn:hover { background: #0369a1; box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
+.copy-url-btn:disabled { background: #166534; border-color: #22c55e; cursor: default; }
 
 .party-slots {
     display: flex; gap: 8px; justify-content: center; min-height: 190px; flex-wrap: wrap; margin-top: 10px;
