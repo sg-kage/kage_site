@@ -13,7 +13,12 @@
 </head>
 <body>
     <div class="dashboard">
-        <header class="top-nav">
+        <header class="page-header">
+            <h1>📊 ギルド統計</h1>
+            <p class="page-sub">魔界殲滅戦争・シーズンイベントのギルドランキング。ギルド名タップで順位推移グラフを表示</p>
+        </header>
+
+        <div class="top-nav">
             <div class="mode-tabs">
                 <button class="mode-tab active" data-mode="ex">殲滅戦</button>
                 <button class="mode-tab" data-mode="ss">シーズン</button>
@@ -25,10 +30,14 @@
                 </div>
                 <div class="input-group">
                     <label>検索</label>
-                    <input type="text" id="search-input" placeholder="ギルド名...">
+                    <div class="search-wrap">
+                        <input type="text" id="search-input" placeholder="ギルド名...">
+                        <button id="search-clear" class="search-clear" title="検索をクリア" hidden>×</button>
+                    </div>
                 </div>
             </div>
-        </header>
+            <div class="hit-count" id="hit-count"></div>
+        </div>
 
         <div class="scroll-container">
             <table class="analysis-table" id="main-table">
@@ -37,6 +46,11 @@
                 <tbody id="ranking-body"></tbody>
             </table>
         </div>
+
+        <footer class="creator-link">
+            作成者: <a href="https://x.com/kagenotify" target="_blank" rel="noopener">kagenotify（X／旧Twitter）</a> ／
+            Discord鯖: <a href="http://discord.gg/SfMWv5UPad" target="_blank" rel="noopener">陰マス通知</a>
+        </footer>
     </div>
 
     <div id="chart-modal" class="modal">

@@ -3,6 +3,8 @@ const tableHead = document.getElementById('table-head');
 const tableBody = document.getElementById('ranking-body');
 const eventSelect = document.getElementById('event-select');
 const searchInput = document.getElementById('search-input');
+const searchClearBtn = document.getElementById('search-clear');
+const hitCount = document.getElementById('hit-count');
 const tabs = document.querySelectorAll('.mode-tab');
 
 const modal = document.getElementById('chart-modal');
@@ -56,6 +58,11 @@ function updateEventDropdown() {
 
 eventSelect.addEventListener('change', (e) => loadRanking(e.target.value));
 searchInput.addEventListener('input', applyFilter);
+searchClearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    applyFilter();
+    searchInput.focus();
+});
 
 window.addEventListener('resize', () => {
     renderColgroups(currentMode);
@@ -144,18 +151,29 @@ function getRankBadge(rank) {
 
 function renderSeasonRow(item, first, prev) {
     const s = item.score || 0;
-    return `<td class="col-rank">${getRankBadge(item.rank || "－")}</td><td class="col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="total-val">${s.toLocaleString()}</td><td>${item.members || 20}</td><td>${(s/1000/(item.members||20)).toFixed(1)}</td><td class="dim-num">${(first.score-s).toLocaleString()}</td><td class="dim-num">${(prev.score-s).toLocaleString()}</td>`;
+    return `<td class="col-rank">${getRankBadge(item.rank || "－")}</td><td class="col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td><td class="num-cell"><span class="total-val">${s.toLocaleString()}</span></td><td>${item.members || 20}</td><td class="num-cell"><span class="total-val">${(s/1000/(item.members||20)).toFixed(1)}</span></td><td class="num-cell dim-num">${(first.score-s).toLocaleString()}</td><td class="num-cell dim-num">${(prev.score-s).toLocaleString()}</td>`;
 }
 
 function renderExRow(item, allData, index) {
-    const p = (r, s, isD) => `<td class="col-sub-rank">${getRankBadge(r)}</td><td><span class="${isD ? 'day-val' : 'total-val'}">${s.toLocaleString()}</span></td>`;
-    return `<td class="col-rank">${getRankBadge(item.rank_t3)}</td><td class="col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${p(item.rank_t1, item.t1, false)}${p(item.rank_t2, item.t2, false)}${p(item.rank_t3, item.t3, false)}<td class="dim-num">${(allData[0].t3-item.t3).toLocaleString()}</td><td class="dim-num">${((allData[index===0?0:index-1].t3)-item.t3).toLocaleString()}</td>${p(item.rank_d1, item.d1, true)}${p(item.rank_d2, item.d2, true)}${p(item.rank_d3, item.d3, true)}`;
+    const p = (r, s, isD) => `<td class="col-sub-rank">${getRankBadge(r)}</td><td class="num-cell"><span class="${isD ? 'day-val' : 'total-val'}">${s.toLocaleString()}</span></td>`;
+    return `<td class="col-rank">${getRankBadge(item.rank_t3)}</td><td class="col-name"><div class="name-scaler-wrap"><span class="name-scaler-text">${item.guildName}</span></div></td>${p(item.rank_t1, item.t1, false)}${p(item.rank_t2, item.t2, false)}${p(item.rank_t3, item.t3, false)}<td class="num-cell dim-num">${(allData[0].t3-item.t3).toLocaleString()}</td><td class="num-cell dim-num">${((allData[index===0?0:index-1].t3)-item.t3).toLocaleString()}</td>${p(item.rank_d1, item.d1, true)}${p(item.rank_d2, item.d2, true)}${p(item.rank_d3, item.d3, true)}`;
+}
+
+// イベントの時系列ソートキー（ex: 回数の数値 / ss: ファイル名の日付）
+function eventSortKey(ev) {
+    const date = ev.file.match(/(\d{4}-\d{2}-\d{2})/);
+    if (date) return date[1];
+    const num = ev.file.match(/(\d+)/);
+    return num ? num[1].padStart(6, '0') : ev.file;
 }
 
 // 履歴グラフ（動的単位フォーマット適用）
 async function showHistory(guildName) {
-    const modeEvents = allEvents.filter(e => e.type === currentMode).slice(-10);
-    modeEvents.reverse(); 
+    // events.json は新しい順のため、時系列（古い→新しい）に並べ直してから直近10件を取る
+    const modeEvents = allEvents
+        .filter(e => e.type === currentMode)
+        .sort((a, b) => (eventSortKey(a) < eventSortKey(b) ? -1 : 1))
+        .slice(-10);
     const labels = []; const ranks = []; const scores = []; const pointColors = []; const barColors = [];
 
     for (const ev of modeEvents) {
@@ -270,10 +288,16 @@ function calcSubRank(data, key, rankKey) {
 
 function applyFilter() {
     const term = searchInput.value.toLowerCase();
+    let visible = 0, total = 0;
     document.querySelectorAll('#ranking-body tr').forEach(row => {
         const text = row.querySelector('.name-scaler-text')?.textContent.toLowerCase() || "";
-        row.style.display = text.includes(term) ? '' : 'none';
+        const show = text.includes(term);
+        row.style.display = show ? '' : 'none';
+        total++;
+        if (show) visible++;
     });
+    searchClearBtn.hidden = !term;
+    hitCount.textContent = term ? `HIT: ${visible} / ${total}件` : `${total}ギルド`;
 }
 
 init();
