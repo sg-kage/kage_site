@@ -18,6 +18,7 @@
     </header>
 
     <div class="party-box">
+        <button class="share-btn" onclick="sharePartyURL(this)">共有URL</button>
         <button class="clear-all-btn" onclick="clearAllParty()">全解除</button>
         <div class="party-slots" id="partySlots"></div>
         <div class="usage-hint">スロットのキャラをタップ＝基準に設定（各キャラとのPos差を表示）／ もう一度タップで解除</div>
@@ -134,6 +135,7 @@
             allChars: [],
             party: [],
             referenceCharID: null,
+            tagSides: {}, // CharacterID → 0(R) / 1(L)
             layoutMode: 'left', // 'left' or 'right'
             filters: {
                 attr: new Set(),
@@ -159,6 +161,7 @@
                 .then(res => res.json())
                 .then(data => {
                     state.allChars = data.map(c => preprocessCharacter(c));
+                    applyPartyFromURL();
                     createFilterButtons();
                     renderSaveLoadButtons();
                     renderCharList();
@@ -547,14 +550,29 @@
         // =====================================================
         // スキルカード
         // =====================================================
-        function getSkillText(data) {
+        function getSkillText(data, sideIdx = 0) {
             if (!data) return null;
             if (Array.isArray(data)) {
                 if (data.length === 0) return null;
-                const obj = data[0];
+                const obj = data[Math.min(sideIdx, data.length - 1)];
                 return obj.awakened || obj.normal || obj.description || null;
             }
             return data.awakened || data.normal || data.description || null;
+        }
+
+        // タッグキャラ（スキルが2人分入っている）判定と表示面の管理
+        function isTagChar(char) {
+            return (char.group || []).includes('タッグ');
+        }
+
+        function tagMemberNames(char) {
+            const parts = char._shortName.split(/[＆&]/);
+            return parts.length === 2 ? parts : ['R', 'L'];
+        }
+
+        function setTagSide(charID, sideIdx) {
+            state.tagSides[charID] = sideIdx;
+            updatePartyUI();
         }
 
         function addSkillCard(char, container) {
@@ -564,14 +582,27 @@
             const groups = (char.group || []).map(g => `<span class="tag-group">${g}</span>`).join("");
             const effectTags = (char._effects || []).map(e => `<span class="tag-effect">${e}</span>`).join("");
 
+            // タッグキャラはR(1人目)/L(2人目)の切り替えボタンを表示
+            const isTag = isTagChar(char);
+            const side = state.tagSides[char.CharacterID] || 0;
+            let tagToggleHtml = '';
+            if (isTag) {
+                const [nameR, nameL] = tagMemberNames(char);
+                tagToggleHtml = `
+                    <div class="tag-side-toggle">
+                        <button class="tag-side-btn ${side === 0 ? 'active' : ''}" onclick="setTagSide(${char.CharacterID}, 0)">R:${nameR}</button>
+                        <button class="tag-side-btn ${side === 1 ? 'active' : ''}" onclick="setTagSide(${char.CharacterID}, 1)">L:${nameL}</button>
+                    </div>`;
+            }
+
             const sections = [
-                ["究極奥義", getSkillText(char.ex_ultimate)],
-                ["奥義", getSkillText(char.ultimate)],
-                ["特技1", getSkillText(char.skill1)],
-                ["特技2", getSkillText(char.skill2)],
-                ["特殊", getSkillText(char.traits)],
-                ["魔道具1", getSkillText(char.magic_item1)],
-                ["魔道具2", getSkillText(char.magic_item2)]
+                ["究極奥義", getSkillText(char.ex_ultimate, side)],
+                ["奥義", getSkillText(char.ultimate, side)],
+                ["特技1", getSkillText(char.skill1, side)],
+                ["特技2", getSkillText(char.skill2, side)],
+                ["特殊", getSkillText(char.traits, side)],
+                ["魔道具1", getSkillText(char.magic_item1, side)],
+                ["魔道具2", getSkillText(char.magic_item2, side)]
             ];
             const detailsHtml = sections
                 .filter(([, text]) => text)
@@ -583,6 +614,7 @@
                     <span class="card-title scale-target-center">${char._title || ''}</span>
                     <span class="card-name scale-target-center">${char._shortName}</span>
                 </div>
+                ${tagToggleHtml}
                 <div class="basic-info">
                     <span class="char-name-tag">${char._shortName}</span>
                     ${groups} ${effectTags}
@@ -614,6 +646,49 @@
                 // 非表示中は幅0で計測されるため、表示後に名前スケールを再計算する
                 adjustNameSizes();
             }
+        }
+
+        // =====================================================
+        // URL共有
+        // =====================================================
+        function applyPartyFromURL() {
+            const params = new URLSearchParams(location.search);
+            const p = params.get('p');
+            if (!p) return;
+
+            const positions = p.split('-').map(Number).filter(n => Number.isFinite(n));
+            const chars = positions.map(pos => state.allChars.find(c => c.position === pos)).filter(c => c);
+            if (chars.length === 0) return;
+
+            state.party = chars.slice(0, 5);
+
+            const layout = params.get('l');
+            if (layout === 'left' || layout === 'right') {
+                state.layoutMode = layout;
+                document.getElementById('layoutSelect').value = layout;
+            }
+        }
+
+        function sharePartyURL(btn) {
+            if (state.party.length === 0) {
+                alert("編成が空です。キャラを選んでから共有してください。");
+                return;
+            }
+            const positions = state.party.map(c => c.position).join('-');
+            let url = `${location.origin}${decodeURI(location.pathname)}?p=${positions}`;
+            if (state.layoutMode !== 'left') url += `&l=${state.layoutMode}`;
+
+            navigator.clipboard.writeText(url).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'コピー済✓';
+                btn.disabled = true;
+                setTimeout(() => {
+                    btn.textContent = orig;
+                    btn.disabled = false;
+                }, 1500);
+            }).catch(() => {
+                prompt("このURLをコピーしてください:", url);
+            });
         }
 
         // =====================================================

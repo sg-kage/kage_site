@@ -109,6 +109,23 @@ h2 { border-left: 4px solid var(--primary); padding-left: 12px; margin-bottom: 1
 }
 .clear-all-btn:hover { background: #d32f2f; box-shadow: 0 0 10px rgba(255, 77, 77, 0.4); }
 
+.share-btn {
+    position: absolute;
+    top: 10px;
+    right: 80px;
+    background: rgba(12, 74, 110, 0.85);
+    color: #fff;
+    border: 1px solid #0284c7;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    z-index: 1001;
+    transition: 0.2s;
+}
+.share-btn:hover { background: #0369a1; box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
+.share-btn:disabled { background: #166534; border-color: #22c55e; cursor: default; }
+
 .party-slots {
     display: flex; gap: 8px; justify-content: center; min-height: 190px; flex-wrap: wrap; margin-top: 10px;
 }
@@ -216,6 +233,34 @@ h2 { border-left: 4px solid var(--primary); padding-left: 12px; margin-bottom: 1
 .skill-card.attr-緑 .char-name-tag { color: var(--color-green); }
 .skill-card.attr-黄 .char-name-tag { color: var(--color-yellow); }
 .skill-card.attr-青 .char-name-tag { color: var(--color-blue); }
+
+/* タッグキャラのR/L切り替え */
+.tag-side-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 5px;
+}
+.tag-side-btn {
+    flex: 1;
+    background: #1a2030;
+    color: #8892a8;
+    border: 1px solid #475066;
+    border-radius: 4px;
+    padding: 3px 4px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tag-side-btn:hover { border-color: var(--primary-dim); color: #ccd6f0; }
+.tag-side-btn.active {
+    background: rgba(0, 81, 255, 0.25);
+    border-color: #0284c7;
+    color: #fff;
+    font-weight: bold;
+}
 
 .tag-group {
     display: inline-block; background: #2a3142; color: #fff;
