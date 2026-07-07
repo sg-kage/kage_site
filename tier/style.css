@@ -1,0 +1,618 @@
+/* =========================================================
+   カゲマス 編成Tier表 テーマ
+   （トップページ・編成シミュと同系のシアン×グラスモーフィズム）
+   ========================================================= */
+:root {
+    --bg-body: #0b0d12;
+    --bg-panel: rgba(20, 24, 33, 0.85);
+    --bg-slot: rgba(13, 16, 22, 0.9);
+    --bg-input: #161b26;
+    --primary: #00f2ff;
+    --primary-dim: rgba(0, 242, 255, 0.25);
+    --text-main: #e0e6ed;
+    --text-muted: #94a3b8;
+    --border: #2b3342;
+    /* 属性カラー */
+    --color-red: #FF6347;
+    --color-green: #32CD32;
+    --color-yellow: #FFD700;
+    --color-blue: #1E90FF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Noto Sans JP', "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-body);
+    background-image:
+        radial-gradient(circle at 50% 0%, rgba(0, 81, 255, 0.18) 0%, transparent 55%),
+        repeating-linear-gradient(0deg, rgba(0, 242, 255, 0.015) 0 1px, transparent 1px 48px),
+        repeating-linear-gradient(90deg, rgba(0, 242, 255, 0.015) 0 1px, transparent 1px 48px);
+    background-attachment: fixed;
+    color: var(--text-main);
+    margin: 0 auto;
+    padding: 20px;
+    font-size: 14px;
+    width: 96%;
+    max-width: 1400px;
+}
+
+/* --- ページヘッダー --- */
+.page-header { margin-bottom: 14px; position: relative; }
+.page-header h1 {
+    font-family: 'Orbitron', 'Noto Sans JP', sans-serif;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 14px rgba(0, 242, 255, 0.45);
+}
+.page-header h1::after {
+    content: '';
+    display: block;
+    width: 90px;
+    height: 2px;
+    margin-top: 6px;
+    background: linear-gradient(90deg, var(--primary), transparent);
+    box-shadow: 0 0 8px var(--primary);
+}
+.page-sub {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+.page-sub a { color: #4db8ff; text-decoration: none; }
+.page-sub a:hover { text-decoration: underline; }
+
+h2 { border-left: 4px solid var(--primary); padding-left: 12px; margin-bottom: 10px; color: #fff; font-size: 1.15rem; }
+
+/* --- 編集モード切替 --- */
+.edit-toggle-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: rgba(12, 74, 110, 0.85);
+    color: #fff;
+    border: 1px solid #0284c7;
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.edit-toggle-btn:hover { background: #0369a1; box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
+body.edit-mode .edit-toggle-btn {
+    background: #166534;
+    border-color: #22c55e;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+}
+
+.edit-toolbar[hidden] { display: none; }
+.edit-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    background: rgba(22, 101, 52, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+}
+.edit-toolbar button {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.edit-toolbar button:hover { border-color: var(--primary); box-shadow: 0 0 8px var(--primary-dim); }
+.edit-toolbar-note { font-size: 11px; color: var(--text-muted); }
+
+/* --- タブ --- */
+.cat-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.cat-tab {
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 8px 8px 0 0;
+    padding: 9px 22px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.cat-tab:hover { color: var(--text-main); border-color: var(--primary-dim); }
+.cat-tab.active {
+    color: #04121a;
+    background: linear-gradient(180deg, var(--primary), #00b6c9);
+    border-color: var(--primary);
+    box-shadow: 0 0 14px rgba(0, 242, 255, 0.35);
+}
+
+/* --- 表示オプション --- */
+.list-options {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    margin: -6px 0 10px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+.list-options select {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.list-options select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary-dim);
+}
+
+/* --- チーム一覧(属性枠別) --- */
+.teams-area { margin-bottom: 26px; }
+.group-row {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    background: rgba(8, 10, 16, 0.75);
+    overflow: hidden;
+}
+.group-label {
+    flex: 0 0 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #04121a;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.25);
+}
+.group-teams {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+    min-height: 90px;
+}
+
+/* --- チームカード --- */
+.team-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    transition: 0.2s;
+}
+.team-card:hover { border-color: var(--primary-dim); box-shadow: 0 0 12px rgba(0, 242, 255, 0.12); }
+.team-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 5px;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.team-chars { display: flex; gap: 5px; }
+.team-char { width: 52px; text-align: center; }
+.team-char img,
+.team-char .char-unknown {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: var(--bg-slot);
+    display: block;
+    margin: 0 auto;
+    object-fit: cover;
+}
+.team-char .char-unknown {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 10px;
+}
+.team-char .tc-name {
+    font-size: 9.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.team-comment {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 5px;
+    max-width: 300px;
+}
+
+/* クリックで図鑑へ飛べる要素 */
+[data-cid] { cursor: pointer; }
+body.edit-mode [data-cid] { cursor: default; }
+
+/* --- キャラ詳細ツールチップ --- */
+.char-tip {
+    position: fixed;
+    z-index: 3000;
+    pointer-events: none;
+    max-width: 280px;
+    background: rgba(10, 13, 20, 0.97);
+    border: 1px solid var(--primary-dim);
+    border-radius: 10px;
+    padding: 9px 11px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 12px rgba(0, 242, 255, 0.12);
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+.char-tip[hidden] { display: none; }
+.tip-name { font-weight: 700; font-size: 12.5px; color: #fff; margin-bottom: 2px; }
+.tip-name.attr-赤 { color: var(--color-red); }
+.tip-name.attr-緑 { color: var(--color-green); }
+.tip-name.attr-黄 { color: var(--color-yellow); }
+.tip-name.attr-青 { color: var(--color-blue); }
+.tip-meta { color: var(--text-muted); font-size: 10.5px; margin-bottom: 5px; }
+.tip-skill { color: var(--text-main); }
+.tip-skill-label {
+    display: inline-block;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 9.5px;
+    padding: 0 5px;
+    margin-right: 5px;
+    vertical-align: 1px;
+}
+.tip-hint { color: #4db8ff; font-size: 10px; margin-top: 5px; }
+
+/* 属性色ボーダー */
+.attr-赤 img, .attr-赤 .char-unknown { border-color: var(--color-red); }
+.attr-緑 img, .attr-緑 .char-unknown { border-color: var(--color-green); }
+.attr-黄 img, .attr-黄 .char-unknown { border-color: var(--color-yellow); }
+.attr-青 img, .attr-青 .char-unknown { border-color: var(--color-blue); }
+
+/* --- カードの編集コントロール --- */
+.team-edit-controls {
+    display: none;
+    gap: 4px;
+    margin-top: 6px;
+    align-items: center;
+}
+body.edit-mode .team-edit-controls { display: flex; }
+.team-edit-controls button,
+.team-edit-controls select {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 11px;
+    padding: 3px 7px;
+    cursor: pointer;
+}
+.team-edit-controls button:hover { border-color: var(--primary); }
+.team-edit-controls .del-btn:hover { border-color: #ef4444; color: #ef4444; }
+
+.add-team-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 90px;
+    border: 2px dashed #353e50;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+body.edit-mode .add-team-btn { display: flex; }
+.add-team-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* --- 採用率ランキング --- */
+.usage-panel {
+    background: rgba(8, 10, 16, 0.92);
+    border: 1px solid var(--primary-dim);
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55), inset 0 0 40px rgba(0, 81, 255, 0.05);
+    margin-bottom: 30px;
+}
+.usage-note { font-size: 11.5px; color: var(--text-muted); margin: 0 0 12px; }
+.usage-row {
+    display: grid;
+    grid-template-columns: 34px 40px minmax(90px, 160px) 110px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(43, 51, 66, 0.5);
+}
+.usage-row:last-child { border-bottom: none; }
+.usage-rank {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: right;
+}
+.usage-row.top3 .usage-rank { color: var(--primary); text-shadow: 0 0 8px var(--primary-dim); }
+.usage-row img,
+.usage-row .char-unknown {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    object-fit: cover;
+    background: var(--bg-slot);
+}
+.usage-row .char-unknown {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 9px;
+}
+.usage-name { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usage-count { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.usage-bar-track {
+    height: 10px;
+    background: var(--bg-input);
+    border-radius: 5px;
+    overflow: hidden;
+}
+.usage-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #0051ff);
+    box-shadow: 0 0 8px var(--primary-dim);
+    border-radius: 5px;
+}
+.usage-panel details { margin-top: 8px; }
+.usage-panel summary {
+    cursor: pointer;
+    color: #4db8ff;
+    font-size: 12px;
+    padding: 4px 0;
+}
+.usage-empty { color: var(--text-muted); font-size: 12.5px; }
+
+/* --- モーダル(チームエディタ) --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 14px;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-box {
+    background: #10141d;
+    border: 1px solid var(--primary-dim);
+    border-radius: 16px;
+    box-shadow: 0 12px 50px rgba(0, 0, 0, 0.8);
+    width: 100%;
+    max-width: 760px;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 16px;
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.modal-head h3 { margin: 0; font-size: 1.05rem; color: #fff; }
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 8px;
+}
+.modal-close:hover { color: #fff; }
+
+.editor-slots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+.editor-slot {
+    width: 64px;
+    text-align: center;
+    border: 2px dashed #353e50;
+    border-radius: 10px;
+    padding: 5px 2px;
+    background: var(--bg-slot);
+    cursor: pointer;
+    transition: 0.2s;
+}
+.editor-slot.filled { border-style: solid; }
+.editor-slot.filled:hover { border-color: #ef4444; }
+.editor-slot img {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+}
+.editor-slot .es-name {
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.editor-slot .es-empty {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #353e50;
+    font-size: 20px;
+}
+
+.editor-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.editor-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.editor-fields .grow { flex: 1; min-width: 140px; }
+.editor-fields input,
+.editor-fields select {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+}
+.editor-fields input:focus,
+.editor-fields select:focus,
+.picker-head input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary-dim);
+}
+
+.picker-head { margin-bottom: 8px; }
+.picker-head input {
+    width: 100%;
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+.picker-filters { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+.btn-filter {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 14px;
+    padding: 3px 12px;
+    font-size: 11.5px;
+    cursor: pointer;
+    user-select: none;
+    transition: 0.15s;
+}
+.btn-filter:hover { color: var(--text-main); }
+.btn-filter.active {
+    color: #04121a;
+    background: var(--primary);
+    border-color: var(--primary);
+    font-weight: 700;
+}
+
+.picker-list {
+    flex: 1;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 6px;
+    min-height: 120px;
+    max-height: 38vh;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(8, 10, 16, 0.6);
+}
+.picker-item {
+    text-align: center;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 3px 1px;
+    transition: 0.15s;
+}
+.picker-item:hover { background: rgba(0, 242, 255, 0.08); }
+.picker-item.selected { background: rgba(0, 242, 255, 0.18); outline: 1px solid var(--primary); }
+.picker-item img {
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    object-fit: cover;
+}
+.picker-item .pi-name {
+    font-size: 9px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.picker-hit { grid-column: 1 / -1; color: var(--text-muted); font-size: 12px; text-align: center; padding: 10px; }
+
+.modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+.modal-foot button {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 22px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.modal-foot .btn-primary {
+    background: linear-gradient(180deg, var(--primary), #00b6c9);
+    color: #04121a;
+    font-weight: 700;
+    border-color: var(--primary);
+}
+.modal-foot .btn-primary:hover { box-shadow: 0 0 14px rgba(0, 242, 255, 0.5); }
+.modal-foot button:hover { border-color: var(--primary); }
+
+footer { margin-top: 24px; text-align: center; color: var(--text-muted); font-size: 11px; }
+
+/* --- スマホ --- */
+@media (max-width: 600px) {
+    body { padding: 12px; }
+    .page-header h1 { font-size: 1.2rem; padding-right: 96px; }
+    .edit-toggle-btn { padding: 4px 10px; font-size: 11px; }
+    .group-label { flex: 0 0 40px; font-size: 0.95rem; }
+    .group-teams { padding: 8px; gap: 8px; }
+    .team-char { width: 44px; }
+    .team-char img, .team-char .char-unknown { width: 40px; height: 40px; }
+    .usage-row { grid-template-columns: 26px 32px minmax(70px, 110px) 90px 1fr; gap: 5px; }
+    .usage-row img, .usage-row .char-unknown { width: 30px; height: 30px; }
+    .editor-slot { width: 52px; }
+    .editor-slot img { width: 40px; height: 40px; }
+}

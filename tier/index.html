@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="カゲマス(陰の実力者になりたくて！マスターオブガーデン)のおすすめ5人チーム編成。殲滅戦争・ブシン祭・ユグドラシルの属性別編成とキャラ採用率ランキング。">
+    <title>おすすめ編成 | カゲマス</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="page-header">
+        <h1>おすすめ編成</h1>
+        <p class="page-sub">
+            コンテンツ別・属性枠別のおすすめ5人編成と、そこから自動集計したキャラ採用率。
+            キャラ詳細は<a href="https://sg-kage.github.io/kage_character/" target="_blank" rel="noopener">キャラ図鑑</a>へ。
+        </p>
+        <button id="editToggleBtn" class="edit-toggle-btn" type="button">✎ 編集モード</button>
+    </header>
+
+    <div id="editToolbar" class="edit-toolbar" hidden>
+        <button id="dlJsonBtn" type="button">⬇ teams.json ダウンロード</button>
+        <button id="copyJsonBtn" type="button">📋 JSONコピー</button>
+        <button id="loadJsonBtn" type="button">📂 JSON読込</button>
+        <button id="discardDraftBtn" type="button">🗑 下書きを破棄</button>
+        <input type="file" id="jsonFileInput" accept=".json,application/json" hidden>
+        <span class="edit-toolbar-note">保存方法: ダウンロードしたJSONでリポジトリの tier/teams.json を差し替え</span>
+    </div>
+
+    <nav id="catTabs" class="cat-tabs" aria-label="コンテンツ切替"></nav>
+
+    <div class="list-options">
+        <label for="sortSelect">キャラ並び</label>
+        <select id="sortSelect">
+            <option value="asc">Pos 小さい順</option>
+            <option value="desc">Pos 大きい順</option>
+        </select>
+    </div>
+
+    <main>
+        <section id="teamsArea" class="teams-area" aria-live="polite"></section>
+
+        <section class="usage-panel">
+            <h2>キャラ採用率ランキング</h2>
+            <p class="usage-note" id="usageNote"></p>
+            <div id="usageList"></div>
+        </section>
+    </main>
+
+    <div id="editorModal" class="modal-overlay" hidden>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+            <div class="modal-head">
+                <h3 id="editorTitle">チーム編集</h3>
+                <button id="editorCloseBtn" class="modal-close" type="button">×</button>
+            </div>
+
+            <div class="editor-slots" id="editorSlots"></div>
+
+            <div class="editor-fields">
+                <label>属性枠
+                    <select id="editorAttrSelect"></select>
+                </label>
+                <label class="grow">チーム名(任意)
+                    <input type="text" id="editorNameInput" maxlength="30" placeholder="例: 赤ボス周回">
+                </label>
+                <label class="grow">コメント(任意)
+                    <input type="text" id="editorCommentInput" maxlength="60" placeholder="例: 3ターン周回向け">
+                </label>
+            </div>
+
+            <div class="picker-head">
+                <input type="text" id="pickerSearchBox" placeholder="キャラ名で検索…">
+                <div class="picker-filters" id="pickerAttrFilters"></div>
+                <div class="picker-filters" id="pickerRoleFilters"></div>
+            </div>
+            <div class="picker-list" id="pickerList"></div>
+
+            <div class="modal-foot">
+                <button id="editorSaveBtn" class="btn-primary" type="button">保存</button>
+                <button id="editorCancelBtn" type="button">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <small>
+            当サイトは非公式のファンサイトです。
+            掲載されているすべての画像の著作権は、それぞれの権利者に帰属します。
+        </small>
+    </footer>
+
+    <script src="main.js"></script>
+</body>
+</html>
