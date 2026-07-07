@@ -44,6 +44,7 @@
 
         <section class="usage-panel">
             <h2>キャラ採用率ランキング</h2>
+            <div class="usage-filters" id="usageFilters"></div>
             <p class="usage-note" id="usageNote"></p>
             <div id="usageList"></div>
         </section>
@@ -71,7 +72,13 @@
             </div>
 
             <div class="picker-head">
-                <input type="text" id="pickerSearchBox" placeholder="キャラ名で検索…">
+                <div class="picker-search-row">
+                    <input type="text" id="pickerSearchBox" placeholder="キャラ名で検索…">
+                    <select id="pickerSortSelect" title="キャラ並び">
+                        <option value="asc">Pos 小さい順</option>
+                        <option value="desc">Pos 大きい順</option>
+                    </select>
+                </div>
                 <div class="picker-filters" id="pickerAttrFilters"></div>
                 <div class="picker-filters" id="pickerRoleFilters"></div>
             </div>

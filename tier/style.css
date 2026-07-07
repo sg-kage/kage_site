@@ -139,6 +139,20 @@ body.edit-mode .edit-toggle-btn {
     border-color: var(--primary);
     box-shadow: 0 0 14px rgba(0, 242, 255, 0.35);
 }
+.tab-count {
+    display: inline-block;
+    margin-left: 7px;
+    min-width: 17px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: rgba(0, 0, 0, 0.28);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+    vertical-align: 1px;
+}
+.cat-tab:not(.active) .tab-count { background: var(--bg-body); color: var(--text-muted); }
 
 /* --- 表示オプション --- */
 .list-options {
@@ -179,12 +193,22 @@ body.edit-mode .edit-toggle-btn {
 .group-label {
     flex: 0 0 56px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     font-size: 1.1rem;
     font-weight: 800;
     color: #04121a;
     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.25);
+}
+.group-count {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 0 6px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.22);
+    text-shadow: none;
 }
 .group-teams {
     flex: 1;
@@ -341,6 +365,42 @@ body.edit-mode .add-team-btn { display: flex; }
     margin-bottom: 30px;
 }
 .usage-note { font-size: 11.5px; color: var(--text-muted); margin: 0 0 12px; }
+.usage-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.usage-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 3px 11px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s;
+}
+.usage-filter-chip:hover { color: var(--text-main); }
+.usage-filter-chip .chip-count {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--bg-body);
+    border-radius: 8px;
+    padding: 0 5px;
+}
+.usage-filter-chip.active {
+    color: #04121a;
+    background: var(--primary);
+    border-color: var(--primary);
+}
+.usage-filter-chip.active .chip-count { background: rgba(0, 0, 0, 0.22); color: #04121a; }
+/* 属性枠チップの選択色 */
+.usage-filter-chip.attr-赤.active { background: var(--color-red); border-color: var(--color-red); }
+.usage-filter-chip.attr-緑.active { background: var(--color-green); border-color: var(--color-green); }
+.usage-filter-chip.attr-黄.active { background: var(--color-yellow); border-color: var(--color-yellow); }
+.usage-filter-chip.attr-青.active { background: var(--color-blue); border-color: var(--color-blue); color: #fff; }
+.usage-filter-chip.attr-青.active .chip-count { color: #fff; }
 .usage-row {
     display: grid;
     grid-template-columns: 34px 40px minmax(90px, 160px) 110px 1fr;
@@ -370,6 +430,10 @@ body.edit-mode .add-team-btn { display: flex; }
     display: flex; align-items: center; justify-content: center;
     color: var(--text-muted); font-size: 9px;
 }
+.usage-row img.attr-赤 { border-color: var(--color-red); }
+.usage-row img.attr-緑 { border-color: var(--color-green); }
+.usage-row img.attr-黄 { border-color: var(--color-yellow); }
+.usage-row img.attr-青 { border-color: var(--color-blue); }
 .usage-name { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .usage-count { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .usage-bar-track {
@@ -507,15 +571,30 @@ body.edit-mode .add-team-btn { display: flex; }
 }
 
 .picker-head { margin-bottom: 8px; }
-.picker-head input {
-    width: 100%;
+.picker-search-row { display: flex; gap: 6px; margin-bottom: 6px; }
+.picker-search-row input {
+    flex: 1;
+    min-width: 0;
     background: var(--bg-input);
     color: var(--text-main);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 7px 10px;
     font-size: 13px;
-    margin-bottom: 6px;
+}
+.picker-search-row select {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.picker-search-row select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary-dim);
 }
 .picker-filters { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
 .btn-filter {
@@ -571,6 +650,11 @@ body.edit-mode .add-team-btn { display: flex; }
     color: var(--text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.picker-item .pi-pos {
+    font-size: 8.5px;
+    color: #4db8ff;
     white-space: nowrap;
 }
 .picker-hit { grid-column: 1 / -1; color: var(--text-muted); font-size: 12px; text-align: center; padding: 10px; }

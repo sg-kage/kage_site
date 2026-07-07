@@ -36,6 +36,7 @@ const state = {
     edit: false,
     editing: null,        // { catId, index(既存) | -1(新規), team(編集中コピー) }
     sortDir: 'asc',       // キャラ表示のPos順: 'asc'(小さい順) | 'desc'(大きい順)
+    usageFilter: 'all',   // 採用率の集計対象: 'all' | 属性枠('赤'等)
     pickerFilters: { attr: new Set(), role: new Set(), text: '' }
 };
 
@@ -46,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedSort = localStorage.getItem(CONFIG.SORT_KEY);
     if (savedSort === 'asc' || savedSort === 'desc') state.sortDir = savedSort;
     document.getElementById('sortSelect').value = state.sortDir;
+    document.getElementById('pickerSortSelect').value = state.sortDir;
 
     Promise.all([
         fetch(CONFIG.charsUrl).then(r => r.json()),
@@ -169,7 +171,7 @@ function renderTabs() {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'cat-tab' + (cat.id === state.activeCat ? ' active' : '');
-        btn.textContent = cat.name;
+        btn.innerHTML = `${escapeHtml(cat.name)}<span class="tab-count">${cat.teams.length}</span>`;
         btn.onclick = () => {
             state.activeCat = cat.id;
             renderAll();
@@ -199,7 +201,7 @@ function renderTeamsArea() {
 
         const label = document.createElement('div');
         label.className = 'group-label';
-        label.textContent = attr;
+        label.innerHTML = `${attr}<span class="group-count">${teams.length}</span>`;
         label.style.background = CONFIG.attrColors[attr];
         row.appendChild(label);
 
@@ -299,10 +301,10 @@ function commitChange() {
 // =====================================================
 // キャラ採用率ランキング
 // =====================================================
-function computeUsage(cat) {
-    const total = cat.teams.length;
+function computeUsage(teams) {
+    const total = teams.length;
     const counts = new Map();
-    cat.teams.forEach(team => {
+    teams.forEach(team => {
         new Set(team.chars).forEach(id => counts.set(id, (counts.get(id) || 0) + 1));
     });
     return {
@@ -313,24 +315,57 @@ function computeUsage(cat) {
     };
 }
 
+function renderUsageFilters(cat) {
+    const box = document.getElementById('usageFilters');
+    box.innerHTML = '';
+    // 全体 + 実際に存在する属性枠のみチップ化(件数付き)
+    const options = [{ key: 'all', label: '全体', n: cat.teams.length }];
+    CONFIG.teamAttrs.forEach(attr => {
+        const n = cat.teams.filter(t => teamAttr(t) === attr).length;
+        if (n > 0) options.push({ key: attr, label: attr, n });
+    });
+    // 選択中の枠が消えた場合は全体に戻す
+    if (!options.some(o => o.key === state.usageFilter)) state.usageFilter = 'all';
+
+    options.forEach(o => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'usage-filter-chip' + (o.key === state.usageFilter ? ' active' : '')
+            + (o.key !== 'all' ? ` attr-${o.key}` : '');
+        chip.innerHTML = `${o.label}<span class="chip-count">${o.n}</span>`;
+        chip.onclick = () => {
+            state.usageFilter = o.key;
+            renderUsage();
+        };
+        box.appendChild(chip);
+    });
+}
+
 function renderUsage() {
     const cat = activeCategory();
     const listEl = document.getElementById('usageList');
     const noteEl = document.getElementById('usageNote');
     listEl.innerHTML = '';
     if (!cat || cat.teams.length === 0) {
+        document.getElementById('usageFilters').innerHTML = '';
         noteEl.textContent = '';
         listEl.innerHTML = '<p class="usage-empty">チームが登録されると自動で集計されます。</p>';
         return;
     }
 
-    const { total, rows } = computeUsage(cat);
-    noteEl.textContent = `「${cat.name}」の全${total}チームからキャラ単体の採用率を自動集計(採用数順)`;
+    renderUsageFilters(cat);
+    const teams = state.usageFilter === 'all'
+        ? cat.teams
+        : cat.teams.filter(t => teamAttr(t) === state.usageFilter);
+    const scope = state.usageFilter === 'all' ? '全' : `${state.usageFilter}枠の`;
+
+    const { total, rows } = computeUsage(teams);
+    noteEl.textContent = `「${cat.name}」の${scope}${total}チームからキャラ単体の採用率を自動集計(採用数順)`;
 
     const rowHtml = (r, rank) => {
         const char = state.charMap.get(r.id);
         const icon = char
-            ? `<img src="${imgUrl(char)}" alt="${escapeHtml(char._shortName)}" data-cid="${char.CharacterID}"
+            ? `<img class="attr-${char.attribute}" src="${imgUrl(char)}" alt="${escapeHtml(char._shortName)}" data-cid="${char.CharacterID}"
                     loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">`
             : `<div class="char-unknown">ID:${Number(r.id)}</div>`;
         const name = char ? escapeHtml(char._shortName) : '不明';
@@ -429,15 +464,20 @@ function bindStaticEvents() {
         renderAll();
     };
 
-    document.getElementById('sortSelect').addEventListener('change', (e) => {
-        state.sortDir = e.target.value;
-        localStorage.setItem(CONFIG.SORT_KEY, state.sortDir);
+    // ページ上とエディタ内の並び順セレクトは同じ設定を共有する
+    const setSortDir = (dir) => {
+        state.sortDir = dir;
+        localStorage.setItem(CONFIG.SORT_KEY, dir);
+        document.getElementById('sortSelect').value = dir;
+        document.getElementById('pickerSortSelect').value = dir;
         renderAll();
         if (state.editing) {
             renderEditorSlots();
             renderPicker();
         }
-    });
+    };
+    document.getElementById('sortSelect').addEventListener('change', (e) => setSortDir(e.target.value));
+    document.getElementById('pickerSortSelect').addEventListener('change', (e) => setSortDir(e.target.value));
 
     document.getElementById('dlJsonBtn').onclick = downloadJson;
     document.getElementById('copyJsonBtn').onclick = copyJson;
@@ -456,6 +496,9 @@ function bindStaticEvents() {
     document.getElementById('editorSaveBtn').onclick = saveEditor;
     document.getElementById('editorModal').addEventListener('click', (e) => {
         if (e.target === e.currentTarget) closeEditor();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !document.getElementById('editorModal').hidden) closeEditor();
     });
     document.getElementById('pickerSearchBox').addEventListener('input', (e) => {
         state.pickerFilters.text = e.target.value;
@@ -647,7 +690,8 @@ function renderPicker() {
         item.title = char.name;
         item.innerHTML = `
             <img src="${imgUrl(char)}" alt="" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">
-            <div class="pi-name">${escapeHtml(char._shortName)}</div>`;
+            <div class="pi-name">${escapeHtml(char._shortName)}</div>
+            <div class="pi-pos">Pos:${escapeHtml(char.position)}</div>`;
         item.onclick = () => {
             const chars = state.editing.team.chars;
             const pos = chars.indexOf(char.CharacterID);
