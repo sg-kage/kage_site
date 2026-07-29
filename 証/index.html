@@ -163,6 +163,15 @@
     return {steps, final:cur};
   }
 
+  const UNIT_TIERS = [120, 90, 60];
+
+  // 証は 120 → 90 → 60 の優先順で必ず消費される（120以上あれば120が引かれる）
+  function decompose(n) {
+    let rest = n;
+    const counts = UNIT_TIERS.map(u => { const c = Math.floor(rest / u); rest -= c * u; return {unit:u, count:c}; });
+    return {counts, rest, label: counts.filter(c=>c.count>0).map(c=>`${c.unit}×${c.count}`).join(' ＋ ') || '0'};
+  }
+
   function solve(inputs, mode) {
     const {ticket, stamina, targetStamina, bonusStamina, sandCount, burgerCount, stoneCount} = inputs;
     let res = [];
@@ -172,10 +181,10 @@
         const mustC = (stamina + bonusStamina + recovery) - targetStamina;
         if (mustC >= 0 && mustC % 10 === 0) {
           const finalT = ticket + (mustC / 10);
-          const is60 = finalT % 60 === 0, is90 = finalT % 90 === 0, is120 = finalT % 120 === 0;
-          if (is60 || is90) {
-            const modTier = is120 ? 120 : (is90 ? 90 : 60);
-            res.push({finalTicket: finalT, consume: mustC, items: {sand:sandCount, burger:b, stone:s}, mod: modTier, is60, is90, is120});
+          const dec = decompose(finalT);
+          if (dec.rest === 0 && finalT > 0) {
+            const is120 = finalT % 120 === 0, is90 = finalT % 120 === 90, is60 = finalT % 60 === 0;
+            res.push({finalTicket: finalT, consume: mustC, items: {sand:sandCount, burger:b, stone:s}, dec, is60, is90, is120});
           }
         }
       }
@@ -194,7 +203,7 @@
     } else {
       best = res.sort((a,b)=>b.finalTicket - a.finalTicket)[0];
     }
-    if (mode === 'LIMIT' && best.mod === 60) {
+    if (mode === 'LIMIT' && !best.is120) {
       const next120line = Math.ceil((best.finalTicket + 1) / 120) * 120;
       const needStamina = (next120line - best.finalTicket) * 10;
       best.failReason = `あと ${needStamina} スタミナ足りないため、120枚単位に届きませんでした。`;
@@ -252,7 +261,7 @@
       });
 
       let totalItemsText = `使用合計: 🥪×${result.items.sand} 🍔×${result.items.burger} 💎×${result.items.stone}`;
-      h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span><div style="font-size:0.65em; color:var(--text-sub); margin-top:2px;">${totalItemsText}</div></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.mod}枚単位</div></div></div></div></div></div></div>`;
+      h += `<div class="tl-step goal" style="border:1px solid var(--primary);"><div class="tl-icon-circle" style="border-color:var(--primary)">✨</div><div class="tl-content"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span class="tl-label">目標着地</span><span class="tl-main-val" style="color:var(--primary)">スタミナ ${sim.final}</span><div style="font-size:0.65em; color:var(--text-sub); margin-top:2px;">${totalItemsText}</div></div><div style="text-align:right;"><div style="color:var(--accent-yellow); font-weight:bold; font-size:1em;">${result.finalTicket}枚</div><div style="font-size:0.6em; color:var(--text-sub);">${result.dec.label}</div></div></div></div></div></div></div>`;
       
       if (mode === 'LIMIT' && result.failReason) {
         h += `<div class="msg-box msg-reason">💡 ${result.failReason}</div>`;
