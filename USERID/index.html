@@ -135,6 +135,14 @@
             letter-spacing: 0.05em;
         }
 
+        .elapsed-box {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            margin-top: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
         .char-count {
             font-size: 0.8rem;
             text-align: right;
@@ -202,6 +210,7 @@
     <div class="input-group">
         <label>確認結果</label>
         <div id="result" class="result-box">---</div>
+        <div id="elapsed" class="elapsed-box">今日までの経過: ---</div>
     </div>
 
     <div class="note">
@@ -221,6 +230,7 @@
     const inputEl = document.getElementById('ulidInput');
     const selectEl = document.getElementById('formatOption');
     const resultEl = document.getElementById('result');
+    const elapsedEl = document.getElementById('elapsed');
     const statusMsg = document.getElementById('statusMsg');
     const peekBtn = document.getElementById('peekBtn');
 
@@ -236,6 +246,7 @@
         if (rawInput.length < 10) {
             resultEl.textContent = "---";
             resultEl.style.color = "var(--accent-color)";
+            elapsedEl.textContent = "今日までの経過: ---";
             statusMsg.textContent = `残り ${10 - rawInput.length} 文字`;
             statusMsg.style.color = "var(--text-sub)";
             return;
@@ -254,8 +265,10 @@
 
             resultEl.textContent = formatDate(date, selectEl.value);
             resultEl.style.color = "var(--accent-color)";
+            elapsedEl.textContent = `今日までの経過: ${formatElapsed(date, selectEl.value)}`;
         } catch (e) {
             resultEl.textContent = "無効な形式";
+            elapsedEl.textContent = "今日までの経過: ---";
             resultEl.style.color = "var(--error-color)";
             statusMsg.textContent = "不正な文字が含まれています";
             statusMsg.style.color = "var(--error-color)";
@@ -295,6 +308,60 @@
             case 'seconds': return `${y}/${m}/${d} ${w} ${h}:${min}:${s}`;
             case 'full': default: return `${y}/${m}/${d} ${w} ${h}:${min}:${s}.${ms}`;
         }
+    }
+
+    function formatElapsed(date, format) {
+        const startDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const totalDays = Math.round((today - startDay) / 86400000);
+        if (totalDays < 0) return "未来の日付";
+
+        let years = now.getFullYear() - date.getFullYear();
+        let months = now.getMonth() - date.getMonth();
+        let days = now.getDate() - date.getDate();
+        let restMs = 0;
+
+        if (format !== 'date') {
+            restMs = (now - today) - (date - startDay);
+            if (restMs < 0) {
+                restMs += 86400000;
+                days -= 1;
+            }
+        }
+        if (days < 0) {
+            months -= 1;
+            // 繰り下げ先は「今日の前月」の日数
+            days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+        }
+        if (months < 0) {
+            years -= 1;
+            months += 12;
+        }
+
+        const h = Math.floor(restMs / 3600000);
+        const min = Math.floor(restMs / 60000) % 60;
+        const sec = Math.floor(restMs / 1000) % 60;
+        const ms = restMs % 1000;
+
+        const parts = [];
+        if (years > 0) parts.push(`${years}年`);
+        if (months > 0) parts.push(`${months}ヶ月`);
+        if (days > 0) parts.push(`${days}日`);
+
+        let tail = '';
+        if (format === 'hour') tail = `${h}時間`;
+        else if (format === 'minutes') tail = `${h}時間${min}分`;
+        else if (format === 'seconds') tail = `${h}時間${min}分${sec}秒`;
+        else if (format === 'full') tail = `${h}時間${min}分${sec}.${String(ms).padStart(3, '0')}秒`;
+
+        const ymd = parts.join('');
+        if (!ymd && !tail) return "本日";
+        // 日付のみの場合だけ暦日数を併記（時刻を含む内訳とは基準が違うため）
+        if (format === 'date') return (years || months) ? `${ymd} (${totalDays}日)` : ymd;
+
+        return [ymd, tail].filter(Boolean).join(' ');
     }
 
     // --- 覗き見機能 (Hold to view) ---
