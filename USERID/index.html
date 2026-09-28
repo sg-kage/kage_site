@@ -3,7 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日付確認ツール</title>
+    <title>カゲマス 日付確認ツール｜プレイヤーIDから開始日と経過日数を確認</title>
+    <meta name="description" content="カゲマスのプレイヤーID先頭10文字から、アカウント作成日と今日までの経過日数を計算するツール。入力はブラウザ外に送信されません。">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="カゲマス攻略ツール集">
+    <meta property="og:url" content="https://sg-kage.github.io/kage_site/USERID/">
+    <meta property="og:title" content="カゲマス 日付確認ツール｜開始日と経過日数を確認">
+    <meta property="og:description" content="プレイヤーID先頭10文字を入れると、アカウント作成日と今日までの経過日数が分かります。入力はブラウザ外に送信されません。">
+    <meta property="og:image" content="https://sg-kage.github.io/kage_site/USERID/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="カゲマス 日付確認ツール｜開始日と経過日数を確認">
+    <meta name="twitter:description" content="プレイヤーID先頭10文字を入れると、アカウント作成日と今日までの経過日数が分かります。入力はブラウザ外に送信されません。">
+    <meta name="twitter:image" content="https://sg-kage.github.io/kage_site/USERID/og.png">
+
+    <link rel="apple-touch-icon" href="../kagemasu.webp">
+    <link rel="icon" type="image/webp" href="../kagemasu.webp">
     <style>
         :root {
             /* Windows 11 Dark Mode Colors */
@@ -136,11 +153,33 @@
         }
 
         .elapsed-box {
+            background-color: #3a3a3a;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--input-border);
+            text-align: center;
+            min-height: 1.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--success-color);
+            margin-top: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .elapsed-sub {
             text-align: center;
             font-size: 0.9rem;
             color: var(--text-sub);
             margin-top: 0.5rem;
+            min-height: 1.2em;
             letter-spacing: 0.05em;
+        }
+
+        .elapsed-note {
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 0.4rem;
+            line-height: 1.5;
         }
 
         .char-count {
@@ -210,7 +249,15 @@
     <div class="input-group">
         <label>確認結果</label>
         <div id="result" class="result-box">---</div>
-        <div id="elapsed" class="elapsed-box">今日までの経過: ---</div>
+    </div>
+
+    <div class="input-group">
+        <label>今日までの経過</label>
+        <div id="elapsed" class="elapsed-box">---</div>
+        <div id="elapsedSub" class="elapsed-sub"></div>
+        <div class="elapsed-note">
+            ゲームは開始日を「1日目」として数えるため、ゲーム内日数は実際の経過日数より1日多くなります（実経過 99日 → ゲーム内 100日目）。
+        </div>
     </div>
 
     <div class="note">
@@ -231,6 +278,7 @@
     const selectEl = document.getElementById('formatOption');
     const resultEl = document.getElementById('result');
     const elapsedEl = document.getElementById('elapsed');
+    const elapsedSubEl = document.getElementById('elapsedSub');
     const statusMsg = document.getElementById('statusMsg');
     const peekBtn = document.getElementById('peekBtn');
 
@@ -246,7 +294,8 @@
         if (rawInput.length < 10) {
             resultEl.textContent = "---";
             resultEl.style.color = "var(--accent-color)";
-            elapsedEl.textContent = "今日までの経過: ---";
+            elapsedEl.textContent = "---";
+            elapsedSubEl.textContent = "";
             statusMsg.textContent = `残り ${10 - rawInput.length} 文字`;
             statusMsg.style.color = "var(--text-sub)";
             return;
@@ -265,10 +314,19 @@
 
             resultEl.textContent = formatDate(date, selectEl.value);
             resultEl.style.color = "var(--accent-color)";
-            elapsedEl.textContent = `今日までの経過: ${formatElapsed(date, selectEl.value)}`;
+
+            const info = formatElapsed(date, selectEl.value);
+            if (info) {
+                elapsedEl.textContent = `ゲーム内 ${info.gameDay}日目`;
+                elapsedSubEl.textContent = `実際の経過 ${info.elapsed}`;
+            } else {
+                elapsedEl.textContent = "未来の日付";
+                elapsedSubEl.textContent = "";
+            }
         } catch (e) {
             resultEl.textContent = "無効な形式";
-            elapsedEl.textContent = "今日までの経過: ---";
+            elapsedEl.textContent = "---";
+            elapsedSubEl.textContent = "";
             resultEl.style.color = "var(--error-color)";
             statusMsg.textContent = "不正な文字が含まれています";
             statusMsg.style.color = "var(--error-color)";
@@ -316,7 +374,7 @@
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
         const totalDays = Math.round((today - startDay) / 86400000);
-        if (totalDays < 0) return "未来の日付";
+        if (totalDays < 0) return null;
 
         let years = now.getFullYear() - date.getFullYear();
         let months = now.getMonth() - date.getMonth();
@@ -357,11 +415,13 @@
         else if (format === 'full') tail = `${h}時間${min}分${sec}.${String(ms).padStart(3, '0')}秒`;
 
         const ymd = parts.join('');
-        if (!ymd && !tail) return "本日";
+        let elapsed;
+        if (!ymd && !tail) elapsed = "0日";
         // 日付のみの場合だけ暦日数を併記（時刻を含む内訳とは基準が違うため）
-        if (format === 'date') return (years || months) ? `${ymd} (${totalDays}日)` : ymd;
+        else if (format === 'date') elapsed = (years || months) ? `${ymd} (${totalDays}日)` : ymd;
+        else elapsed = [ymd, tail].filter(Boolean).join(' ');
 
-        return [ymd, tail].filter(Boolean).join(' ');
+        return { gameDay: totalDays + 1, elapsed: elapsed };
     }
 
     // --- 覗き見機能 (Hold to view) ---
