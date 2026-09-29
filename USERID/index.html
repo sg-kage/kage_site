@@ -256,7 +256,8 @@
         <div id="elapsed" class="elapsed-box">---</div>
         <div id="elapsedSub" class="elapsed-sub"></div>
         <div class="elapsed-note">
-            ゲームは開始日を「1日目」として数えるため、ゲーム内日数は実際の経過日数より1日多くなります（実経過 99日 → ゲーム内 100日目）。
+            ゲーム内の日付は毎朝4:00に切り替わるため、経過日数も4:00を区切りとして数えています。<br>
+            また開始日を「1日目」として数えるため、ゲーム内日数は実際の経過日数より1日多くなります（実経過 99日 → ゲーム内 100日目）。
         </div>
     </div>
 
@@ -368,21 +369,27 @@
         }
     }
 
+    // ゲーム内の日付は朝4:00に切り替わる
+    const DAY_RESET_MS = 4 * 3600000;
+
     function formatElapsed(date, format) {
-        const startDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const gStart = new Date(date.getTime() - DAY_RESET_MS);
         const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const gNow = new Date(now.getTime() - DAY_RESET_MS);
+
+        const startDay = new Date(gStart.getFullYear(), gStart.getMonth(), gStart.getDate());
+        const today = new Date(gNow.getFullYear(), gNow.getMonth(), gNow.getDate());
 
         const totalDays = Math.round((today - startDay) / 86400000);
         if (totalDays < 0) return null;
 
-        let years = now.getFullYear() - date.getFullYear();
-        let months = now.getMonth() - date.getMonth();
-        let days = now.getDate() - date.getDate();
+        let years = gNow.getFullYear() - gStart.getFullYear();
+        let months = gNow.getMonth() - gStart.getMonth();
+        let days = gNow.getDate() - gStart.getDate();
         let restMs = 0;
 
         if (format !== 'date') {
-            restMs = (now - today) - (date - startDay);
+            restMs = (gNow - today) - (gStart - startDay);
             if (restMs < 0) {
                 restMs += 86400000;
                 days -= 1;
@@ -391,7 +398,7 @@
         if (days < 0) {
             months -= 1;
             // 繰り下げ先は「今日の前月」の日数
-            days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+            days += new Date(gNow.getFullYear(), gNow.getMonth(), 0).getDate();
         }
         if (months < 0) {
             years -= 1;
