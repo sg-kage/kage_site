@@ -328,11 +328,21 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         .countdown-card, .settings-panel, .table-wrapper { animation: fadeIn 0.45s ease-out; }
+
+        .back-link {
+            display: inline-block;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+        .back-link:hover { color: #00f2ff; }
     </style>
 </head>
 <body>
 
     <header class="page-header">
+        <a class="back-link" href="../">← カゲマス トップ</a>
         <h1>🗓 魔界殲滅戦争 日程</h1>
         <p class="page-sub">シーズンと殲滅戦（Day1〜Day3）の開催日一覧。カレンダー登録にも対応。<a href="https://www.shadow-garden-mog.jp/guildbattle-calendar/?from=ingame" target="_blank" rel="noopener">本家カレンダー ≫</a></p>
     </header>

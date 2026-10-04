@@ -2,18 +2,13 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <script>
-        if (new URLSearchParams(location.search).has('p')) {
-            location.replace('../party/' + location.search + location.hash);
-        }
-    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>カゲマス 編成シミュレーター</title>
     <meta name="description" content="カゲマスのパーティ編成シミュレーター。5体を選んでPos（立ち位置）の並び順・間隔・スキル構成を確認">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="カゲマス攻略ツール集">
-    <meta property="og:url" content="https://sg-kage.github.io/kage_site/%E7%B7%A8%E6%88%90/">
+    <meta property="og:url" content="https://sg-kage.github.io/kage_site/party/">
     <meta property="og:title" content="カゲマス 編成シミュレーター">
     <meta property="og:description" content="5体を選んでPos（立ち位置）の並び順・間隔・スキル構成を確認。共有URLで編成をそのまま共有できます。">
     <meta property="og:image" content="https://sg-kage.github.io/kage_site/party/og.png">
@@ -30,15 +25,8 @@
 </head>
 <body>
 
-    <div style="margin-bottom: 14px; padding: 12px 14px; text-align: center; font-size: 0.9rem; line-height: 1.7; background: rgba(255, 0, 85, 0.12); border: 1px solid #ff0055; border-radius: 10px;">
-        <strong>📢 編成シミュレーターは新しいURLへ移転しました。</strong><br>
-        今後の更新は新しいページで行います。お手数ですが移行し、ブックマークの登録し直しをお願いします。<br>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">保存した編成パターンや設定は、新しいページでもそのまま使えます。</span><br>
-        <a id="migrateBtn" href="../party/" style="display: inline-block; margin-top: 8px; padding: 8px 22px; font-weight: 700; color: #0b0d12; background: var(--primary); border-radius: 999px; text-decoration: none; box-shadow: 0 0 12px rgba(0, 242, 255, 0.5);">新しいページへ移動する</a>
-    </div>
-    <script>document.getElementById('migrateBtn').href = '../party/' + location.search + location.hash;</script>
-
     <header class="page-header">
+        <a class="back-link" href="../">← カゲマス トップ</a>
         <h1>⚔️ 編成シミュレーター</h1>
         <p class="page-sub">5体を選んで Pos（立ち位置）の並び順と間隔をチェック。詳細なキャラ情報は <a href="https://sg-kage.github.io/kage_character" target="_blank" rel="noopener">カゲマス図鑑</a> へ</p>
     </header>
@@ -121,7 +109,7 @@
         作成者: <a href="https://x.com/kagenotify" target="_blank" rel="noopener">kagenotify（X／旧Twitter）</a><br>
         Discord鯖: <a href="http://discord.gg/SfMWv5UPad" target="_blank" rel="noopener">陰マス通知</a><br>
         <small>
-          このウェブサイト <a href="https://sg-kage.github.io/kage_site/編成/" target="_blank" rel="noopener">kage_site</a> は、Team CARAVANおよびAiming Inc.とは一切関係がなく、
+          このウェブサイト <a href="https://sg-kage.github.io/kage_site/party/" target="_blank" rel="noopener">kage_site</a> は、Team CARAVANおよびAiming Inc.とは一切関係がなく、
           また、これらの企業から公式な承認を受けたものではありません。<br>
           掲載されているすべての画像の著作権は、それぞれの権利者に帰属します。
         </small>

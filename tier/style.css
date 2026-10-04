@@ -39,6 +39,14 @@ body {
 
 /* --- ページヘッダー --- */
 .page-header { margin-bottom: 14px; position: relative; }
+.back-link {
+    display: inline-block;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+.back-link:hover { color: #00f2ff; }
 .page-header h1 {
     font-family: 'Orbitron', 'Noto Sans JP', sans-serif;
     font-size: 1.45rem;

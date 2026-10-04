@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>季節イベ最大スコア計算</title>
   <meta name="description" content="カゲマス季節イベントの目標Ptに必要な与ダメージを、スコアボーナス%別に逆算するツール">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="カゲマス攻略ツール集">
+  <meta property="og:url" content="https://sg-kage.github.io/kage_site/score/">
+  <meta property="og:title" content="カゲマス 季節イベ スコア計算｜必要ダメージを逆算">
+  <meta property="og:description" content="季節イベントの目標Ptに必要な与ダメージを、スコアボーナス%別に逆算します。">
+  <meta property="og:image" content="https://sg-kage.github.io/kage_site/score/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="カゲマス 季節イベ スコア計算｜必要ダメージを逆算">
+  <meta name="twitter:description" content="季節イベントの目標Ptに必要な与ダメージを、スコアボーナス%別に逆算します。">
+  <meta name="twitter:image" content="https://sg-kage.github.io/kage_site/score/og.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -416,12 +429,22 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
+
+    .back-link {
+        display: inline-block;
+        color: #94a3b8;
+        text-decoration: none;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+    }
+    .back-link:hover { color: #00f2ff; }
   </style>
 </head>
 <body>
 
   <header class="dashboard-header">
     <div class="header-inner">
+      <a class="back-link" href="../">← カゲマス トップ</a>
       <div class="title-row">
         <h1>季節イベ 最大スコア計算</h1>
         <p class="subtitle">目標Ptに必要な与ダメージをスコアボーナス%別に逆算</p>
