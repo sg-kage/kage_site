@@ -29,7 +29,7 @@ const CONFIG = {
 const FALLBACK_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 const state = {
-    charMap: new Map(),   // CharacterID → キャラ(前処理済み)
+    charMap: new Map(),   // Pos → キャラ(前処理済み)。teams.json の chars も Pos で持つ(CharacterIDはキャラ追加で振り直されるため)
     allChars: [],
     data: null,           // teams.json の作業コピー
     activeCat: null,      // カテゴリid
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('./teams.json', { cache: 'no-cache' }).then(r => r.json())
     ]).then(([chars, teams]) => {
         state.allChars = chars.map(preprocessCharacter);
-        state.allChars.forEach(c => state.charMap.set(c.CharacterID, c));
+        state.allChars.forEach(c => state.charMap.set(c.position, c));
         // デフォルト表示は常に公開中の teams.json。下書きは編集モードに入るときに確認する
         state.data = teams;
         cleanupStaleDraft(teams);
@@ -91,11 +91,10 @@ function teamAttr(team) {
     return CONFIG.teamAttrs.includes(team.attr) ? team.attr : '混合';
 }
 
-// CharacterID配列を表示用にPos順で並べ替える(元配列は変更しない。不明IDは末尾)
-function sortCharsByPos(ids) {
+// Pos配列を表示用に並べ替える(元配列は変更しない)
+function sortCharsByPos(posList) {
     const dir = state.sortDir === 'desc' ? -1 : 1;
-    const posOf = (id) => state.charMap.get(id)?.position ?? (dir === 1 ? Infinity : -Infinity);
-    return [...ids].sort((a, b) => (posOf(a) - posOf(b)) * dir || a - b);
+    return [...posList].sort((a, b) => (a - b) * dir);
 }
 
 // =====================================================
@@ -146,7 +145,7 @@ function saveDraft() {
 }
 
 function validateData(d) {
-    return d && Array.isArray(d.categories)
+    return d && d.version === 2 && Array.isArray(d.categories)
         && d.categories.every(c => c.id && c.name && Array.isArray(c.teams)
             && c.teams.every(t => Array.isArray(t.chars)));
 }
@@ -230,11 +229,11 @@ function renderTeamsArea() {
 function charIconHtml(id, withName) {
     const char = state.charMap.get(id);
     if (!char) {
-        console.warn('未知のCharacterID:', id);
-        return `<div class="team-char"><div class="char-unknown">ID:${Number(id)}</div>
+        console.warn('未知のPos:', id);
+        return `<div class="team-char"><div class="char-unknown">Pos:${Number(id)}</div>
                 ${withName ? '<div class="tc-name">?</div>' : ''}</div>`;
     }
-    return `<div class="team-char attr-${char.attribute}" data-cid="${char.CharacterID}">
+    return `<div class="team-char attr-${char.attribute}" data-pos="${char.position}">
         <img src="${imgUrl(char)}" alt="${escapeHtml(char._shortName)}"
              loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">
         ${withName ? `<div class="tc-name">${escapeHtml(char._shortName)}</div>` : ''}
@@ -365,14 +364,14 @@ function renderUsage() {
     const rowHtml = (r, rank) => {
         const char = state.charMap.get(r.id);
         const icon = char
-            ? `<img class="attr-${char.attribute}" src="${imgUrl(char)}" alt="${escapeHtml(char._shortName)}" data-cid="${char.CharacterID}"
+            ? `<img class="attr-${char.attribute}" src="${imgUrl(char)}" alt="${escapeHtml(char._shortName)}" data-pos="${char.position}"
                     loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">`
-            : `<div class="char-unknown">ID:${Number(r.id)}</div>`;
+            : `<div class="char-unknown">Pos:${Number(r.id)}</div>`;
         const name = char ? escapeHtml(char._shortName) : '不明';
         return `<div class="usage-row ${rank <= 3 ? 'top3' : ''}">
             <div class="usage-rank">${rank}</div>
             ${icon}
-            <div class="usage-name" ${char ? `data-cid="${char.CharacterID}"` : ''}>${name}</div>
+            <div class="usage-name" ${char ? `data-pos="${char.position}"` : ''}>${name}</div>
             <div class="usage-count">${r.n}/${total}チーム (${r.rate.toFixed(1)}%)</div>
             <div class="usage-bar-track"><div class="usage-bar" style="width:${r.rate}%"></div></div>
         </div>`;
@@ -389,7 +388,7 @@ function renderUsage() {
 
 // =====================================================
 // キャラ詳細ツールチップ & 図鑑ジャンプ
-// (チームカード・採用率ランキングの data-cid 要素に委譲で付与)
+// (チームカード・採用率ランキングの data-pos 要素に委譲で付与)
 // =====================================================
 function bindCharHoverJump() {
     const tip = document.createElement('div');
@@ -397,11 +396,11 @@ function bindCharHoverJump() {
     tip.hidden = true;
     document.body.appendChild(tip);
 
-    const findTarget = (e) => e.target.closest?.('[data-cid]');
+    const findTarget = (e) => e.target.closest?.('[data-pos]');
 
     document.addEventListener('mouseover', (e) => {
         const el = findTarget(e);
-        const char = el && state.charMap.get(Number(el.dataset.cid));
+        const char = el && state.charMap.get(Number(el.dataset.pos));
         if (!char) { tip.hidden = true; return; }
         tip.innerHTML = tipHtml(char);
         tip.hidden = false;
@@ -416,7 +415,7 @@ function bindCharHoverJump() {
     document.addEventListener('click', (e) => {
         if (state.edit) return; // 編集モード中は誤ジャンプ防止
         const el = findTarget(e);
-        const char = el && state.charMap.get(Number(el.dataset.cid));
+        const char = el && state.charMap.get(Number(el.dataset.pos));
         if (!char) return;
         window.open(`${CONFIG.zukanUrl}?pos=${encodeURIComponent(char.position)}`, '_blank', 'noopener');
     });
@@ -625,11 +624,11 @@ function renderEditorSlots() {
         const char = id !== undefined ? state.charMap.get(id) : null;
         if (id !== undefined) {
             slot.className = `editor-slot filled attr-${char ? char.attribute : ''}`;
-            slot.title = char ? `${char.name} (クリックで外す)` : `ID:${id} (クリックで外す)`;
+            slot.title = char ? `${char.name} (クリックで外す)` : `Pos:${id} (クリックで外す)`;
             slot.innerHTML = char
                 ? `<img src="${imgUrl(char)}" alt="" onerror="this.onerror=null;this.src=FALLBACK_IMG">
                    <div class="es-name">${escapeHtml(char._shortName)}</div>`
-                : `<div class="es-empty">?</div><div class="es-name">ID:${Number(id)}</div>`;
+                : `<div class="es-empty">?</div><div class="es-name">Pos:${Number(id)}</div>`;
             slot.onclick = () => {
                 const chars = state.editing.team.chars;
                 chars.splice(chars.indexOf(id), 1);
@@ -676,7 +675,7 @@ function renderPicker() {
 
     const dir = state.sortDir === 'desc' ? -1 : 1;
     results.sort((a, b) =>
-        ((a.position ?? Infinity) - (b.position ?? Infinity)) * dir || a.CharacterID - b.CharacterID);
+        (a.position - b.position) * dir);
 
     if (!results.length) {
         listEl.innerHTML = '<div class="picker-hit">該当キャラなし</div>';
@@ -684,7 +683,7 @@ function renderPicker() {
     }
 
     results.forEach(char => {
-        const inTeam = state.editing.team.chars.includes(char.CharacterID);
+        const inTeam = state.editing.team.chars.includes(char.position);
         const item = document.createElement('div');
         item.className = `picker-item attr-${char.attribute}` + (inTeam ? ' selected' : '');
         item.title = char.name;
@@ -694,7 +693,7 @@ function renderPicker() {
             <div class="pi-pos">Pos:${escapeHtml(char.position)}</div>`;
         item.onclick = () => {
             const chars = state.editing.team.chars;
-            const pos = chars.indexOf(char.CharacterID);
+            const pos = chars.indexOf(char.position);
             if (pos >= 0) {
                 chars.splice(pos, 1);
             } else {
@@ -702,7 +701,7 @@ function renderPicker() {
                     alert(`チームは${CONFIG.teamSize}体までです。外してから追加してください。`);
                     return;
                 }
-                chars.push(char.CharacterID);
+                chars.push(char.position);
             }
             renderEditorSlots();
             renderPicker();
