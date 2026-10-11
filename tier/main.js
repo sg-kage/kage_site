@@ -16,7 +16,7 @@ const CONFIG = {
         "青": "#1E90FF",
         "混合": "linear-gradient(135deg, #FF6347 0%, #FFD700 35%, #32CD32 65%, #1E90FF 100%)"
     },
-    charsUrl: 'https://sg-kage.github.io/kage_character/characters/all_characters_ja.json',
+    charsUrl: 'https://sg-kage.github.io/kage_character/characters/all_characters_ja.bin',
     imgDir: 'https://sg-kage.github.io/kage_character/image/characters/',
     zukanUrl: 'https://sg-kage.github.io/kage_character/',   // ?pos=Pos値 でキャラ詳細を直接開ける
     ext: '.webp',
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pickerSortSelect').value = state.sortDir;
 
     Promise.all([
-        fetch(CONFIG.charsUrl).then(r => r.json()),
+        KageData.load(CONFIG.charsUrl),
         fetch('./teams.json', { cache: 'no-cache' }).then(r => r.json())
     ]).then(([chars, teams]) => {
         state.allChars = chars.map(preprocessCharacter);

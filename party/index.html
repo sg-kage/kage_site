@@ -115,6 +115,7 @@
         </small>
     </footer>
 
+    <script src="https://sg-kage.github.io/kage_character/js/kage-data.js"></script>
     <script>
         // =====================================================
         // 定数・状態
@@ -171,8 +172,7 @@
                 document.getElementById('layoutSelect').value = savedLayout;
             }
 
-            fetch('https://sg-kage.github.io/kage_character/characters/all_characters_ja.json')
-                .then(res => res.json())
+            KageData.load('https://sg-kage.github.io/kage_character/characters/all_characters_ja.bin')
                 .then(data => {
                     state.allChars = data.map(c => preprocessCharacter(c));
                     applyPartyFromURL();
@@ -182,7 +182,7 @@
                     updatePartyUI();
                     window.addEventListener('resize', debounce(adjustNameSizes, 150));
                 })
-                .catch(err => alert("データ読み込みエラー: all_characters_ja.json"));
+                .catch(err => alert("データ読み込みエラー: all_characters_ja.bin"));
 
             const searchBox = document.getElementById('searchBox');
             const searchClear = document.getElementById('searchClear');
