@@ -311,6 +311,35 @@
       -webkit-text-fill-color: transparent;
     }
     .rc-date { font-family: var(--mono); color: var(--text-sub); }
+    .rc-player {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      margin: -4px 0 10px;
+      word-break: break-all;
+    }
+    .rc-player:empty { display: none; }
+    .name-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 30rem;
+      margin: 0 auto 12px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+    .name-field input {
+      flex: 1;
+      min-width: 0;
+      font: inherit;
+      font-size: 16px;
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
     .rc-rank-label { font-size: 0.68rem; color: var(--text-sub); letter-spacing: 0.3em; }
     .rc-rank {
       font-size: 1.6rem;
@@ -466,11 +495,13 @@
     </section>
 
     <section class="panel result hidden" id="result">
+      <label class="name-field">名前<input id="playerName" maxlength="16" placeholder="画像に入れる名前（任意）" autocomplete="nickname"></label>
       <div class="result-card" id="resultCard">
         <div class="rc-head">
           <span class="rc-brand">カゲマス スキル効果クイズ</span>
           <span class="rc-date" id="rcDate"></span>
         </div>
+        <div class="rc-player" id="rcPlayer"></div>
         <div class="rc-rank-label">称号</div>
         <div class="rc-rank" id="rcRank"></div>
         <div class="score-big" id="scoreBig"></div>
@@ -543,6 +574,7 @@
       count: 10,
       choiceCount: 4,
       level: 'easy',
+      name: '',            // 結果画像に入れるプレイヤー名
       questions: [],
       index: 0,
       selected: null,      // 確定前に選んでいる選択肢の index
@@ -738,7 +770,7 @@
     function saveSettings() {
       try {
         localStorage.setItem(CONFIG.SETTINGS_KEY, JSON.stringify({
-          kinds: [...state.kinds], count: state.count, choiceCount: state.choiceCount, level: state.level
+          kinds: [...state.kinds], count: state.count, choiceCount: state.choiceCount, level: state.level, name: state.name
         }));
       } catch (_) { /* 保存できなくても動作に支障なし */ }
     }
@@ -752,6 +784,7 @@
         if (CONFIG.counts.includes(s.count)) state.count = s.count;
         if (CONFIG.choiceCounts.includes(s.choiceCount)) state.choiceCount = s.choiceCount;
         if (CONFIG.levels.some(l => l.id === s.level)) state.level = s.level;
+        if (typeof s.name === 'string') state.name = s.name.slice(0, 16);
       } catch (_) { /* 壊れた保存値は無視 */ }
     }
 
@@ -866,6 +899,8 @@
       const p = state.played;
       const now = new Date();
       $('rcDate').textContent = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+      $('rcPlayer').textContent = state.name;
+      $('playerName').value = state.name;
       $('rcRank').textContent = rank.title;
       $('scoreBig').innerHTML = `${state.score}<span class="score-total"> / ${total}</span>`;
       $('rcRate').textContent = `正答率 ${Math.round(rate * 100)}%`;
@@ -894,13 +929,28 @@
         </div>`).join('');
       setPngPreview(null);
       show('result');
-      // iOS は共有・コピーをタップ直後に同期的に呼ばないと拒否するため、画像は表示と同時に作っておく
+      refreshPng();
+    }
+
+    // iOS は共有・コピーをタップ直後に同期的に呼ばないと拒否するため、画像は表示や名前の変更と同時に作っておく
+    function refreshPng() {
+      const promise = renderCardPng();
       state.png = null;
-      state.pngPromise = renderCardPng();
-      state.pngPromise.then(b => {
+      state.pngPromise = promise;
+      promise.then(b => {
+        if (state.pngPromise !== promise) return;
         state.png = b;
         if (useShareSheet) setPngPreview(b);
       }, e => console.warn(e));
+    }
+
+    let nameTimer = null;
+    function onNameInput() {
+      state.name = $('playerName').value.trim();
+      $('rcPlayer').textContent = state.name;
+      saveSettings();
+      clearTimeout(nameTimer);
+      nameTimer = setTimeout(refreshPng, 400);
     }
 
     // アプリ内ブラウザでは共有が何も起きずに終わることがあるので、カードを画像に差し替えて長押し保存できるようにする。
@@ -952,7 +1002,9 @@
     async function renderCardPng() {
       await loadHtml2Canvas();
       const card = $('resultCard');
-      const width = Math.ceil(card.getBoundingClientRect().width);
+      // スマホでは表示中のカードが画像に差し替わっているので、同じ幅の画像側で測る
+      const shown = card.classList.contains('hidden') ? $('resultImg') : card;
+      const width = Math.ceil(shown.getBoundingClientRect().width);
       const clone = card.cloneNode(true);
       clone.removeAttribute('id');
       clone.classList.remove('hidden');
@@ -1015,8 +1067,7 @@
         try {
           await state.pngPromise;
         } catch (e) {
-          state.pngPromise = renderCardPng();
-          state.pngPromise.then(b => { state.png = b; }, e2 => console.warn(e2));
+          refreshPng();
           setCopyStatus('画像の作成に失敗しました。もう一度押してください', true);
           return;
         }
@@ -1087,6 +1138,7 @@
       if (useShareSheet) $('copyImageBtn').textContent = '結果を画像で共有';
       $('copyImageBtn').addEventListener('click', useShareSheet ? shareImage : copyImage);
       $('copyTextBtn').addEventListener('click', copyText);
+      $('playerName').addEventListener('input', onNameInput);
       $('nextBtn').addEventListener('click', next);
       $('retryBtn').addEventListener('click', startQuiz);
       $('backBtn').addEventListener('click', () => show('settings'));
