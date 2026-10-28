@@ -260,6 +260,24 @@
 
     /* =============== 結果 =============== */
     .result { text-align: center; }
+    /* 画像化用の複製カード。html2canvas は background-clip:text 非対応で文字が四角く塗られ、
+       重ねた radial/repeating グラデーションと inset の影も崩れるので単純なグラデーションに置き換える。
+       webfont のロード差で行高がずれるのを防ぐためシステムフォントに固定する */
+    .rc-capture {
+      text-align: center;
+      background: linear-gradient(180deg, #0d3326 0%, #07120e 55%, #050b09 100%) !important;
+      box-shadow: none !important;
+    }
+    .rc-capture, .rc-capture * {
+      animation: none !important;
+      transition: none !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif !important;
+    }
+    .rc-capture .rc-brand {
+      background: none !important;
+      -webkit-text-fill-color: #6ee7b7 !important;
+      color: #6ee7b7 !important;
+    }
     .result-img { display: block; width: 100%; max-width: 30rem; margin: 0 auto; border-radius: 16px; }
     .result-img-hint { font-size: 0.72rem; color: var(--text-sub); margin-top: 6px; }
 
@@ -929,39 +947,50 @@
       return html2canvasPromise;
     }
 
+    // kage_character のスクショと同じく、カードの複製を画面外（横方向）に置いてサイズを明示して撮る。
+    // 表示中のカードを撮るとスクロール位置や差し替え後の非表示に左右されるため
     async function renderCardPng() {
       await loadHtml2Canvas();
       const card = $('resultCard');
-      const canvas = await window.html2canvas(card, {
-        backgroundColor: '#050505',
-        scale: 2,
-        scrollX: -window.scrollX,
-        scrollY: -window.scrollY,
-        onclone: doc => {
-          const style = doc.createElement('style');
-          // html2canvas は background-clip:text 非対応で文字が四角く塗られる。
-          // 重ねた radial/repeating グラデーションと inset の影も崩れるので単純なグラデーションに置き換える。
-          // webfont のロード差で行高がずれるのを防ぐためシステムフォントに固定する
-          style.textContent = `
-            #resultCard {
-              background: linear-gradient(180deg, #0d3326 0%, #07120e 55%, #050b09 100%) !important;
-              box-shadow: none !important;
-            }
-            #resultCard, #resultCard * {
-              animation: none !important;
-              transition: none !important;
-              font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif !important;
-            }
-            #resultCard .rc-brand {
-              background: none !important;
-              -webkit-text-fill-color: #6ee7b7 !important;
-              color: #6ee7b7 !important;
-            }`;
-          doc.head.appendChild(style);
-        }
-      });
-      return new Promise((resolve, reject) =>
-        canvas.toBlob(b => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'));
+      const width = Math.ceil(card.getBoundingClientRect().width);
+      const clone = card.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.classList.remove('hidden');
+      clone.classList.add('rc-capture');
+      // top をずらすと iOS Safari が高さを過小に測るので、縦はビューポート内に置く
+      Object.assign(clone.style, { position: 'absolute', top: '0', left: '-20000px', width: `${width}px`, margin: '0', zIndex: '-9999' });
+      document.body.appendChild(clone);
+      try {
+        if (document.fonts?.ready) await document.fonts.ready.catch(() => {});
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const height = Math.ceil(clone.getBoundingClientRect().height);
+        const canvas = await withTimeout(window.html2canvas(clone, {
+          backgroundColor: '#050505',
+          scale: 2,
+          logging: false,
+          width,
+          height,
+          windowWidth: document.documentElement.clientWidth,
+          windowHeight: height,
+          scrollX: 0,
+          scrollY: 0,
+          foreignObjectRendering: false,
+          // 複製された文書内の <img> は読み込み完了を時間切れなしで待たれる。
+          // 非表示のクイズ画面に残る lazy 画像を iOS Safari は読み込まないため、ここで永久に止まる
+          ignoreElements: el => el.tagName === 'IMG'
+        }), 15000);
+        return await new Promise((resolve, reject) =>
+          canvas.toBlob(b => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'));
+      } finally {
+        clone.remove();
+      }
+    }
+
+    function withTimeout(promise, ms) {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+      ]);
     }
 
     function setCopyStatus(msg, ng = false) {
