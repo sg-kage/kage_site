@@ -260,6 +260,8 @@
 
     /* =============== 結果 =============== */
     .result { text-align: center; }
+    .result-img { display: block; width: 100%; max-width: 30rem; margin: 0 auto; border-radius: 16px; }
+    .result-img-hint { font-size: 0.72rem; color: var(--text-sub); margin-top: 6px; }
 
     .result-card {
       max-width: 30rem;
@@ -462,6 +464,8 @@
           <span>※ファン制作の非公式ツールです</span>
         </div>
       </div>
+      <img class="result-img hidden" id="resultImg" alt="クイズ結果">
+      <p class="result-img-hint hidden" id="resultImgHint">画像を長押しで保存・コピーできます</p>
       <button class="btn-primary btn-share" id="copyImageBtn">結果を画像でコピー</button>
       <button class="btn-text" id="copyTextBtn">テキストだけコピー</button>
       <p class="copy-status" id="copyStatus" aria-live="polite"></p>
@@ -870,11 +874,37 @@
           ${ok ? '' : `<div class="r-sub">あなたの回答：${escapeHtml(chosen.label + (chosen.sub || ''))}</div>`}
           <div class="r-sub">${escapeHtml(q.text)}</div>
         </div>`).join('');
+      setPngPreview(null);
       show('result');
       // iOS は共有・コピーをタップ直後に同期的に呼ばないと拒否するため、画像は表示と同時に作っておく
       state.png = null;
       state.pngPromise = renderCardPng();
-      state.pngPromise.then(b => { state.png = b; }, e => console.warn(e));
+      state.pngPromise.then(b => {
+        state.png = b;
+        if (useShareSheet) setPngPreview(b);
+      }, e => console.warn(e));
+    }
+
+    // アプリ内ブラウザでは共有が何も起きずに終わることがあるので、カードを画像に差し替えて長押し保存できるようにする。
+    // blob: URL だと長押し保存できないアプリ内ブラウザがあるため data: URL にする
+    function setPngPreview(blob) {
+      const img = $('resultImg');
+      const toggle = on => {
+        $('resultCard').classList.toggle('hidden', on);
+        img.classList.toggle('hidden', !on);
+        $('resultImgHint').classList.toggle('hidden', !on);
+      };
+      if (!blob) {
+        img.removeAttribute('src');
+        return toggle(false);
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (state.png !== blob) return;
+        img.src = reader.result;
+        toggle(true);
+      };
+      reader.readAsDataURL(blob);
     }
 
     // =============== 結果のコピー ===============
