@@ -526,6 +526,8 @@
       selected: null,      // 確定前に選んでいる選択肢の index
       played: null,        // スタート時点の設定。結果画面に出すので、途中で設定を変えても残す
       shareText: '',
+      png: null,           // 結果カード画像。作成済みなら Blob
+      pngPromise: null,
       score: 0,
       answers: []
     };
@@ -869,6 +871,10 @@
           <div class="r-sub">${escapeHtml(q.text)}</div>
         </div>`).join('');
       show('result');
+      // iOS は共有・コピーをタップ直後に同期的に呼ばないと拒否するため、画像は表示と同時に作っておく
+      state.png = null;
+      state.pngPromise = renderCardPng();
+      state.pngPromise.then(b => { state.png = b; }, e => console.warn(e));
     }
 
     // =============== 結果のコピー ===============
@@ -941,12 +947,42 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }
 
+    // スマホは画像をクリップボードに入れても貼り付け先が限られるので、共有シートで保存・投稿させる
+    const useShareSheet = matchMedia('(pointer: coarse)').matches && !!navigator.canShare;
+
+    async function shareImage() {
+      if (!state.png) {
+        setCopyStatus('画像を作成中…');
+        try {
+          await state.pngPromise;
+        } catch (e) {
+          state.pngPromise = renderCardPng();
+          state.pngPromise.then(b => { state.png = b; }, e2 => console.warn(e2));
+          setCopyStatus('画像の作成に失敗しました。もう一度押してください', true);
+          return;
+        }
+        // 待っている間にタップ直後の扱いが切れるので、もう一度押してもらう
+        setCopyStatus('画像ができました。もう一度押してください');
+        return;
+      }
+      const file = new File([state.png], 'kagemasu-quiz-result.png', { type: 'image/png' });
+      if (!navigator.canShare({ files: [file] })) return copyImage();
+      try {
+        await navigator.share({ files: [file], text: state.shareText });
+        setCopyStatus('');
+      } catch (e) {
+        if (e.name === 'AbortError') return setCopyStatus('');
+        console.warn(e);
+        setCopyStatus('共有に失敗しました。スクリーンショットをご利用ください', true);
+      }
+    }
+
     async function copyImage() {
       const btn = $('copyImageBtn');
       btn.disabled = true;
       setCopyStatus('画像を作成中…');
       // Safari はクリック直後に clipboard.write を呼ばないと拒否するため、画像は Promise のまま渡す
-      const pngPromise = renderCardPng();
+      const pngPromise = state.png ? Promise.resolve(state.png) : renderCardPng();
       const textBlob = new Blob([state.shareText], { type: 'text/plain' });
       try {
         if (!window.ClipboardItem || !navigator.clipboard?.write) throw new Error('clipboard image unsupported');
@@ -989,7 +1025,8 @@
 
       $('startBtn').addEventListener('click', startQuiz);
       $('confirmBtn').addEventListener('click', answer);
-      $('copyImageBtn').addEventListener('click', copyImage);
+      if (useShareSheet) $('copyImageBtn').textContent = '結果を画像で共有';
+      $('copyImageBtn').addEventListener('click', useShareSheet ? shareImage : copyImage);
       $('copyTextBtn').addEventListener('click', copyText);
       $('nextBtn').addEventListener('click', next);
       $('retryBtn').addEventListener('click', startQuiz);
