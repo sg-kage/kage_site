@@ -172,6 +172,17 @@
       box-shadow: 0 0 18px var(--green-glow);
     }
     .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+    .btn-sub {
+      color: var(--text);
+      background: rgba(20, 20, 20, 0.8);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      box-shadow: none;
+      margin-top: 10px;
+    }
+
+    .ex-controls { text-align: center; margin-top: 6px; }
+    .ex-controls .btn-text + .btn-text { margin-left: 16px; }
+    .ex-note { font-size: 0.68rem; line-height: 1.6; color: var(--text-dim); margin-top: 6px; text-align: left; }
 
     /* =============== 出題 =============== */
     .q-meta {
@@ -470,6 +481,8 @@
     <section class="panel settings" id="settings">
       <h2>出題範囲</h2>
       <div class="chips" id="kindChips"></div>
+      <h2>入手区分</h2>
+      <div class="chips" id="gachaChips"></div>
       <h2>問題数</h2>
       <div class="chips" id="countChips"></div>
       <h2>選択肢の数</h2>
@@ -478,6 +491,7 @@
       <div class="chips" id="levelChips"></div>
       <p class="pool-info" id="poolInfo">データを読み込み中…</p>
       <button class="btn-primary" id="startBtn" disabled>スタート</button>
+      <button class="btn-primary btn-sub hidden" id="resumeBtn"></button>
     </section>
 
     <section class="panel hidden" id="quiz">
@@ -492,6 +506,11 @@
       <div class="feedback hidden" id="feedback"></div>
       <button class="btn-primary" id="confirmBtn" disabled>確定</button>
       <button class="btn-primary hidden" id="nextBtn">次の問題へ</button>
+      <div class="ex-controls hidden" id="exControls">
+        <button class="btn-text" id="suspendBtn">一時中断</button>
+        <button class="btn-text" id="quitBtn">終了する</button>
+        <p class="ex-note">※一時中断は推奨しません。モードExは一気に挑戦するためのモードです。中断データはこの端末のブラウザにだけ保存され、別の端末やURLの共有では再開できません。</p>
+      </div>
     </section>
 
     <section class="panel result hidden" id="result">
@@ -506,6 +525,7 @@
         <div class="rc-rank" id="rcRank"></div>
         <div class="score-big" id="scoreBig"></div>
         <div class="rc-rate" id="rcRate"></div>
+        <div class="rc-rate" id="rcTime"></div>
         <p class="score-comment" id="scoreComment"></p>
         <dl class="rc-settings" id="rcSettings"></dl>
         <div class="rc-foot">
@@ -551,11 +571,17 @@
         { id: 'status', label: '状態効果', fields: [] }
       ],
       defaultOff: ['combo'],
+      // 図鑑データの gacha 値（フェス・恒常・季節・コラボ）をまとめた区分。状態効果の問題には関係しない
+      gachas: [
+        { id: 'permanent', label: '恒常', values: ['恒常'] },
+        { id: 'limited', label: '期間限定', values: ['フェス', '季節'] },
+        { id: 'collab', label: 'コラボ', values: ['コラボ'] }
+      ],
       fieldLabels: {
         ultimate: '奥義', ex_ultimate: '究極奥義', skill1: '特技1', skill2: '特技2',
         traits: '特殊', magic_item1: '魔道具1', magic_item2: '魔道具2', combo: 'コンボ'
       },
-      counts: [5, 10, 20],
+      counts: [5, 10, 20, 'ex'],   // 'ex' は間違えるまで続けるモード
       levels: [
         { id: 'easy', label: 'ふつう（ランダム）', short: 'ふつう' },
         { id: 'hard', label: 'むずかしい（似たものを優先）', short: 'むずかしい' }
@@ -564,13 +590,15 @@
       quizUrl: 'https://sg-kage.github.io/kage_site/quiz/',
       html2canvasSrc: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
       html2canvasSri: 'sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H',
-      SETTINGS_KEY: 'kage_quiz_settings'
+      SETTINGS_KEY: 'kage_quiz_settings',
+      SUSPEND_KEY: 'kage_quiz_ex_suspend'   // モードExの中断データ。URLに載せず端末内だけで再開させる
     };
 
     const state = {
       chars: [],
       pool: [],            // { kind, key, ...種類ごとのデータ }
       kinds: new Set(CONFIG.kinds.filter(k => !CONFIG.defaultOff.includes(k.id)).map(k => k.id)),
+      gachas: new Set(CONFIG.gachas.map(g => g.id)),
       count: 10,
       choiceCount: 4,
       level: 'easy',
@@ -583,6 +611,9 @@
       png: null,           // 結果カード画像。作成済みなら Blob
       pngPromise: null,
       score: 0,
+      quit: false,         // モードExを終了ボタンで終えたか
+      elapsedMs: 0,        // 中断前までに経過した時間。中断している間は数えない
+      startedAt: 0,
       answers: []
     };
 
@@ -645,10 +676,10 @@
           for (const field of kind.fields) {
             const v = char[field];
             const items = typeof v === 'string' ? [{ title: '', normal: v }] : (Array.isArray(v) ? v : []);
-            for (const e of items) {
+            items.forEach((e, i) => {
               const t = (e?.normal || '').trim();
-              if (t) entries.push({ kind: kind.id, key: `c${char.position}`, char, field, title: e.title || '', text: t });
-            }
+              if (t) entries.push({ kind: kind.id, id: `${char.position}:${field}:${i}`, key: `c${char.position}`, char, field, title: e.title || '', text: t });
+            });
           }
         }
       }
@@ -657,12 +688,18 @@
 
     // 除外・伏せ字・重複除去は build_status_effects.py で済ませてある
     function buildStatusPool(effects) {
-      return effects.map(e => ({ kind: 'status', key: `s${e.name}`, name: e.name, type: e.type, icon: e.icon, text: e.desc }));
+      return effects.map(e => ({ kind: 'status', id: `s${e.name}`, key: `s${e.name}`, name: e.name, type: e.type, icon: e.icon, text: e.desc }));
+    }
+
+    function inActiveGacha(char) {
+      return CONFIG.gachas.some(g => state.gachas.has(g.id) && g.values.includes(char.gacha));
     }
 
     function activePool() {
-      return state.pool.filter(e => state.kinds.has(e.kind));
+      return state.pool.filter(e => state.kinds.has(e.kind) && (e.kind === 'status' || inActiveGacha(e.char)));
     }
+
+    const isEx = () => state.count === 'ex';
 
     // =============== 問題の組み立て ===============
     function charChoice(c) {
@@ -670,42 +707,58 @@
       return { key: `c${c.position}`, label: short, sub: title ? `[${title}]` : '', img: imgUrl(c) };
     }
 
-    function makeCharQuestion(e) {
-      const answer = e.char;
-      const others = state.chars.filter(c => c.position !== answer.position);
+    function pickCharDistractors(answer) {
+      // 区分外のキャラが選択肢に混ざると消去法で当たるので、選択肢も選んだ区分から出す
+      const others = state.chars.filter(c => c.position !== answer.position && inActiveGacha(c));
+      const outside = state.chars.filter(c => !inActiveGacha(c));
       const need = state.choiceCount - 1;
-      const distractors = state.level === 'easy'
-        ? shuffle(others).slice(0, need)
+      return state.level === 'easy'
+        ? fillFromTiers([others, outside], need)
         : fillFromTiers([
             others.filter(c => c.role === answer.role && c.attribute === answer.attribute),
             others.filter(c => c.role === answer.role && c.attribute !== answer.attribute),
-            others.filter(c => c.role !== answer.role)
+            others.filter(c => c.role !== answer.role),
+            outside
           ], need);
+    }
+
+    // choiceKeys は中断データからの復元用。選択肢を作り直すとやり直しになるので保存した並びをそのまま使う
+    function makeCharQuestion(e, choiceKeys) {
+      const answer = e.char;
+      const choices = choiceKeys
+        ? choiceKeys.map(k => state.chars.find(c => `c${c.position}` === k))
+        : shuffle([answer, ...pickCharDistractors(answer)]);
+      if (choices.some(c => !c)) return null;
       const partName = CONFIG.fieldLabels[e.field] + (e.title ? `「${e.title}」` : '');
       return {
+        id: e.id,
         tag: CONFIG.fieldLabels[e.field],
         text: formatEffect(e.text),
         prompt: 'この効果を持つキャラは？',
         answerKey: e.key,
-        choices: shuffle([answer, ...distractors]).map(charChoice),
+        choices: choices.map(charChoice),
         answerLabel: answer.name,
         explain: `${answer.name} の${partName}`,
         link: { href: `${CONFIG.zukanUrl}?pos=${answer.position}`, label: '図鑑で見る →' }
       };
     }
 
-    function makeStatusQuestion(e) {
+    function makeStatusQuestion(e, choiceKeys) {
       const statusPool = state.pool.filter(x => x.kind === 'status' && x.key !== e.key);
       const need = state.choiceCount - 1;
-      const distractors = state.level === 'easy'
-        ? shuffle(statusPool).slice(0, need)
-        : fillFromTiers([statusPool.filter(x => x.type === e.type), statusPool.filter(x => x.type !== e.type)], need);
+      const choices = choiceKeys
+        ? choiceKeys.map(k => state.pool.find(x => x.kind === 'status' && x.key === k))
+        : shuffle([e, ...(state.level === 'easy'
+            ? shuffle(statusPool).slice(0, need)
+            : fillFromTiers([statusPool.filter(x => x.type === e.type), statusPool.filter(x => x.type !== e.type)], need))]);
+      if (choices.some(x => !x)) return null;
       return {
+        id: e.id,
         tag: '状態効果',
         text: e.text,
         prompt: 'この効果の名称は？',
         answerKey: e.key,
-        choices: shuffle([e, ...distractors]).map(x => ({ key: x.key, label: x.name, sub: '', img: x.icon, icon: true })),
+        choices: choices.map(x => ({ key: x.key, label: x.name, sub: '', img: x.icon, icon: true })),
         answerLabel: e.name,
         explain: `${e.name}（${e.type}）`,
         link: { href: CONFIG.statusHelpUrl, label: '公式ヘルプで見る →' }
@@ -722,17 +775,23 @@
       }
       const used = new Set();
       const qs = [];
-      while (qs.length < state.count && byKind.size) {
+      const limit = isEx() ? Infinity : state.count;
+      while (qs.length < limit && byKind.size) {
         const kinds = [...byKind.keys()];
         const kind = kinds[Math.floor(Math.random() * kinds.length)];
         const list = byKind.get(kind);
         const e = list.pop();
         if (!list.length) byKind.delete(kind);
-        if (used.has(e.key)) continue;
+        // モードExは全件を出し切れるよう、同じ正解でも効果文が違えば出す
+        if (!isEx() && used.has(e.key)) continue;
         used.add(e.key);
-        qs.push(e.kind === 'status' ? makeStatusQuestion(e) : makeCharQuestion(e));
+        qs.push(makeQuestion(e));
       }
       return qs;
+    }
+
+    function makeQuestion(e, choiceKeys) {
+      return e.kind === 'status' ? makeStatusQuestion(e, choiceKeys) : makeCharQuestion(e, choiceKeys);
     }
 
     // =============== 設定UI ===============
@@ -754,7 +813,10 @@
       renderChips('kindChips', CONFIG.kinds, k => state.kinds.has(k.id), k => {
         if (state.kinds.has(k.id)) state.kinds.delete(k.id); else state.kinds.add(k.id);
       });
-      renderChips('countChips', CONFIG.counts.map(n => ({ id: n, label: `${n}問` })),
+      renderChips('gachaChips', CONFIG.gachas, g => state.gachas.has(g.id), g => {
+        if (state.gachas.has(g.id)) state.gachas.delete(g.id); else state.gachas.add(g.id);
+      });
+      renderChips('countChips', CONFIG.counts.map(n => ({ id: n, label: countLabel(n) })),
         c => c.id === state.count, c => { state.count = c.id; });
       renderChips('choiceChips', CONFIG.choiceCounts.map(n => ({ id: n, label: `${n}択` })),
         c => c.id === state.choiceCount, c => { state.choiceCount = c.id; });
@@ -762,15 +824,29 @@
 
       if (!state.chars.length) return;
       const n = activePool().length;
-      $('poolInfo').textContent = `出題候補 ${n} 件`;
+      $('poolInfo').textContent = `出題候補 ${n} 件` + (isEx() ? '（モードExは1問でも間違えると終了）' : '');
       $('startBtn').disabled = n === 0;
       saveSettings();
+      renderResumeBtn();
+    }
+
+    function renderResumeBtn() {
+      const s = loadSuspend();
+      $('resumeBtn').classList.toggle('hidden', !s);
+      if (s) {
+        const streak = s.answers.filter(a => a.ok).length;
+        $('resumeBtn').textContent = `モードExを続きから再開（Q${s.answers.length + 1}・${streak}問連続正解中）`;
+      }
+    }
+
+    function countLabel(n) {
+      return n === 'ex' ? 'モードEx（間違えるまで）' : `${n}問`;
     }
 
     function saveSettings() {
       try {
         localStorage.setItem(CONFIG.SETTINGS_KEY, JSON.stringify({
-          kinds: [...state.kinds], count: state.count, choiceCount: state.choiceCount, level: state.level, name: state.name
+          kinds: [...state.kinds], gachas: [...state.gachas], count: state.count, choiceCount: state.choiceCount, level: state.level, name: state.name
         }));
       } catch (_) { /* 保存できなくても動作に支障なし */ }
     }
@@ -781,11 +857,88 @@
         if (!s) return;
         const validKinds = (s.kinds || []).filter(id => CONFIG.kinds.some(k => k.id === id));
         if (validKinds.length) state.kinds = new Set(validKinds);
+        const validGachas = (s.gachas || []).filter(id => CONFIG.gachas.some(g => g.id === id));
+        if (validGachas.length) state.gachas = new Set(validGachas);
         if (CONFIG.counts.includes(s.count)) state.count = s.count;
         if (CONFIG.choiceCounts.includes(s.choiceCount)) state.choiceCount = s.choiceCount;
         if (CONFIG.levels.some(l => l.id === s.level)) state.level = s.level;
         if (typeof s.name === 'string') state.name = s.name.slice(0, 16);
       } catch (_) { /* 壊れた保存値は無視 */ }
+    }
+
+    // =============== モードExの中断・再開 ===============
+    // 問題文や選択肢は保存せず ID とキーだけを持つ。全問を丸ごと保存すると localStorage の容量に近づくため
+    function saveSuspend() {
+      try {
+        localStorage.setItem(CONFIG.SUSPEND_KEY, JSON.stringify({
+          played: state.played,
+          elapsedMs: elapsedMs(),
+          questions: state.questions.map(q => ({ id: q.id, choices: q.choices.map(c => c.key) })),
+          answers: state.answers.map(a => ({ chosen: a.chosen.key, ok: a.ok }))
+        }));
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function loadSuspend() {
+      try {
+        const s = JSON.parse(localStorage.getItem(CONFIG.SUSPEND_KEY) || 'null');
+        return s && Array.isArray(s.questions) && Array.isArray(s.answers) ? s : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function clearSuspend() {
+      try { localStorage.removeItem(CONFIG.SUSPEND_KEY); } catch (_) { /* 消せなくても再開ボタンが残るだけ */ }
+    }
+
+    function suspendQuiz() {
+      if (!saveSuspend()) {
+        alert('このブラウザでは中断データを保存できませんでした。');
+        return;
+      }
+      show('settings');
+      renderSettings();
+    }
+
+    function resumeQuiz() {
+      const s = loadSuspend();
+      // 再開した時点で消す。残すと、間違えた後に再読み込みして同じ地点からやり直せてしまう
+      clearSuspend();
+      const byId = new Map(state.pool.map(e => [e.id, e]));
+      const qs = (s?.questions || []).map(x => {
+        const e = byId.get(x.id);
+        return e ? makeQuestion(e, x.choices) : null;
+      });
+      const n = s ? s.answers.length : 0;
+      const answered = qs.slice(0, n);
+      if (!s || answered.some(q => !q)) {
+        alert('データが更新されたため、中断したモードExを再開できませんでした。');
+        renderSettings();
+        return;
+      }
+      state.played = s.played;
+      state.questions = [...answered, ...qs.slice(n).filter(Boolean)];
+      state.answers = s.answers.map((a, i) => ({
+        q: answered[i], chosen: answered[i].choices.find(c => c.key === a.chosen) || { label: '', sub: '' }, ok: a.ok
+      }));
+      state.score = state.answers.filter(a => a.ok).length;
+      state.index = n;
+      state.quit = false;
+      state.elapsedMs = Number(s.elapsedMs) || 0;
+      state.startedAt = Date.now();
+      if (state.index >= state.questions.length) return renderResult();
+      show('quiz');
+      renderQuestion();
+    }
+
+    function quitQuiz() {
+      if (!confirm('本当に終了しますか？\nここまでの連続正解数で結果を表示します。')) return;
+      state.quit = true;
+      renderResult();
     }
 
     // =============== 出題 ===============
@@ -795,15 +948,24 @@
     }
 
     function startQuiz() {
+      if (isEx() && loadSuspend()) {
+        if (!confirm('中断中のモードExがあります。\n新しく始めると中断データは消えます。よろしいですか？')) return;
+        clearSuspend();
+      }
       state.questions = generateQuestions();
       state.played = {
         kinds: CONFIG.kinds.filter(k => state.kinds.has(k.id)).map(k => k.label),
-        count: state.questions.length,
+        gachas: CONFIG.gachas.filter(g => state.gachas.has(g.id)).map(g => g.label),
+        ex: isEx(),
+        count: isEx() ? 'モードEx' : `${state.questions.length}問`,
         choiceCount: state.choiceCount,
         level: CONFIG.levels.find(l => l.id === state.level).short
       };
       state.index = 0;
       state.score = 0;
+      state.quit = false;
+      state.elapsedMs = 0;
+      state.startedAt = Date.now();
       state.answers = [];
       show('quiz');
       renderQuestion();
@@ -811,7 +973,7 @@
 
     function renderQuestion() {
       const q = state.questions[state.index];
-      $('qProgress').textContent = `Q${state.index + 1} / ${state.questions.length}`;
+      $('qProgress').textContent = `Q${state.index + 1}` + (state.played.ex ? '' : ` / ${state.questions.length}`);
       $('qScore').textContent = `${state.score} 正解`;
       $('qKind').textContent = q.tag;
       $('qText').textContent = q.text;
@@ -820,6 +982,7 @@
       $('nextBtn').classList.add('hidden');
       $('confirmBtn').classList.remove('hidden');
       $('confirmBtn').disabled = true;
+      $('exControls').classList.toggle('hidden', !state.played.ex);
       state.selected = null;
 
       const box = $('choices');
@@ -869,14 +1032,20 @@
       fb.classList.remove('hidden');
       $('qScore').textContent = `${state.score} 正解`;
 
-      const last = state.index === state.questions.length - 1;
-      $('nextBtn').textContent = last ? '結果を見る' : '次の問題へ';
+      $('nextBtn').textContent = isFinished() ? '結果を見る' : '次の問題へ';
+      if (isFinished()) $('exControls').classList.add('hidden');
       $('nextBtn').classList.remove('hidden');
       $('nextBtn').focus({ preventScroll: true });
     }
 
+    // 回答済みの問題を基準に判定する。モードExは1問でも間違えたら終わり
+    function isFinished() {
+      if (state.played.ex && state.answers.some(a => !a.ok)) return true;
+      return state.answers.length >= state.questions.length;
+    }
+
     function next() {
-      if (state.index < state.questions.length - 1) {
+      if (!isFinished()) {
         state.index++;
         renderQuestion();
         window.scrollTo({ top: 0 });
@@ -892,30 +1061,60 @@
       return { title: 'モブ', comment: 'まだまだ修行が必要です' };
     }
 
+    function rankOfStreak(streak, cleared) {
+      if (cleared) return { title: '陰の実力者', comment: '全問制覇！完璧です' };
+      if (streak >= 50) return { title: '陰の実力者', comment: '驚異の連続正解です' };
+      if (streak >= 20) return { title: '七陰', comment: 'かなりの知識量です' };
+      if (streak >= 10) return { title: 'シャドウガーデン', comment: 'なかなかの腕前です' };
+      return { title: 'モブ', comment: 'まだまだ修行が必要です' };
+    }
+
+    function elapsedMs() {
+      return state.elapsedMs + (Date.now() - state.startedAt);
+    }
+
+    function formatDuration(ms) {
+      const sec = Math.floor(ms / 1000);
+      const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = sec % 60;
+      return (h ? `${h}時間` : '') + (h || m ? `${m}分` : '') + `${s}秒`;
+    }
+
     function renderResult() {
+      if (state.played.ex) clearSuspend();
+      const time = formatDuration(elapsedMs());
+      const p = state.played;
       const total = state.questions.length;
       const rate = state.score / total;
-      const rank = rankOf(rate);
-      const p = state.played;
+      const cleared = state.score === total;
+      const rank = p.ex ? rankOfStreak(state.score, cleared) : rankOf(rate);
       const now = new Date();
       $('rcDate').textContent = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
       $('rcPlayer').textContent = state.name;
       $('playerName').value = state.name;
       $('rcRank').textContent = rank.title;
-      $('scoreBig').innerHTML = `${state.score}<span class="score-total"> / ${total}</span>`;
-      $('rcRate').textContent = `正答率 ${Math.round(rate * 100)}%`;
+      $('scoreBig').innerHTML = p.ex
+        ? `${state.score}<span class="score-total"> 問連続</span>`
+        : `${state.score}<span class="score-total"> / ${total}</span>`;
+      $('rcRate').textContent = p.ex
+        ? (cleared ? `全 ${total} 問を制覇` : state.quit ? '途中で終了' : `${state.score + 1} 問目で終了`)
+        : `正答率 ${Math.round(rate * 100)}%`;
+      $('rcTime').textContent = `経過時間 ${time}`;
       $('scoreComment').textContent = rank.comment;
       const tags = list => list.map(t => `<span class="rc-tag">${escapeHtml(t)}</span>`).join('');
       $('rcSettings').innerHTML = `
         <dt>出題範囲</dt><dd>${tags(p.kinds)}</dd>
-        <dt>問題数</dt><dd>${tags([`${p.count}問`])}</dd>
+        <dt>入手区分</dt><dd>${tags(p.gachas)}</dd>
+        <dt>問題数</dt><dd>${tags([p.count])}</dd>
         <dt>選択肢</dt><dd>${tags([`${p.choiceCount}択`])}</dd>
         <dt>難易度</dt><dd>${tags([p.level])}</dd>`;
 
       state.shareText = [
-        `カゲマス スキル効果クイズで ${state.score}/${total} 問正解！`,
+        p.ex
+          ? `カゲマス スキル効果クイズ モードExで ${state.score} 問連続正解！`
+          : `カゲマス スキル効果クイズで ${state.score}/${total} 問正解！`,
         `称号：${rank.title}`,
-        `（${p.kinds.join('・')}／${p.choiceCount}択／${p.level}）`,
+        `経過時間：${time}`,
+        `（${p.kinds.join('・')}／${p.gachas.join('・')}／${p.choiceCount}択／${p.level}）`,
         '#カゲマス',
         CONFIG.quizUrl
       ].join('\n');
@@ -1134,6 +1333,9 @@
       renderSettings();
 
       $('startBtn').addEventListener('click', startQuiz);
+      $('resumeBtn').addEventListener('click', resumeQuiz);
+      $('suspendBtn').addEventListener('click', suspendQuiz);
+      $('quitBtn').addEventListener('click', quitQuiz);
       $('confirmBtn').addEventListener('click', answer);
       if (useShareSheet) $('copyImageBtn').textContent = '結果を画像で共有';
       $('copyImageBtn').addEventListener('click', useShareSheet ? shareImage : copyImage);
@@ -1141,7 +1343,7 @@
       $('playerName').addEventListener('input', onNameInput);
       $('nextBtn').addEventListener('click', next);
       $('retryBtn').addEventListener('click', startQuiz);
-      $('backBtn').addEventListener('click', () => show('settings'));
+      $('backBtn').addEventListener('click', () => { show('settings'); renderResumeBtn(); });
 
       Promise.all([
         KageData.load(CONFIG.charsUrl),
