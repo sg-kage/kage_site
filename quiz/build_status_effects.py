@@ -14,6 +14,7 @@
 """
 
 import json
+import re
 import sys
 import urllib.request
 from html.parser import HTMLParser
@@ -26,6 +27,9 @@ BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_INPUT = BASE_DIR / 'status_help.html'
 OUTPUT_JSON = BASE_DIR / 'status_effects.json'
 ICON_DIR = BASE_DIR / 'icons'
+# 保存先のファイル名と JSON の icon 値になるので、パス区切りや .. を含む名前は受け付けない。
+# index.html の STATUS_ICON_RE と揃えること
+ICON_NAME_RE = re.compile(r'[\w-]+\.(?:png|webp|gif|jpe?g)')
 
 # 名称から効果がすぐ分かるので出題しない
 EXCLUDE_KEYWORDS = ('耐性', 'アップ', 'ダウン', 'カット')
@@ -110,10 +114,14 @@ def dedupe(effects):
 
 
 def download_icon(src):
-    filename = src.rsplit('/', 1)[-1]
+    url = src if src.startswith('http') else SITE_ROOT + src
+    if not url.startswith(SITE_ROOT + '/'):
+        raise RuntimeError(f'公式サイト以外のアイコンです: {src}')
+    filename = url.rsplit('/', 1)[-1]
+    if not ICON_NAME_RE.fullmatch(filename):
+        raise RuntimeError(f'想定外のアイコンファイル名です: {src}')
     dest = ICON_DIR / filename
     if not dest.exists():
-        url = src if src.startswith('http') else SITE_ROOT + src
         with urllib.request.urlopen(url, timeout=30) as resp:
             data = resp.read()
         if not data:

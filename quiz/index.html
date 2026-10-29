@@ -503,7 +503,7 @@
       <div class="q-text" id="qText"></div>
       <p class="q-prompt" id="qPrompt"></p>
       <div class="choices" id="choices"></div>
-      <div class="feedback hidden" id="feedback"></div>
+      <div class="feedback hidden" id="feedback" role="status" aria-live="polite"></div>
       <button class="btn-primary" id="confirmBtn" disabled>確定</button>
       <button class="btn-primary hidden" id="nextBtn">次の問題へ</button>
       <div class="ex-controls hidden" id="exControls">
@@ -597,6 +597,8 @@
     const state = {
       chars: [],
       pool: [],            // { kind, key, ...種類ごとのデータ }
+      statusPool: [],      // pool のうち状態効果だけ
+      byKey: new Map(),    // 選択肢のキー（c+Pos / s+名称）→ キャラ・状態効果。中断データの復元に使う
       kinds: new Set(CONFIG.kinds.filter(k => !CONFIG.defaultOff.includes(k.id)).map(k => k.id)),
       gachas: new Set(CONFIG.gachas.map(g => g.id)),
       count: 10,
@@ -686,17 +688,23 @@
       return uniqueByText(entries, e => e.char.position);
     }
 
-    // 除外・伏せ字・重複除去は build_status_effects.py で済ませてある
+    // 除外・伏せ字・重複除去は build_status_effects.py で済ませてある。
+    // icon は公式ヘルプ由来の値なので、同スクリプトが icons/ に保存した画像の形だけ受け付ける
+    const STATUS_ICON_RE = /^icons\/[\w-]+\.(?:png|webp|gif|jpe?g)$/;
     function buildStatusPool(effects) {
-      return effects.map(e => ({ kind: 'status', id: `s${e.name}`, key: `s${e.name}`, name: e.name, type: e.type, icon: e.icon, text: e.desc }));
+      return effects.map(e => ({
+        kind: 'status', id: `s${e.name}`, key: `s${e.name}`, name: e.name, type: e.type,
+        icon: STATUS_ICON_RE.test(e.icon) ? e.icon : '', text: e.desc
+      }));
     }
 
-    function inActiveGacha(char) {
-      return CONFIG.gachas.some(g => state.gachas.has(g.id) && g.values.includes(char.gacha));
+    function activeGachaValues() {
+      return new Set(CONFIG.gachas.filter(g => state.gachas.has(g.id)).flatMap(g => g.values));
     }
 
     function activePool() {
-      return state.pool.filter(e => state.kinds.has(e.kind) && (e.kind === 'status' || inActiveGacha(e.char)));
+      const gachas = activeGachaValues();
+      return state.pool.filter(e => state.kinds.has(e.kind) && (e.kind === 'status' || gachas.has(e.char.gacha)));
     }
 
     const isEx = () => state.count === 'ex';
@@ -707,28 +715,26 @@
       return { key: `c${c.position}`, label: short, sub: title ? `[${title}]` : '', img: imgUrl(c) };
     }
 
-    function pickCharDistractors(answer) {
-      // 区分外のキャラが選択肢に混ざると消去法で当たるので、選択肢も選んだ区分から出す
-      const others = state.chars.filter(c => c.position !== answer.position && inActiveGacha(c));
-      const outside = state.chars.filter(c => !inActiveGacha(c));
-      const need = state.choiceCount - 1;
-      return state.level === 'easy'
-        ? fillFromTiers([others, outside], need)
-        : fillFromTiers([
-            others.filter(c => c.role === answer.role && c.attribute === answer.attribute),
-            others.filter(c => c.role === answer.role && c.attribute !== answer.attribute),
-            others.filter(c => c.role !== answer.role),
-            outside
-          ], need);
+    // 区分外のキャラが選択肢に混ざると消去法で当たるので、選択肢も選んだ区分（inside）から出す
+    function pickCharChoices(answer, inside, outside) {
+      const others = inside.filter(c => c !== answer);
+      const tiers = state.level === 'easy' ? [others] : [
+        others.filter(c => c.role === answer.role && c.attribute === answer.attribute),
+        others.filter(c => c.role === answer.role && c.attribute !== answer.attribute),
+        others.filter(c => c.role !== answer.role)
+      ];
+      return [answer, ...fillFromTiers([...tiers, outside], state.choiceCount - 1)];
     }
 
-    // choiceKeys は中断データからの復元用。選択肢を作り直すとやり直しになるので保存した並びをそのまま使う
-    function makeCharQuestion(e, choiceKeys) {
+    function pickStatusChoices(e) {
+      const others = state.statusPool.filter(x => x !== e);
+      const tiers = state.level === 'easy' ? [others] : [others.filter(x => x.type === e.type), others.filter(x => x.type !== e.type)];
+      return [e, ...fillFromTiers(tiers, state.choiceCount - 1)];
+    }
+
+    // choices は並び順どおりに表示する。中断データからの復元でも同じ並びを再現するため、シャッフルは呼び出し側で行う
+    function makeCharQuestion(e, choices) {
       const answer = e.char;
-      const choices = choiceKeys
-        ? choiceKeys.map(k => state.chars.find(c => `c${c.position}` === k))
-        : shuffle([answer, ...pickCharDistractors(answer)]);
-      if (choices.some(c => !c)) return null;
       const partName = CONFIG.fieldLabels[e.field] + (e.title ? `「${e.title}」` : '');
       return {
         id: e.id,
@@ -743,15 +749,7 @@
       };
     }
 
-    function makeStatusQuestion(e, choiceKeys) {
-      const statusPool = state.pool.filter(x => x.kind === 'status' && x.key !== e.key);
-      const need = state.choiceCount - 1;
-      const choices = choiceKeys
-        ? choiceKeys.map(k => state.pool.find(x => x.kind === 'status' && x.key === k))
-        : shuffle([e, ...(state.level === 'easy'
-            ? shuffle(statusPool).slice(0, need)
-            : fillFromTiers([statusPool.filter(x => x.type === e.type), statusPool.filter(x => x.type !== e.type)], need))]);
-      if (choices.some(x => !x)) return null;
+    function makeStatusQuestion(e, choices) {
       return {
         id: e.id,
         tag: '状態効果',
@@ -773,6 +771,9 @@
         if (!byKind.has(e.kind)) byKind.set(e.kind, []);
         byKind.get(e.kind).push(e);
       }
+      const gachas = activeGachaValues();
+      const inside = state.chars.filter(c => gachas.has(c.gacha));
+      const outside = state.chars.filter(c => !gachas.has(c.gacha));
       const used = new Set();
       const qs = [];
       const limit = isEx() ? Infinity : state.count;
@@ -783,30 +784,35 @@
         const e = list.pop();
         if (!list.length) byKind.delete(kind);
         // モードExは全件を出し切れるよう、同じ正解でも効果文が違えば出す
-        if (!isEx() && used.has(e.key)) continue;
-        used.add(e.key);
-        qs.push(makeQuestion(e));
+        if (!isEx()) {
+          if (used.has(e.key)) continue;
+          used.add(e.key);
+        }
+        const choices = e.kind === 'status' ? pickStatusChoices(e) : pickCharChoices(e.char, inside, outside);
+        qs.push(makeQuestion(e, shuffle(choices)));
       }
       return qs;
     }
 
-    function makeQuestion(e, choiceKeys) {
-      return e.kind === 'status' ? makeStatusQuestion(e, choiceKeys) : makeCharQuestion(e, choiceKeys);
+    function makeQuestion(e, choices) {
+      return e.kind === 'status' ? makeStatusQuestion(e, choices) : makeCharQuestion(e, choices);
     }
 
     // =============== 設定UI ===============
+    // ボタンは初回だけ作り、以降は押下状態だけ更新する。作り直すとキーボード操作中のフォーカスが外れる
     function renderChips(containerId, items, isOn, onToggle) {
       const box = $(containerId);
-      box.innerHTML = '';
-      for (const item of items) {
-        const btn = document.createElement('button');
-        btn.className = 'chip';
-        btn.type = 'button';
-        btn.textContent = item.label;
-        btn.setAttribute('aria-pressed', String(isOn(item)));
-        btn.addEventListener('click', () => { onToggle(item); renderSettings(); });
-        box.appendChild(btn);
+      if (!box.children.length) {
+        for (const item of items) {
+          const btn = document.createElement('button');
+          btn.className = 'chip';
+          btn.type = 'button';
+          btn.textContent = item.label;
+          btn.addEventListener('click', () => { onToggle(item); renderSettings(); });
+          box.appendChild(btn);
+        }
       }
+      items.forEach((item, i) => box.children[i].setAttribute('aria-pressed', String(isOn(item))));
     }
 
     function renderSettings() {
@@ -827,7 +833,6 @@
       $('poolInfo').textContent = `出題候補 ${n} 件` + (isEx() ? '（モードExは1問でも間違えると終了）' : '');
       $('startBtn').disabled = n === 0;
       saveSettings();
-      renderResumeBtn();
     }
 
     function renderResumeBtn() {
@@ -901,7 +906,7 @@
         return;
       }
       show('settings');
-      renderSettings();
+      renderResumeBtn();
     }
 
     function resumeQuiz() {
@@ -911,13 +916,14 @@
       const byId = new Map(state.pool.map(e => [e.id, e]));
       const qs = (s?.questions || []).map(x => {
         const e = byId.get(x.id);
-        return e ? makeQuestion(e, x.choices) : null;
+        const choices = (x.choices || []).map(k => state.byKey.get(k));
+        return e && choices.every(Boolean) ? makeQuestion(e, choices) : null;
       });
       const n = s ? s.answers.length : 0;
       const answered = qs.slice(0, n);
       if (!s || answered.some(q => !q)) {
         alert('データが更新されたため、中断したモードExを再開できませんでした。');
-        renderSettings();
+        renderResumeBtn();
         return;
       }
       state.played = s.played;
@@ -992,9 +998,26 @@
         btn.className = 'choice';
         btn.type = 'button';
         btn.dataset.idx = i;
-        btn.innerHTML = `
-          ${c.img ? `<img${c.icon ? ' class="status-icon"' : ''} src="${c.img}" alt="" loading="lazy" onerror="this.onerror=null;this.style.visibility='hidden'">` : ''}
-          <span class="c-name">${escapeHtml(c.label)}${c.sub ? `<span class="c-title">${escapeHtml(c.sub)}</span>` : ''}</span>`;
+        btn.setAttribute('aria-pressed', 'false');
+        if (c.img) {
+          const img = document.createElement('img');
+          if (c.icon) img.className = 'status-icon';
+          img.alt = '';
+          img.loading = 'lazy';
+          img.addEventListener('error', () => { img.style.visibility = 'hidden'; }, { once: true });
+          img.src = c.img;
+          btn.appendChild(img);
+        }
+        const name = document.createElement('span');
+        name.className = 'c-name';
+        name.textContent = c.label;
+        if (c.sub) {
+          const sub = document.createElement('span');
+          sub.className = 'c-title';
+          sub.textContent = c.sub;
+          name.appendChild(sub);
+        }
+        btn.appendChild(name);
         btn.addEventListener('click', () => select(i));
         box.appendChild(btn);
       });
@@ -1002,7 +1025,11 @@
 
     function select(idx) {
       state.selected = idx;
-      for (const btn of $('choices').children) btn.classList.toggle('selected', Number(btn.dataset.idx) === idx);
+      for (const btn of $('choices').children) {
+        const on = Number(btn.dataset.idx) === idx;
+        btn.classList.toggle('selected', on);
+        btn.setAttribute('aria-pressed', String(on));
+      }
       $('confirmBtn').disabled = false;
     }
 
@@ -1032,15 +1059,16 @@
       fb.classList.remove('hidden');
       $('qScore').textContent = `${state.score} 正解`;
 
-      $('nextBtn').textContent = isFinished() ? '結果を見る' : '次の問題へ';
-      if (isFinished()) $('exControls').classList.add('hidden');
+      const done = isFinished();
+      $('nextBtn').textContent = done ? '結果を見る' : '次の問題へ';
+      if (done) $('exControls').classList.add('hidden');
       $('nextBtn').classList.remove('hidden');
       $('nextBtn').focus({ preventScroll: true });
     }
 
-    // 回答済みの問題を基準に判定する。モードExは1問でも間違えたら終わり
+    // 回答済みの問題を基準に判定する。モードExは間違えた時点で終わるので、直前の回答だけ見ればよい
     function isFinished() {
-      if (state.played.ex && state.answers.some(a => !a.ok)) return true;
+      if (state.played.ex && state.answers.at(-1)?.ok === false) return true;
       return state.answers.length >= state.questions.length;
     }
 
@@ -1205,7 +1233,8 @@
       const shown = card.classList.contains('hidden') ? $('resultImg') : card;
       const width = Math.ceil(shown.getBoundingClientRect().width);
       const clone = card.cloneNode(true);
-      clone.removeAttribute('id');
+      // 子要素の id が残ると撮影中に同じ id が2つ並ぶ
+      for (const el of [clone, ...clone.querySelectorAll('[id]')]) el.removeAttribute('id');
       clone.classList.remove('hidden');
       clone.classList.add('rc-capture');
       // top をずらすと iOS Safari が高さを過小に測るので、縦はビューポート内に置く
@@ -1227,8 +1256,10 @@
           scrollY: 0,
           foreignObjectRendering: false,
           // 複製された文書内の <img> は読み込み完了を時間切れなしで待たれる。
-          // 非表示のクイズ画面に残る lazy 画像を iOS Safari は読み込まないため、ここで永久に止まる
-          ignoreElements: el => el.tagName === 'IMG'
+          // 非表示のクイズ画面に残る lazy 画像を iOS Safari は読み込まないため、ここで永久に止まる。
+          // 撮影対象の祖先・子孫以外の body 内要素も複製しない（モードExの振り返りは千件を超える）
+          ignoreElements: el => el.tagName === 'IMG' ||
+            (document.body.contains(el) && !el.contains(clone) && !clone.contains(el))
         }), 15000);
         return await new Promise((resolve, reject) =>
           canvas.toBlob(b => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'));
@@ -1345,13 +1376,17 @@
       $('retryBtn').addEventListener('click', startQuiz);
       $('backBtn').addEventListener('click', () => { show('settings'); renderResumeBtn(); });
 
-      Promise.all([
+      // kage-data.js 自体の読み込みに失敗すると KageData が未定義になるので、then の中で呼んで catch に回す
+      Promise.resolve().then(() => Promise.all([
         KageData.load(CONFIG.charsUrl),
         fetch(CONFIG.statusUrl, { cache: 'no-cache' }).then(r => r.json())
-      ]).then(([chars, statusEffects]) => {
+      ])).then(([chars, statusEffects]) => {
         state.chars = chars;
-        state.pool = [...buildCharPool(chars), ...buildStatusPool(statusEffects)];
+        state.statusPool = buildStatusPool(statusEffects);
+        state.pool = [...buildCharPool(chars), ...state.statusPool];
+        state.byKey = new Map([...chars.map(c => [`c${c.position}`, c]), ...state.statusPool.map(e => [e.key, e])]);
         renderSettings();
+        renderResumeBtn();
       }).catch(err => {
         console.error(err);
         $('poolInfo').textContent = 'データの読み込みに失敗しました。時間をおいて再読み込みしてください。';
