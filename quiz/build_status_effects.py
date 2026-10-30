@@ -1,12 +1,10 @@
 """公式ヘルプ「状態異常・特殊効果」からクイズ用の状態効果データを書き出す。
 
-公式サイトはブラウザ以外からのリクエストに空のページを返すため、
-ヘルプページはブラウザで「名前を付けて保存」した HTML を入力にする。
-アイコン画像は公式サイトから直接ダウンロードする。
+ヘルプページとアイコン画像は公式サイトから直接取得する。
+HELP_URL の from=ingame を外すと公式サイトは空のページを返す。
 
 使い方:
-    1. ブラウザで HELP_URL を開き、「名前を付けて保存」で quiz/status_help.html に保存
-    2. python build_status_effects.py [保存したHTMLのパス]
+    python build_status_effects.py
 
 出力:
     status_effects.json  クイズが読み込むデータ（名称・種類・アイコン・説明）
@@ -20,11 +18,10 @@ import urllib.request
 from html.parser import HTMLParser
 from pathlib import Path
 
-HELP_URL = 'https://www.shadow-garden-mog.jp/help/battlesystem0/battlesystem10/?cat=battle'
+HELP_URL = 'https://www.shadow-garden-mog.jp/help/battlesystem0/battlesystem10/?cat=battle&from=ingame'
 SITE_ROOT = 'https://www.shadow-garden-mog.jp'
 
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_INPUT = BASE_DIR / 'status_help.html'
 OUTPUT_JSON = BASE_DIR / 'status_effects.json'
 ICON_DIR = BASE_DIR / 'icons'
 # 保存先のファイル名と JSON の icon 値になるので、パス区切りや .. を含む名前は受け付けない。
@@ -131,14 +128,15 @@ def download_icon(src):
     return f'icons/{filename}'
 
 
-def main():
-    input_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_INPUT
-    if not input_path.exists():
-        sys.exit(f'{input_path} がありません。ブラウザで {HELP_URL} を開いて保存してください。')
+def fetch_help_html():
+    with urllib.request.urlopen(HELP_URL, timeout=30) as resp:
+        return resp.read().decode(resp.headers.get_content_charset() or 'utf-8')
 
-    all_effects = parse_effects(input_path.read_text(encoding='utf-8'))
+
+def main():
+    all_effects = parse_effects(fetch_help_html())
     if not all_effects:
-        sys.exit('状態効果の表が見つかりませんでした。保存したページを確認してください。')
+        sys.exit(f'状態効果の表が見つかりませんでした。{HELP_URL} の内容を確認してください。')
 
     by_keyword = [e for e in all_effects if any(k in e['name'] for k in EXCLUDE_KEYWORDS)]
     candidates = [e for e in all_effects if e not in by_keyword and e['name'] not in UNGUESSABLE]

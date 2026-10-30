@@ -509,7 +509,7 @@
       <div class="ex-controls hidden" id="exControls">
         <button class="btn-text" id="suspendBtn">一時中断</button>
         <button class="btn-text" id="quitBtn">終了する</button>
-        <p class="ex-note">※一時中断は推奨しません。モードExは一気に挑戦するためのモードです。中断データはこの端末のブラウザにだけ保存され、別の端末やURLの共有では再開できません。</p>
+        <p class="ex-note">※一時中断は推奨しません。Exは一気に挑戦するためのモードです。中断データはこの端末のブラウザにだけ保存され、別の端末やURLの共有では再開できません。</p>
       </div>
     </section>
 
@@ -591,7 +591,7 @@
       html2canvasSrc: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
       html2canvasSri: 'sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H',
       SETTINGS_KEY: 'kage_quiz_settings',
-      SUSPEND_KEY: 'kage_quiz_ex_suspend'   // モードExの中断データ。URLに載せず端末内だけで再開させる
+      SUSPEND_KEY: 'kage_quiz_ex_suspend'   // Exの中断データ。URLに載せず端末内だけで再開させる
     };
 
     const state = {
@@ -613,7 +613,7 @@
       png: null,           // 結果カード画像。作成済みなら Blob
       pngPromise: null,
       score: 0,
-      quit: false,         // モードExを終了ボタンで終えたか
+      quit: false,         // Exを終了ボタンで終えたか
       elapsedMs: 0,        // 中断前までに経過した時間。中断している間は数えない
       startedAt: 0,
       answers: []
@@ -783,7 +783,7 @@
         const list = byKind.get(kind);
         const e = list.pop();
         if (!list.length) byKind.delete(kind);
-        // モードExは全件を出し切れるよう、同じ正解でも効果文が違えば出す
+        // Exは全件を出し切れるよう、同じ正解でも効果文が違えば出す
         if (!isEx()) {
           if (used.has(e.key)) continue;
           used.add(e.key);
@@ -830,7 +830,7 @@
 
       if (!state.chars.length) return;
       const n = activePool().length;
-      $('poolInfo').textContent = `出題候補 ${n} 件` + (isEx() ? '（モードExは1問でも間違えると終了）' : '');
+      $('poolInfo').textContent = `出題候補 ${n} 件` + (isEx() ? '（Exは1問でも間違えると終了）' : '');
       $('startBtn').disabled = n === 0;
       saveSettings();
     }
@@ -840,12 +840,12 @@
       $('resumeBtn').classList.toggle('hidden', !s);
       if (s) {
         const streak = s.answers.filter(a => a.ok).length;
-        $('resumeBtn').textContent = `モードExを続きから再開（Q${s.answers.length + 1}・${streak}問連続正解中）`;
+        $('resumeBtn').textContent = `Exを続きから再開（Q${s.answers.length + 1}・${streak}問連続正解中）`;
       }
     }
 
     function countLabel(n) {
-      return n === 'ex' ? 'モードEx（間違えるまで）' : `${n}問`;
+      return n === 'ex' ? 'Ex（間違えるまで）' : `${n}問`;
     }
 
     function saveSettings() {
@@ -871,7 +871,7 @@
       } catch (_) { /* 壊れた保存値は無視 */ }
     }
 
-    // =============== モードExの中断・再開 ===============
+    // =============== Exの中断・再開 ===============
     // 問題文や選択肢は保存せず ID とキーだけを持つ。全問を丸ごと保存すると localStorage の容量に近づくため
     function saveSuspend() {
       try {
@@ -922,7 +922,7 @@
       const n = s ? s.answers.length : 0;
       const answered = qs.slice(0, n);
       if (!s || answered.some(q => !q)) {
-        alert('データが更新されたため、中断したモードExを再開できませんでした。');
+        alert('データが更新されたため、中断したExを再開できませんでした。');
         renderResumeBtn();
         return;
       }
@@ -955,7 +955,7 @@
 
     function startQuiz() {
       if (isEx() && loadSuspend()) {
-        if (!confirm('中断中のモードExがあります。\n新しく始めると中断データは消えます。よろしいですか？')) return;
+        if (!confirm('中断中のExがあります。\n新しく始めると中断データは消えます。よろしいですか？')) return;
         clearSuspend();
       }
       state.questions = generateQuestions();
@@ -963,7 +963,7 @@
         kinds: CONFIG.kinds.filter(k => state.kinds.has(k.id)).map(k => k.label),
         gachas: CONFIG.gachas.filter(g => state.gachas.has(g.id)).map(g => g.label),
         ex: isEx(),
-        count: isEx() ? 'モードEx' : `${state.questions.length}問`,
+        count: isEx() ? 'Ex' : `${state.questions.length}問`,
         choiceCount: state.choiceCount,
         level: CONFIG.levels.find(l => l.id === state.level).short
       };
@@ -1066,7 +1066,7 @@
       $('nextBtn').focus({ preventScroll: true });
     }
 
-    // 回答済みの問題を基準に判定する。モードExは間違えた時点で終わるので、直前の回答だけ見ればよい
+    // 回答済みの問題を基準に判定する。Exは間違えた時点で終わるので、直前の回答だけ見ればよい
     function isFinished() {
       if (state.played.ex && state.answers.at(-1)?.ok === false) return true;
       return state.answers.length >= state.questions.length;
@@ -1085,15 +1085,21 @@
     function rankOf(rate) {
       if (rate === 1) return { title: '陰の実力者', comment: '全問正解！完璧です' };
       if (rate >= 0.8) return { title: '七陰', comment: 'かなりの知識量です' };
-      if (rate >= 0.5) return { title: 'シャドウガーデン', comment: 'なかなかの腕前です' };
+      if (rate >= 0.6) return { title: 'ナンバーズ', comment: 'なかなかの腕前です' };
+      if (rate >= 0.4) return { title: '戦闘員', comment: '実戦で通用する実力です' };
+      if (rate >= 0.2) return { title: '訓練兵', comment: 'あと一歩、精進あるのみです' };
+      if (rate > 0) return { title: '新米兵', comment: 'これからの成長に期待です' };
       return { title: 'モブ', comment: 'まだまだ修行が必要です' };
     }
 
     function rankOfStreak(streak, cleared) {
       if (cleared) return { title: '陰の実力者', comment: '全問制覇！完璧です' };
       if (streak >= 50) return { title: '陰の実力者', comment: '驚異の連続正解です' };
-      if (streak >= 20) return { title: '七陰', comment: 'かなりの知識量です' };
-      if (streak >= 10) return { title: 'シャドウガーデン', comment: 'なかなかの腕前です' };
+      if (streak >= 30) return { title: '七陰', comment: 'かなりの知識量です' };
+      if (streak >= 20) return { title: 'ナンバーズ', comment: 'なかなかの腕前です' };
+      if (streak >= 10) return { title: '戦闘員', comment: '実戦で通用する実力です' };
+      if (streak >= 5) return { title: '訓練兵', comment: 'あと一歩、精進あるのみです' };
+      if (streak >= 1) return { title: '新米兵', comment: 'これからの成長に期待です' };
       return { title: 'モブ', comment: 'まだまだ修行が必要です' };
     }
 
@@ -1138,12 +1144,12 @@
 
       state.shareText = [
         p.ex
-          ? `カゲマス スキル効果クイズ モードExで ${state.score} 問連続正解！`
+          ? `カゲマス スキル効果クイズ Exで ${state.score} 問連続正解！`
           : `カゲマス スキル効果クイズで ${state.score}/${total} 問正解！`,
         `称号：${rank.title}`,
         `経過時間：${time}`,
-        `（${p.kinds.join('・')}／${p.gachas.join('・')}／${p.choiceCount}択／${p.level}）`,
-        '#カゲマス',
+        `(${p.kinds.join('・')}/${p.gachas.join('・')}/${p.choiceCount}択/${p.level})`,
+        '#カゲマスクイズ',
         CONFIG.quizUrl
       ].join('\n');
       setCopyStatus('');
@@ -1257,7 +1263,7 @@
           foreignObjectRendering: false,
           // 複製された文書内の <img> は読み込み完了を時間切れなしで待たれる。
           // 非表示のクイズ画面に残る lazy 画像を iOS Safari は読み込まないため、ここで永久に止まる。
-          // 撮影対象の祖先・子孫以外の body 内要素も複製しない（モードExの振り返りは千件を超える）
+          // 撮影対象の祖先・子孫以外の body 内要素も複製しない（Exの振り返りは千件を超える）
           ignoreElements: el => el.tagName === 'IMG' ||
             (document.body.contains(el) && !el.contains(clone) && !clone.contains(el))
         }), 15000);
