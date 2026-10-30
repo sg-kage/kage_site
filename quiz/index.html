@@ -184,6 +184,8 @@
     .ex-controls { text-align: center; margin-top: 6px; }
     .ex-controls .btn-text + .btn-text { margin-left: 16px; }
     .ex-note { font-size: 0.68rem; line-height: 1.6; color: var(--text-dim); margin-top: 6px; text-align: left; }
+    .practice-group h2 { margin-top: 14px; }
+    .practice-summary { font-size: 0.9rem; line-height: 1.8; margin: 4px 0 8px; }
 
     /* =============== 出題 =============== */
     .q-meta {
@@ -239,7 +241,7 @@
       .choice:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.35); }
     }
     .choice:disabled { cursor: default; }
-    .choice img {
+    .choice img, .fb-answer img {
       width: 48px;
       height: 48px;
       border-radius: 8px;
@@ -247,7 +249,7 @@
       flex-shrink: 0;
       background: rgba(255, 255, 255, 0.04);
     }
-    .choice img.status-icon {
+    .choice img.status-icon, .fb-answer img.status-icon {
       width: 36px;
       height: 36px;
       object-fit: contain;
@@ -274,6 +276,10 @@
     .feedback .verdict.ok { color: var(--green-bright); }
     .feedback .verdict.ng { color: var(--red); }
     .feedback a { color: var(--green-bright); }
+    .fb-answer { display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; }
+    .fb-answer .fb-name { font-weight: 700; line-height: 1.4; }
+    .fb-answer .fb-part { display: block; font-size: 0.75rem; font-weight: 400; color: var(--text-sub); }
+    .fb-retry { color: var(--gold); font-size: 0.8rem; }
 
     /* =============== 結果 =============== */
     .result { text-align: center; }
@@ -506,6 +512,11 @@
       <div class="chips" id="gachaChips"></div>
       <h2>問題数</h2>
       <div class="chips" id="countChips"></div>
+      <div class="practice-group hidden" id="practiceGroup">
+        <h2>練習する問題</h2>
+        <div class="chips" id="practiceChips"></div>
+        <button class="btn-text" id="clearWeakBtn" type="button">苦手の記録を消す</button>
+      </div>
       <h2>選択肢の数</h2>
       <div class="chips" id="choiceChips"></div>
       <h2>難易度</h2>
@@ -534,6 +545,9 @@
         <button class="btn-text" id="suspendBtn">一時中断</button>
         <button class="btn-text" id="quitBtn">終了する</button>
         <p class="ex-note">※一時中断は推奨しません。Exは一気に挑戦するためのモードです。中断データはこの端末のブラウザにだけ保存され、別の端末やURLの共有では再開できません。</p>
+      </div>
+      <div class="ex-controls hidden" id="practiceControls">
+        <button class="btn-text" id="endPracticeBtn">練習を終える</button>
       </div>
     </section>
 
@@ -566,6 +580,15 @@
       <button class="btn-primary btn-ghost" id="backBtn">設定に戻る</button>
       <h2 class="review-title">振り返り</h2>
       <div class="review" id="review"></div>
+    </section>
+
+    <section class="panel result hidden" id="practiceResult">
+      <h2>練習の結果</h2>
+      <p class="practice-summary" id="practiceSummary"></p>
+      <button class="btn-primary" id="practiceWeakBtn"></button>
+      <button class="btn-primary btn-ghost" id="practiceBackBtn">設定に戻る</button>
+      <h2 class="review-title">今回間違えた問題</h2>
+      <div class="review" id="practiceReview"></div>
     </section>
 
     <p class="disclaimer">
@@ -606,7 +629,8 @@
         ultimate: '奥義', ex_ultimate: '究極奥義', skill1: '特技1', skill2: '特技2',
         traits: '特殊', magic_item1: '魔道具1', magic_item2: '魔道具2', combo: 'コンボ'
       },
-      counts: [5, 10, 20, 'ex'],   // 'ex' は間違えるまで続けるモード
+      counts: [5, 10, 20, 'ex', 'practice'],   // 'ex' は間違えるまで続けるモード、'practice' は覚える用の練習
+      retryGap: 3,   // 練習で間違えた問題を何問後にもう一度出すか
       levels: [
         { id: 'easy', label: 'ふつう（ランダム）', short: 'ふつう' },
         { id: 'hard', label: 'むずかしい（似たものを優先）', short: 'むずかしい' }
@@ -616,7 +640,8 @@
       html2canvasSrc: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
       html2canvasSri: 'sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H',
       SETTINGS_KEY: 'kage_quiz_settings',
-      SUSPEND_KEY: 'kage_quiz_ex_suspend'   // Exの中断データ。URLに載せず端末内だけで再開させる
+      SUSPEND_KEY: 'kage_quiz_ex_suspend',   // Exの中断データ。URLに載せず端末内だけで再開させる
+      WEAK_KEY: 'kage_quiz_weak'   // 間違えた問題の ID。練習の「苦手だけ」に使う
     };
 
     const state = {
@@ -629,6 +654,8 @@
       count: 10,
       choiceCount: 4,
       level: 'easy',
+      weakOnly: false,     // 練習で苦手だけを出すか
+      weak: new Set(),     // 間違えた問題の ID
       name: '',            // 結果画像に入れるプレイヤー名
       questions: [],
       index: 0,
@@ -712,10 +739,10 @@
             const v = char[field];
             const items = typeof v === 'string' ? [{ title: '', normal: v }] : (Array.isArray(v) ? v : []);
             items.forEach((e, i) => {
-              let t = (e?.normal || '').trim();
-              if (title) t = t.split(title).join(MASK);
+              const raw = (e?.normal || '').trim();
+              const t = title ? raw.split(title).join(MASK) : raw;
               if (formatEffect(t).length >= MIN_TEXT_LENGTH) {
-                entries.push({ kind: kind.id, id: `${char.position}:${field}:${i}`, key: `c${char.position}`, char, field, title: e.title || '', text: t });
+                entries.push({ kind: kind.id, id: `${char.position}:${field}:${i}`, key: `c${char.position}`, char, field, title: e.title || '', text: t, fullText: raw });
               }
             });
           }
@@ -730,7 +757,7 @@
     function buildStatusPool(effects) {
       return effects.map(e => ({
         kind: 'status', id: `s${e.name}`, key: `s${e.name}`, name: e.name, type: e.type,
-        icon: STATUS_ICON_RE.test(e.icon) ? e.icon : '', text: e.desc
+        icon: STATUS_ICON_RE.test(e.icon) ? e.icon : '', text: e.desc, fullText: e.desc.split(MASK).join(e.name)
       }));
     }
 
@@ -743,7 +770,16 @@
       return state.pool.filter(e => state.kinds.has(e.kind) && (e.kind === 'status' || gachas.has(e.char.gacha)));
     }
 
+    // 練習で苦手だけを選んでいるときは、出題範囲のうち苦手の記録にある問題だけを出す
+    function questionPool() {
+      const pool = activePool();
+      return isPractice() && state.weakOnly ? pool.filter(e => state.weak.has(e.id)) : pool;
+    }
+
     const isEx = () => state.count === 'ex';
+    const isPractice = () => state.count === 'practice';
+    // Ex と練習は、出題範囲の全件を出す
+    const isEndless = () => isEx() || isPractice();
 
     // =============== 問題の組み立て ===============
     function charChoice(c) {
@@ -780,6 +816,9 @@
         answerKey: e.key,
         choices: choices.map(charChoice),
         answerLabel: answer.name,
+        answerPart: partName,
+        answerImg: imgUrl(answer),
+        fullText: formatEffect(e.fullText),
         explain: `${answer.name} の${partName}`,
         link: { href: `${CONFIG.zukanUrl}?pos=${answer.position}`, label: '図鑑で見る →' }
       };
@@ -794,6 +833,10 @@
         answerKey: e.key,
         choices: choices.map(x => ({ key: x.key, label: x.name, sub: '', img: x.icon, icon: true })),
         answerLabel: e.name,
+        answerPart: e.type,
+        answerImg: e.icon,
+        answerIcon: true,
+        fullText: e.fullText,
         explain: `${e.name}（${e.type}）`,
         link: { href: CONFIG.statusHelpUrl, label: '公式ヘルプで見る →' }
       };
@@ -803,35 +846,44 @@
       // 件数の少ない種類（状態効果など）も出るよう、まず種類を均等に選んでから問題を選ぶ。
       // 同じキャラ・同じ効果ばかり出ないよう、正解単位で重複も避ける
       const byKind = new Map();
-      for (const e of shuffle(activePool())) {
+      for (const e of shuffle(questionPool())) {
         if (!byKind.has(e.kind)) byKind.set(e.kind, []);
         byKind.get(e.kind).push(e);
       }
-      const gachas = activeGachaValues();
-      const inside = state.chars.filter(c => gachas.has(c.gacha));
-      const outside = state.chars.filter(c => !gachas.has(c.gacha));
+      const ctx = choiceContext();
       const used = new Set();
       const qs = [];
-      const limit = isEx() ? Infinity : state.count;
+      const limit = isEndless() ? Infinity : state.count;
       while (qs.length < limit && byKind.size) {
         const kinds = [...byKind.keys()];
         const kind = kinds[Math.floor(Math.random() * kinds.length)];
         const list = byKind.get(kind);
         const e = list.pop();
         if (!list.length) byKind.delete(kind);
-        // Exは全件を出し切れるよう、同じ正解でも効果文が違えば出す
-        if (!isEx()) {
+        // Exと練習は全件を出し切れるよう、同じ正解でも効果文が違えば出す
+        if (!isEndless()) {
           if (used.has(e.key)) continue;
           used.add(e.key);
         }
-        const choices = e.kind === 'status' ? pickStatusChoices(e) : pickCharChoices(e.char, inside, outside);
-        qs.push(makeQuestion(e, shuffle(choices)));
+        qs.push(buildQuestion(e, ctx));
       }
       return qs;
     }
 
+    function choiceContext() {
+      const gachas = activeGachaValues();
+      return { inside: state.chars.filter(c => gachas.has(c.gacha)), outside: state.chars.filter(c => !gachas.has(c.gacha)) };
+    }
+
+    function buildQuestion(e, ctx) {
+      const choices = e.kind === 'status' ? pickStatusChoices(e) : pickCharChoices(e.char, ctx.inside, ctx.outside);
+      return makeQuestion(e, shuffle(choices));
+    }
+
     function makeQuestion(e, choices) {
-      return e.kind === 'status' ? makeStatusQuestion(e, choices) : makeCharQuestion(e, choices);
+      const q = e.kind === 'status' ? makeStatusQuestion(e, choices) : makeCharQuestion(e, choices);
+      q.entry = e;   // 練習で間違えた問題を、選択肢を選び直して出し直すときに使う
+      return q;
     }
 
     // =============== 設定UI ===============
@@ -860,6 +912,10 @@
       });
       renderChips('countChips', CONFIG.counts.map(n => ({ id: n, label: countLabel(n) })),
         c => c.id === state.count, c => { state.count = c.id; });
+      renderChips('practiceChips', [{ id: false, label: 'すべて' }, { id: true, label: '苦手だけ' }],
+        c => c.id === state.weakOnly, c => { state.weakOnly = c.id; });
+      $('practiceGroup').classList.toggle('hidden', !isPractice());
+      $('clearWeakBtn').classList.toggle('hidden', !state.weak.size);
       renderChips('choiceChips', CONFIG.choiceCounts.map(n => ({ id: n, label: `${n}択` })),
         c => c.id === state.choiceCount, c => { state.choiceCount = c.id; });
       renderChips('levelChips', CONFIG.levels, l => l.id === state.level, l => { state.level = l.id; });
@@ -867,12 +923,22 @@
       $('gachaChips').classList.toggle('is-inactive', ![...state.kinds].some(k => k !== 'status'));
 
       if (!state.chars.length) return;
-      const n = activePool().length;
-      $('poolInfo').textContent = n === 0
-        ? '出題候補がありません。出題範囲と入手区分を選び直してください'
-        : `出題候補 ${n} 件` + (isEx() ? '（Exは1問でも間違えると終了）' : '');
+      const n = questionPool().length;
+      $('poolInfo').textContent = poolInfoText(n);
       $('startBtn').disabled = n === 0;
       saveSettings();
+    }
+
+    function poolInfoText(n) {
+      if (n === 0) {
+        return isPractice() && state.weakOnly
+          ? '選んだ範囲に苦手な問題はありません。クイズや練習で間違えた問題がここに入ります'
+          : '出題候補がありません。出題範囲と入手区分を選び直してください';
+      }
+      if (isEx()) return `出題候補 ${n} 件（Exは1問でも間違えると終了）`;
+      if (!isPractice()) return `出題候補 ${n} 件`;
+      const head = state.weakOnly ? `苦手 ${n} 件` : `出題候補 ${n} 件（うち苦手 ${countWeak()} 件）`;
+      return `${head}・間違えた問題は正解するまで繰り返し出ます`;
     }
 
     function renderResumeBtn() {
@@ -885,13 +951,16 @@
     }
 
     function countLabel(n) {
-      return n === 'ex' ? 'Ex（間違えるまで）' : `${n}問`;
+      if (n === 'ex') return 'Ex（間違えるまで）';
+      if (n === 'practice') return '練習（覚える用）';
+      return `${n}問`;
     }
 
     function saveSettings() {
       try {
         localStorage.setItem(CONFIG.SETTINGS_KEY, JSON.stringify({
-          kinds: [...state.kinds], gachas: [...state.gachas], count: state.count, choiceCount: state.choiceCount, level: state.level, name: state.name
+          kinds: [...state.kinds], gachas: [...state.gachas], count: state.count, choiceCount: state.choiceCount, level: state.level,
+          weakOnly: state.weakOnly, name: state.name
         }));
       } catch (_) { /* 保存できなくても動作に支障なし */ }
     }
@@ -907,8 +976,38 @@
         if (CONFIG.counts.includes(s.count)) state.count = s.count;
         if (CONFIG.choiceCounts.includes(s.choiceCount)) state.choiceCount = s.choiceCount;
         if (CONFIG.levels.some(l => l.id === s.level)) state.level = s.level;
+        if (typeof s.weakOnly === 'boolean') state.weakOnly = s.weakOnly;
         if (typeof s.name === 'string') state.name = s.name.slice(0, 16);
       } catch (_) { /* 壊れた保存値は無視 */ }
+    }
+
+    // =============== 苦手の記録 ===============
+    // データ更新で消えた問題の ID は残っていても出題範囲と交わらないので、件数に数えないだけにする
+    function loadWeak() {
+      try {
+        const ids = JSON.parse(localStorage.getItem(CONFIG.WEAK_KEY) || '[]');
+        if (Array.isArray(ids)) state.weak = new Set(ids.filter(id => typeof id === 'string'));
+      } catch (_) { /* 壊れた保存値は無視 */ }
+    }
+
+    function setWeak(id, on) {
+      if (state.weak.has(id) === on) return;
+      if (on) state.weak.add(id); else state.weak.delete(id);
+      try {
+        localStorage.setItem(CONFIG.WEAK_KEY, JSON.stringify([...state.weak]));
+      } catch (_) { /* 保存できなくても、開いている間の練習には使える */ }
+    }
+
+    function clearWeak() {
+      if (!confirm('苦手の記録をすべて消しますか？')) return;
+      state.weak.clear();
+      try { localStorage.removeItem(CONFIG.WEAK_KEY); } catch (_) { /* 消せなくても次に開いたときに残るだけ */ }
+      renderSettings();
+    }
+
+    // 選んでいる出題範囲・入手区分のうち、苦手の記録にある問題の数
+    function countWeak() {
+      return activePool().filter(e => state.weak.has(e.id)).length;
     }
 
     // =============== Exの中断・再開 ===============
@@ -989,7 +1088,7 @@
 
     // =============== 出題 ===============
     function show(sectionId) {
-      for (const id of ['settings', 'quiz', 'result']) $(id).classList.toggle('hidden', id !== sectionId);
+      for (const id of ['settings', 'quiz', 'result', 'practiceResult']) $(id).classList.toggle('hidden', id !== sectionId);
       window.scrollTo({ top: 0 });
     }
 
@@ -1003,7 +1102,8 @@
         kinds: CONFIG.kinds.filter(k => state.kinds.has(k.id)).map(k => k.label),
         gachas: CONFIG.gachas.filter(g => state.gachas.has(g.id)).map(g => g.label),
         ex: isEx(),
-        count: isEx() ? 'Ex' : `${state.questions.length}問`,
+        practice: isPractice(),
+        count: isEx() ? 'Ex' : isPractice() ? '練習' : `${state.questions.length}問`,
         choiceCount: state.choiceCount,
         level: CONFIG.levels.find(l => l.id === state.level).short
       };
@@ -1021,7 +1121,7 @@
       const q = state.questions[state.index];
       $('qProgress').textContent = `Q${state.index + 1}` + (state.played.ex ? '' : ` / ${state.questions.length}`);
       $('qScore').textContent = `${state.score} 正解`;
-      $('qKind').textContent = q.tag;
+      $('qKind').textContent = q.retry ? `もう一度・${q.tag}` : q.tag;
       $('qText').textContent = q.text;
       $('qPrompt').textContent = q.prompt;
       $('feedback').classList.add('hidden');
@@ -1029,6 +1129,7 @@
       $('confirmBtn').classList.remove('hidden');
       $('confirmBtn').disabled = true;
       $('exControls').classList.toggle('hidden', !state.played.ex);
+      $('practiceControls').classList.toggle('hidden', !state.played.practice);
       state.selected = null;
 
       const box = $('choices');
@@ -1039,20 +1140,7 @@
         btn.type = 'button';
         btn.dataset.idx = i;
         btn.setAttribute('aria-pressed', 'false');
-        if (c.img) {
-          const img = document.createElement('img');
-          if (c.icon) img.className = 'status-icon';
-          img.alt = '';
-          img.loading = 'lazy';
-          // 縮小版が無いとき（新キャラをまだ置いていないなど）は通常版、それも無ければ隠す
-          img.addEventListener('error', () => {
-            const full = img.src.replace(CONFIG.imgDir, CONFIG.fullImgDir);
-            if (full !== img.src) img.src = full;
-            else img.style.visibility = 'hidden';
-          });
-          img.src = c.img;
-          btn.appendChild(img);
-        }
+        if (c.img) btn.appendChild(createImg(c.img, c.icon));
         const name = document.createElement('span');
         name.className = 'c-name';
         name.textContent = c.label;
@@ -1067,6 +1155,21 @@
         box.appendChild(btn);
       });
       prefetchImages(state.questions[state.index + 1]);
+    }
+
+    // 縮小版が無いとき（新キャラをまだ置いていないなど）は通常版、それも無ければ隠す
+    function createImg(src, icon) {
+      const img = document.createElement('img');
+      if (icon) img.className = 'status-icon';
+      img.alt = '';
+      img.loading = 'lazy';
+      img.addEventListener('error', () => {
+        const full = img.src.replace(CONFIG.imgDir, CONFIG.fullImgDir);
+        if (full !== img.src) img.src = full;
+        else img.style.visibility = 'hidden';
+      });
+      img.src = src;
+      return img;
     }
 
     // 次の問題の画像を先に読み込み、切り替えた時点で表示されているようにする
@@ -1092,6 +1195,10 @@
       const ok = chosen.key === q.answerKey;
       if (ok) state.score++;
       state.answers.push({ q, chosen, ok });
+      // 間違えた問題はどのモードでも苦手に入れ、練習で正解したら外す
+      if (!ok) setWeak(q.id, true);
+      else if (state.played.practice) setWeak(q.id, false);
+      const retryAt = state.played.practice && !ok ? queueRetry(q) : -1;
 
       for (const btn of $('choices').children) {
         const c = q.choices[Number(btn.dataset.idx)];
@@ -1103,18 +1210,60 @@
       }
 
       const fb = $('feedback');
-      fb.innerHTML = `
-        <div class="verdict ${ok ? 'ok' : 'ng'}">${ok ? '正解！' : '不正解…'}</div>
-        <div>${escapeHtml(q.explain)}</div>
-        <div><a href="${escapeHtml(q.link.href)}" target="_blank" rel="noopener">${escapeHtml(q.link.label)}</a></div>`;
+      if (state.played.practice) {
+        renderPracticeFeedback(fb, q, ok, retryAt);
+        $('qText').textContent = q.fullText;
+      } else {
+        fb.innerHTML = `
+          <div class="verdict ${ok ? 'ok' : 'ng'}">${ok ? '正解！' : '不正解…'}</div>
+          <div>${escapeHtml(q.explain)}</div>
+          <div><a href="${escapeHtml(q.link.href)}" target="_blank" rel="noopener">${escapeHtml(q.link.label)}</a></div>`;
+      }
       fb.classList.remove('hidden');
       $('qScore').textContent = `${state.score} 正解`;
 
       const done = isFinished();
-      $('nextBtn').textContent = done ? '結果を見る' : '次の問題へ';
-      if (done) $('exControls').classList.add('hidden');
+      $('nextBtn').textContent = done ? (state.played.practice ? '練習の結果を見る' : '結果を見る') : '次の問題へ';
+      if (done) {
+        $('exControls').classList.add('hidden');
+        $('practiceControls').classList.add('hidden');
+      }
       $('nextBtn').classList.remove('hidden');
       $('nextBtn').focus({ preventScroll: true });
+    }
+
+    // 練習で間違えた問題を、選択肢を選び直して数問後に差し込む。差し込んだ位置を返す
+    function queueRetry(q) {
+      const at = Math.min(state.index + CONFIG.retryGap, state.questions.length);
+      const retry = buildQuestion(q.entry, choiceContext());
+      retry.retry = true;
+      state.questions.splice(at, 0, retry);
+      return at;
+    }
+
+    // 練習では覚えやすいよう、正解の画像・名前・技名をまとめて見せる
+    function renderPracticeFeedback(fb, q, ok, retryAt) {
+      const el = (tag, className, text) => {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text) node.textContent = text;
+        return node;
+      };
+      const name = el('span', 'fb-name', q.answerLabel);
+      name.appendChild(el('span', 'fb-part', q.answerPart));
+      const row = el('div', 'fb-answer');
+      if (q.answerImg) row.appendChild(createImg(q.answerImg, q.answerIcon));
+      row.appendChild(name);
+      fb.replaceChildren(el('div', `verdict ${ok ? 'ok' : 'ng'}`, ok ? '正解！' : '不正解…'), row);
+      if (retryAt >= 0) {
+        const ahead = retryAt - state.index;
+        fb.appendChild(el('div', 'fb-retry', ahead === 1 ? 'この問題は次にもう一度出ます' : `この問題は${ahead}問後にもう一度出ます`));
+      }
+      const link = el('a', '', q.link.label);
+      link.href = q.link.href;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      fb.appendChild(el('div')).appendChild(link);
     }
 
     // 回答済みの問題を基準に判定する。Exは間違えた時点で終わるので、直前の回答だけ見ればよい
@@ -1128,6 +1277,8 @@
         state.index++;
         renderQuestion();
         window.scrollTo({ top: 0 });
+      } else if (state.played.practice) {
+        renderPracticeResult();
       } else {
         renderResult();
       }
@@ -1137,7 +1288,7 @@
     // 中断・終了ボタンやリンクの Enter は横取りしない
     function onKeydown(e) {
       if ($('quiz').classList.contains('hidden') || e.repeat || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.target.closest?.('#exControls, a')) return;
+      if (e.target.closest?.('.ex-controls, a')) return;
       const answering = !$('confirmBtn').classList.contains('hidden');
       const n = Number(e.key);
       if (answering && n >= 1 && n <= $('choices').children.length) {
@@ -1231,6 +1382,40 @@
       setPngPreview(null);
       show('result');
       refreshPng();
+    }
+
+    // 練習は覚えるためのモードなので、称号や共有はせず、間違えた問題と残った苦手だけを見せる
+    function renderPracticeResult() {
+      const missed = new Map();   // 間違えた問題を、最初に間違えた順に1回ずつ
+      for (const a of state.answers) if (!a.ok && !missed.has(a.q.id)) missed.set(a.q.id, a.q);
+      const weakLeft = countWeak();
+      $('practiceSummary').textContent = `${state.answers.length} 問解いて ${state.score} 問正解しました。` +
+        (weakLeft ? `苦手に残っている問題は ${weakLeft} 問です。` : '苦手に残っている問題はありません。');
+      $('practiceWeakBtn').textContent = `苦手だけ練習する（${weakLeft}問）`;
+      $('practiceWeakBtn').classList.toggle('hidden', !weakLeft);
+      $('practiceReview').innerHTML = missed.size
+        ? [...missed.values()].map(q => {
+          const left = state.weak.has(q.id);
+          return `
+          <div class="review-item ${left ? 'ng' : ''}">
+            <div class="r-head">${left ? '×' : '○'} ${escapeHtml(q.explain)}</div>
+            <div class="r-sub">${left ? '苦手に残っています' : '正解して苦手から外れました'}</div>
+            <div class="r-sub">${escapeHtml(q.fullText)}</div>
+          </div>`;
+        }).join('')
+        : '<p class="pool-info">間違えた問題はありません</p>';
+      show('practiceResult');
+    }
+
+    function practiceWeak() {
+      state.weakOnly = true;
+      startQuiz();
+    }
+
+    function backToSettings() {
+      show('settings');
+      renderSettings();
+      renderResumeBtn();
     }
 
     // iOS は共有・コピーをタップ直後に同期的に呼ばないと拒否するため、画像は表示や名前の変更と同時に作っておく
@@ -1435,9 +1620,14 @@
     // =============== 初期化 ===============
     document.addEventListener('DOMContentLoaded', () => {
       loadSettings();
+      loadWeak();
       renderSettings();
 
       $('startBtn').addEventListener('click', startQuiz);
+      $('clearWeakBtn').addEventListener('click', clearWeak);
+      $('endPracticeBtn').addEventListener('click', renderPracticeResult);
+      $('practiceWeakBtn').addEventListener('click', practiceWeak);
+      $('practiceBackBtn').addEventListener('click', backToSettings);
       $('resumeBtn').addEventListener('click', resumeQuiz);
       $('suspendBtn').addEventListener('click', suspendQuiz);
       $('quitBtn').addEventListener('click', quitQuiz);
@@ -1449,7 +1639,7 @@
       $('nextBtn').addEventListener('click', next);
       document.addEventListener('keydown', onKeydown);
       $('retryBtn').addEventListener('click', startQuiz);
-      $('backBtn').addEventListener('click', () => { show('settings'); renderResumeBtn(); });
+      $('backBtn').addEventListener('click', backToSettings);
 
       // kage-data.js 自体の読み込みに失敗すると KageData が未定義になるので、then の中で呼んで catch に回す
       Promise.resolve().then(() => Promise.all([
