@@ -20,7 +20,7 @@
   <meta name="twitter:image" content="https://sg-kage.github.io/kage_site/quiz/og.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
   <style>
     :root {
@@ -150,6 +150,7 @@
       border-color: var(--green);
       box-shadow: 0 0 10px var(--green-glow);
     }
+    .chips.is-inactive { opacity: 0.45; }
 
     .pool-info {
       font-size: 0.72rem;
@@ -258,6 +259,11 @@
     .choice.correct { border-color: var(--green-bright); background: rgba(6, 78, 59, 0.6); }
     .choice.wrong { border-color: var(--red); background: var(--red-dim); }
     .choice.dim { opacity: 0.45; }
+
+    .kbd-hint { display: none; font-size: 0.68rem; color: var(--text-dim); text-align: right; margin-top: 8px; }
+    @media (hover: hover) and (pointer: fine) {
+      .kbd-hint { display: block; }
+    }
 
     .feedback {
       margin-top: 14px;
@@ -413,6 +419,12 @@
       box-shadow: none;
     }
     .btn-share:disabled { opacity: 0.6; cursor: wait; }
+    .btn-ghost {
+      color: var(--text);
+      background: rgba(20, 20, 20, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: none;
+    }
     .btn-text {
       font: inherit;
       font-size: 0.8rem;
@@ -458,6 +470,15 @@
     @media (max-width: 520px) {
       .choices { grid-template-columns: 1fr; }
       .q-text { font-size: 0.88rem; }
+      /* 選択肢が縦1列だと6択以上で確定・次へが画面外に出るので、回答欄を画面下に固定する。
+         flow-root で子の上マージンを内側に収め、その部分を選択肢との境目のぼかしに使う */
+      .q-actions {
+        display: flow-root;
+        position: sticky;
+        bottom: 0;
+        padding-bottom: 12px;
+        background: linear-gradient(180deg, rgba(5, 5, 5, 0) 0, rgba(5, 5, 5, 0.94) 14px);
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -503,9 +524,12 @@
       <div class="q-text" id="qText"></div>
       <p class="q-prompt" id="qPrompt"></p>
       <div class="choices" id="choices"></div>
-      <div class="feedback hidden" id="feedback" role="status" aria-live="polite"></div>
-      <button class="btn-primary" id="confirmBtn" disabled>確定</button>
-      <button class="btn-primary hidden" id="nextBtn">次の問題へ</button>
+      <p class="kbd-hint">キーボード：数字キーで選択、Enter で確定・次へ</p>
+      <div class="q-actions">
+        <div class="feedback hidden" id="feedback" role="status" aria-live="polite"></div>
+        <button class="btn-primary" id="confirmBtn" disabled>確定</button>
+        <button class="btn-primary hidden" id="nextBtn">次の問題へ</button>
+      </div>
       <div class="ex-controls hidden" id="exControls">
         <button class="btn-text" id="suspendBtn">一時中断</button>
         <button class="btn-text" id="quitBtn">終了する</button>
@@ -539,7 +563,7 @@
       <button class="btn-text" id="copyTextBtn">テキストだけコピー</button>
       <p class="copy-status" id="copyStatus" aria-live="polite"></p>
       <button class="btn-primary" id="retryBtn">もう一度（同じ設定）</button>
-      <button class="btn-primary" id="backBtn" style="background: rgba(20,20,20,0.8); color: var(--text); box-shadow: none; border: 1px solid rgba(255,255,255,0.15);">設定に戻る</button>
+      <button class="btn-primary btn-ghost" id="backBtn">設定に戻る</button>
       <h2 class="review-title">振り返り</h2>
       <div class="review" id="review"></div>
     </section>
@@ -671,16 +695,27 @@
       return entries.filter(e => owners.get(e.text).size === 1);
     }
 
+    // 状態効果の伏せ字（build_status_effects.py の MASK）と揃える
+    const MASK = '〇〇';
+    // 「敵1体に300.00%のダメージ」のような短い文は数値でしか持ち主を見分けられないので出題しない
+    const MIN_TEXT_LENGTH = 30;
+
     function buildCharPool(chars) {
       const entries = [];
       for (const char of chars) {
+        // 効果文に二つ名が出てくると、選択肢の [二つ名] から正解が分かるので伏せる。
+        // 伏せた結果ほかと同じ文になったものは uniqueByText で除かれる
+        const { title } = splitName(char.name);
         for (const kind of CONFIG.kinds) {
           for (const field of kind.fields) {
             const v = char[field];
             const items = typeof v === 'string' ? [{ title: '', normal: v }] : (Array.isArray(v) ? v : []);
             items.forEach((e, i) => {
-              const t = (e?.normal || '').trim();
-              if (t) entries.push({ kind: kind.id, id: `${char.position}:${field}:${i}`, key: `c${char.position}`, char, field, title: e.title || '', text: t });
+              let t = (e?.normal || '').trim();
+              if (title) t = t.split(title).join(MASK);
+              if (formatEffect(t).length >= MIN_TEXT_LENGTH) {
+                entries.push({ kind: kind.id, id: `${char.position}:${field}:${i}`, key: `c${char.position}`, char, field, title: e.title || '', text: t });
+              }
             });
           }
         }
@@ -827,10 +862,14 @@
       renderChips('choiceChips', CONFIG.choiceCounts.map(n => ({ id: n, label: `${n}択` })),
         c => c.id === state.choiceCount, c => { state.choiceCount = c.id; });
       renderChips('levelChips', CONFIG.levels, l => l.id === state.level, l => { state.level = l.id; });
+      // 入手区分はキャラの問題にだけ効く
+      $('gachaChips').classList.toggle('is-inactive', ![...state.kinds].some(k => k !== 'status'));
 
       if (!state.chars.length) return;
       const n = activePool().length;
-      $('poolInfo').textContent = `出題候補 ${n} 件` + (isEx() ? '（Exは1問でも間違えると終了）' : '');
+      $('poolInfo').textContent = n === 0
+        ? '出題候補がありません。出題範囲と入手区分を選び直してください'
+        : `出題候補 ${n} 件` + (isEx() ? '（Exは1問でも間違えると終了）' : '');
       $('startBtn').disabled = n === 0;
       saveSettings();
     }
@@ -1021,6 +1060,12 @@
         btn.addEventListener('click', () => select(i));
         box.appendChild(btn);
       });
+      prefetchImages(state.questions[state.index + 1]);
+    }
+
+    // 次の問題の画像を先に読み込み、切り替えた時点で表示されているようにする
+    function prefetchImages(q) {
+      for (const c of q?.choices || []) if (c.img) new Image().src = c.img;
     }
 
     function select(idx) {
@@ -1055,7 +1100,7 @@
       fb.innerHTML = `
         <div class="verdict ${ok ? 'ok' : 'ng'}">${ok ? '正解！' : '不正解…'}</div>
         <div>${escapeHtml(q.explain)}</div>
-        <div><a href="${q.link.href}" target="_blank" rel="noopener">${escapeHtml(q.link.label)}</a></div>`;
+        <div><a href="${escapeHtml(q.link.href)}" target="_blank" rel="noopener">${escapeHtml(q.link.label)}</a></div>`;
       fb.classList.remove('hidden');
       $('qScore').textContent = `${state.score} 正解`;
 
@@ -1079,6 +1124,23 @@
         window.scrollTo({ top: 0 });
       } else {
         renderResult();
+      }
+    }
+
+    // 数字キーで選択、Enter で確定・次へ。押しっぱなしで解説を飛ばさないよう連打扱いは無視する。
+    // 中断・終了ボタンやリンクの Enter は横取りしない
+    function onKeydown(e) {
+      if ($('quiz').classList.contains('hidden') || e.repeat || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.target.closest?.('#exControls, a')) return;
+      const answering = !$('confirmBtn').classList.contains('hidden');
+      const n = Number(e.key);
+      if (answering && n >= 1 && n <= $('choices').children.length) {
+        select(n - 1);
+      } else if (e.key === 'Enter') {
+        if (answering && state.selected !== null) answer();
+        else if (!answering) next();
+        else return;
+        e.preventDefault();
       }
     }
 
@@ -1379,6 +1441,7 @@
       $('copyTextBtn').addEventListener('click', copyText);
       $('playerName').addEventListener('input', onNameInput);
       $('nextBtn').addEventListener('click', next);
+      document.addEventListener('keydown', onKeydown);
       $('retryBtn').addEventListener('click', startQuiz);
       $('backBtn').addEventListener('click', () => { show('settings'); renderResumeBtn(); });
 
