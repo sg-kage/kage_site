@@ -124,7 +124,8 @@
             attributes: ["赤", "緑", "黄", "青"],
             roles: ["アタッカー", "タンク", "サポーター"],
             // 画像・JSONの参照先は kage_character サイト
-            imgDir: 'https://sg-kage.github.io/kage_character/image/characters/',
+            imgDir: 'https://sg-kage.github.io/kage_character/image/thumb/',   // 128px の縮小版
+            fullImgDir: 'https://sg-kage.github.io/kage_character/image/characters/',
             ext: '.webp',
             REGEX: {
                 effects: /『([^』]+)』/g
@@ -135,6 +136,17 @@
 
         // 画像欠損時のフォールバック（1px透明GIF）
         const FALLBACK_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+        // 縮小版が無いとき（新キャラをまだ置いていないなど）は通常版、それも無ければ透明GIFにする
+        function onImgError(img) {
+            const full = img.src.replace(CONFIG.imgDir, CONFIG.fullImgDir);
+            if (full !== img.src) {
+                img.src = full;
+            } else {
+                img.onerror = null;
+                img.src = FALLBACK_IMG;
+            }
+        }
 
         // 検索フィールドのマッピング定義（"特技:気絶" 形式）
         const FIELD_MAP = {
@@ -368,7 +380,7 @@
                 if (isInParty) div.classList.add('selected');
 
                 div.innerHTML = `
-                    <img src="${imgUrl(char)}" alt="${char._shortName}" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">
+                    <img src="${imgUrl(char)}" alt="${char._shortName}" loading="lazy" onerror="onImgError(this)">
                     <div class="char-info">
                         <div class="char-title scale-target-left">${char._title || ''}</div>
                         <div class="char-name-main scale-target-left">${char._shortName}</div>
@@ -545,7 +557,7 @@
 
                     slot.innerHTML = `
                         <button class="remove-btn" onclick="removeFromParty(${char.CharacterID})">×</button>
-                        <img src="${imgUrl(char)}" alt="${char._shortName}" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">
+                        <img src="${imgUrl(char)}" alt="${char._shortName}" loading="lazy" onerror="onImgError(this)">
                         <div class="slot-text-container">
                             <span class="slot-title scale-target-center">${char._title || ''}</span>
                             <span class="slot-name scale-target-center">${char._shortName}</span>
@@ -723,7 +735,7 @@
                 if (canLoad) {
                     const chars = ids.map(id => state.allChars.find(c => c.CharacterID === id)).filter(c => c);
                     chars.forEach(c => {
-                        previewHtml += `<img src="${imgUrl(c)}" class="preview-img" alt="${c._shortName}" title="${c._shortName}" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">`;
+                        previewHtml += `<img src="${imgUrl(c)}" class="preview-img" alt="${c._shortName}" title="${c._shortName}" loading="lazy" onerror="onImgError(this)">`;
                     });
                 } else {
                     previewHtml = '<span class="no-data">データなし</span>';

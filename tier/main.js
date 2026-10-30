@@ -17,7 +17,8 @@ const CONFIG = {
         "混合": "linear-gradient(135deg, #FF6347 0%, #FFD700 35%, #32CD32 65%, #1E90FF 100%)"
     },
     charsUrl: 'https://sg-kage.github.io/kage_character/characters/all_characters_ja.bin',
-    imgDir: 'https://sg-kage.github.io/kage_character/image/characters/',
+    imgDir: 'https://sg-kage.github.io/kage_character/image/thumb/',   // 128px の縮小版
+    fullImgDir: 'https://sg-kage.github.io/kage_character/image/characters/',
     zukanUrl: 'https://sg-kage.github.io/kage_character/',   // ?pos=Pos値 でキャラ詳細を直接開ける
     ext: '.webp',
     teamSize: 5,
@@ -27,6 +28,17 @@ const CONFIG = {
 
 // 画像欠損時のフォールバック（1px透明GIF）
 const FALLBACK_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+// 縮小版が無いとき（新キャラをまだ置いていないなど）は通常版、それも無ければ透明GIFにする
+function onImgError(img) {
+    const full = img.src.replace(CONFIG.imgDir, CONFIG.fullImgDir);
+    if (full !== img.src) {
+        img.src = full;
+    } else {
+        img.onerror = null;
+        img.src = FALLBACK_IMG;
+    }
+}
 
 const state = {
     charMap: new Map(),   // Pos → キャラ(前処理済み)。teams.json の chars も Pos で持つ(CharacterIDはキャラ追加で振り直されるため)
@@ -235,7 +247,7 @@ function charIconHtml(id, withName) {
     }
     return `<div class="team-char attr-${char.attribute}" data-pos="${char.position}">
         <img src="${imgUrl(char)}" alt="${escapeHtml(char._shortName)}"
-             loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">
+             loading="lazy" onerror="onImgError(this)">
         ${withName ? `<div class="tc-name">${escapeHtml(char._shortName)}</div>` : ''}
     </div>`;
 }
@@ -365,7 +377,7 @@ function renderUsage() {
         const char = state.charMap.get(r.id);
         const icon = char
             ? `<img class="attr-${char.attribute}" src="${imgUrl(char)}" alt="${escapeHtml(char._shortName)}" data-pos="${char.position}"
-                    loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">`
+                    loading="lazy" onerror="onImgError(this)">`
             : `<div class="char-unknown">Pos:${Number(r.id)}</div>`;
         const name = char ? escapeHtml(char._shortName) : '不明';
         return `<div class="usage-row ${rank <= 3 ? 'top3' : ''}">
@@ -626,7 +638,7 @@ function renderEditorSlots() {
             slot.className = `editor-slot filled attr-${char ? char.attribute : ''}`;
             slot.title = char ? `${char.name} (クリックで外す)` : `Pos:${id} (クリックで外す)`;
             slot.innerHTML = char
-                ? `<img src="${imgUrl(char)}" alt="" onerror="this.onerror=null;this.src=FALLBACK_IMG">
+                ? `<img src="${imgUrl(char)}" alt="" onerror="onImgError(this)">
                    <div class="es-name">${escapeHtml(char._shortName)}</div>`
                 : `<div class="es-empty">?</div><div class="es-name">Pos:${Number(id)}</div>`;
             slot.onclick = () => {
@@ -688,7 +700,7 @@ function renderPicker() {
         item.className = `picker-item attr-${char.attribute}` + (inTeam ? ' selected' : '');
         item.title = char.name;
         item.innerHTML = `
-            <img src="${imgUrl(char)}" alt="" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">
+            <img src="${imgUrl(char)}" alt="" loading="lazy" onerror="onImgError(this)">
             <div class="pi-name">${escapeHtml(char._shortName)}</div>
             <div class="pi-pos">Pos:${escapeHtml(char.position)}</div>`;
         item.onclick = () => {

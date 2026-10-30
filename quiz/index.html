@@ -581,7 +581,8 @@
 
     const CONFIG = {
       charsUrl: 'https://sg-kage.github.io/kage_character/characters/all_characters_ja.bin',
-      imgDir: 'https://sg-kage.github.io/kage_character/image/characters/',
+      imgDir: 'https://sg-kage.github.io/kage_character/image/thumb/',   // 128px の縮小版
+      fullImgDir: 'https://sg-kage.github.io/kage_character/image/characters/',
       zukanUrl: 'https://sg-kage.github.io/kage_character/',   // ?pos=Pos値 でキャラ詳細を直接開ける
       statusHelpUrl: 'https://www.shadow-garden-mog.jp/help/battlesystem0/battlesystem10/?cat=battle&from=ingame',
       statusUrl: './status_effects.json',   // build_status_effects.py が公式ヘルプから生成する
@@ -1043,7 +1044,12 @@
           if (c.icon) img.className = 'status-icon';
           img.alt = '';
           img.loading = 'lazy';
-          img.addEventListener('error', () => { img.style.visibility = 'hidden'; }, { once: true });
+          // 縮小版が無いとき（新キャラをまだ置いていないなど）は通常版、それも無ければ隠す
+          img.addEventListener('error', () => {
+            const full = img.src.replace(CONFIG.imgDir, CONFIG.fullImgDir);
+            if (full !== img.src) img.src = full;
+            else img.style.visibility = 'hidden';
+          });
           img.src = c.img;
           btn.appendChild(img);
         }
